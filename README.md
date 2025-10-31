@@ -1,5 +1,7 @@
 # EcoMetrics - Modern Landing Page
 
+EcoMetrics empowers businesses to track and reduce their carbon footprint with intelligent analytics and automated reporting.
+
 A modern, responsive landing page built with Next.js 13, TypeScript, Tailwind CSS, Shadcn UI, Framer Motion, and Supabase.
 
 ## 🚀 Features

@@ -1,10 +1,51 @@
 "use client";
 
-import { useState } from "react";
-import { motion } from "framer-motion";
+import { useState, useEffect } from "react";
+import { motion, AnimatePresence } from "framer-motion";
+import dynamic from "next/dynamic";
+// Dynamically import Tremor components to avoid SSR issues
+const Card = dynamic(() => import("@tremor/react").then((mod) => mod.Card), {
+  ssr: false,
+});
+const Title = dynamic(() => import("@tremor/react").then((mod) => mod.Title), {
+  ssr: false,
+});
+const Text = dynamic(() => import("@tremor/react").then((mod) => mod.Text), {
+  ssr: false,
+});
+const Metric = dynamic(
+  () => import("@tremor/react").then((mod) => mod.Metric),
+  { ssr: false }
+);
+const AreaChart = dynamic(
+  () => import("@tremor/react").then((mod) => mod.AreaChart),
+  { ssr: false }
+);
+const DonutChart = dynamic(
+  () => import("@tremor/react").then((mod) => mod.DonutChart),
+  { ssr: false }
+);
+const BarChart = dynamic(
+  () => import("@tremor/react").then((mod) => mod.BarChart),
+  { ssr: false }
+);
+const LineChart = dynamic(
+  () => import("@tremor/react").then((mod) => mod.LineChart),
+  { ssr: false }
+);
+const BadgeDelta = dynamic(
+  () => import("@tremor/react").then((mod) => mod.BadgeDelta),
+  { ssr: false }
+);
+const Flex = dynamic(() => import("@tremor/react").then((mod) => mod.Flex), {
+  ssr: false,
+});
+const Grid = dynamic(() => import("@tremor/react").then((mod) => mod.Grid), {
+  ssr: false,
+});
 import { Button } from "@/components/ui/button";
 import {
-  Card,
+  Card as UICard,
   CardContent,
   CardDescription,
   CardHeader,
@@ -13,17 +54,85 @@ import {
 import Link from "next/link";
 import {
   Leaf,
-  TrendingUp,
   Activity,
   Clock,
   BarChart3,
   Zap,
   Globe,
   ArrowLeft,
+  TrendingUp,
+  TrendingDown,
+  AlertTriangle,
+  CheckCircle,
 } from "lucide-react";
+
+// Mock data for real-time tracking
+const realtimeData = [
+  { time: "00:00", emissions: 245.8, temperature: 22.5, humidity: 65 },
+  { time: "04:00", emissions: 198.3, temperature: 21.8, humidity: 68 },
+  { time: "08:00", emissions: 312.7, temperature: 23.2, humidity: 62 },
+  { time: "12:00", emissions: 389.4, temperature: 25.1, humidity: 58 },
+  { time: "16:00", emissions: 456.2, temperature: 26.8, humidity: 55 },
+  { time: "20:00", emissions: 298.1, temperature: 24.3, humidity: 61 },
+  { time: "24:00", emissions: 267.9, temperature: 22.9, humidity: 64 },
+];
+
+const emissionSources = [
+  { name: "Electricity", value: 45, color: "#10b981" },
+  { name: "Transportation", value: 25, color: "#3b82f6" },
+  { name: "Manufacturing", value: 20, color: "#f59e0b" },
+  { name: "Heating", value: 10, color: "#ef4444" },
+];
+
+const dailyComparison = [
+  { day: "Mon", current: 245, previous: 289 },
+  { day: "Tue", current: 198, previous: 234 },
+  { day: "Wed", current: 312, previous: 298 },
+  { day: "Thu", current: 389, previous: 412 },
+  { day: "Fri", current: 456, previous: 478 },
+  { day: "Sat", current: 298, previous: 321 },
+  { day: "Sun", current: 267, previous: 289 },
+];
+
+const alerts = [
+  {
+    id: 1,
+    type: "warning",
+    message: "Emissions threshold exceeded in Building A",
+    time: "2 minutes ago",
+  },
+  {
+    id: 2,
+    type: "success",
+    message: "Energy consumption reduced by 15%",
+    time: "15 minutes ago",
+  },
+  {
+    id: 3,
+    type: "info",
+    message: "New data source connected successfully",
+    time: "1 hour ago",
+  },
+];
 
 export default function RealTimeCarbonTrackingPage() {
   const [currentEmissions, setCurrentEmissions] = useState(245.8);
+  const [selectedTimeRange, setSelectedTimeRange] = useState("24h");
+  const [isLive, setIsLive] = useState(true);
+
+  // Simulate real-time updates
+  useEffect(() => {
+    if (!isLive) return;
+
+    const interval = setInterval(() => {
+      setCurrentEmissions((prev) => {
+        const change = (Math.random() - 0.5) * 20;
+        return Math.max(0, prev + change);
+      });
+    }, 3000);
+
+    return () => clearInterval(interval);
+  }, [isLive]);
 
   const fadeIn = {
     initial: { opacity: 0, y: 60 },
@@ -38,31 +147,11 @@ export default function RealTimeCarbonTrackingPage() {
     },
   };
 
-  const features = [
-    {
-      icon: <Activity className="h-8 w-8 text-green-600" />,
-      title: "Live Data Stream",
-      description:
-        "Real-time emission data from all connected sources with millisecond precision.",
-    },
-    {
-      icon: <Clock className="h-8 w-8 text-green-600" />,
-      title: "24/7 Monitoring",
-      description:
-        "Continuous tracking ensures no emissions go unnoticed, even during off-hours.",
-    },
-    {
-      icon: <BarChart3 className="h-8 w-8 text-green-600" />,
-      title: "Real-Time Analytics",
-      description: "Instant calculations and trend analysis as data flows in.",
-    },
-    {
-      icon: <Zap className="h-8 w-8 text-green-600" />,
-      title: "Instant Alerts",
-      description:
-        "Get notified immediately when emissions exceed predefined thresholds.",
-    },
-  ];
+  const getDeltaType = (current: number, previous: number) => {
+    if (current < previous) return "moderateDecrease";
+    if (current > previous) return "moderateIncrease";
+    return "unchanged";
+  };
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-green-50 via-emerald-50 to-sky-50">
@@ -97,159 +186,291 @@ export default function RealTimeCarbonTrackingPage() {
         </div>
       </nav>
 
-      {/* Hero Section */}
-      <section className="relative overflow-hidden py-20 lg:py-32">
+      {/* Dashboard Header */}
+      <section className="py-8 bg-white/50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="grid lg:grid-cols-2 gap-12 items-center">
+          <motion.div
+            initial="initial"
+            animate="animate"
+            variants={staggerChildren}
+            className="mb-8"
+          >
             <motion.div
-              initial="initial"
-              animate="animate"
-              variants={staggerChildren}
-              className="text-center lg:text-left"
+              variants={fadeIn}
+              className="flex flex-col lg:flex-row lg:items-center lg:justify-between"
             >
-              <motion.h1
-                variants={fadeIn}
-                className="text-5xl lg:text-7xl font-extrabold text-gray-900 mb-6"
-              >
-                Real-Time Carbon{" "}
-                <span className="text-transparent bg-clip-text bg-gradient-to-r from-green-600 to-emerald-600">
-                  Tracking
-                </span>
-              </motion.h1>
-
-              <motion.p
-                variants={fadeIn}
-                className="text-xl text-gray-600 mb-8 max-w-lg mx-auto lg:mx-0"
-              >
-                Monitor your carbon emissions in real-time with our advanced
-                tracking system that provides instant insights and alerts.
-              </motion.p>
-
-              <motion.div
-                variants={fadeIn}
-                className="flex flex-col sm:flex-row gap-4 justify-center lg:justify-start"
-              >
+              <div>
+                <h1 className="text-4xl font-bold text-gray-900 mb-2">
+                  Real-Time Carbon Tracking
+                </h1>
+                <p className="text-lg text-gray-600">
+                  Monitor your emissions with live data and interactive
+                  analytics
+                </p>
+              </div>
+              <div className="flex items-center space-x-4 mt-4 lg:mt-0">
+                <div className="flex items-center space-x-2">
+                  <div
+                    className={`w-3 h-3 rounded-full ${
+                      isLive ? "bg-green-500 animate-pulse" : "bg-gray-400"
+                    }`}
+                  ></div>
+                  <span className="text-sm text-gray-600">
+                    {isLive ? "Live" : "Paused"}
+                  </span>
+                </div>
                 <Button
-                  size="lg"
-                  className="bg-green-600 hover:bg-green-700 text-white px-8 py-4 text-lg"
+                  onClick={() => setIsLive(!isLive)}
+                  variant={isLive ? "destructive" : "default"}
+                  size="sm"
                 >
-                  Start Tracking
+                  {isLive ? "Pause" : "Resume"}
                 </Button>
-
-                <Link href="/#about">
-                  <Button
-                    variant="outline"
-                    size="lg"
-                    className="border-green-200 text-green-700 hover:bg-green-50 px-8 py-4 text-lg"
-                  >
-                    Learn More
-                  </Button>
-                </Link>
-              </motion.div>
+              </div>
             </motion.div>
+          </motion.div>
 
-            <motion.div
-              initial={{ opacity: 0, scale: 0.8 }}
-              animate={{ opacity: 1, scale: 1 }}
-              transition={{ duration: 0.8, delay: 0.2 }}
-              className="relative"
-            >
-              <Card className="bg-white/90 backdrop-blur-md border-0 shadow-2xl">
-                <CardHeader>
-                  <CardTitle className="text-2xl text-center">
-                    Live Carbon Emissions
-                  </CardTitle>
-                  <CardDescription className="text-center">
-                    Current emissions in tons CO2e
-                  </CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <div className="text-center">
-                    <motion.div
-                      className="text-6xl font-bold text-green-600 mb-4"
-                      animate={{ scale: [1, 1.05, 1] }}
-                      transition={{ duration: 2, repeat: Infinity }}
-                    >
-                      {currentEmissions.toFixed(1)}
-                    </motion.div>
-                    <div className="flex items-center justify-center space-x-2 text-sm text-gray-600">
-                      <Activity className="h-4 w-4 text-green-500" />
-                      <span>Live Data</span>
-                    </div>
+          {/* Key Metrics Cards */}
+          <motion.div
+            initial="initial"
+            animate="animate"
+            variants={staggerChildren}
+            className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8"
+          >
+            <motion.div variants={fadeIn}>
+              <Card className="bg-gradient-to-br from-green-500 to-emerald-600 text-white border-0">
+                <Flex alignItems="start">
+                  <div className="truncate">
+                    <Text className="text-green-100">Current Emissions</Text>
+                    <Metric className="text-white">
+                      {currentEmissions.toFixed(1)} tCO₂e
+                    </Metric>
                   </div>
-                </CardContent>
+                  <Activity className="h-8 w-8 text-green-200" />
+                </Flex>
               </Card>
             </motion.div>
-          </div>
-        </div>
-      </section>
 
-      {/* Features Section */}
-      <section className="py-20 bg-white">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <motion.div
-            initial={{ opacity: 0, y: 40 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.6 }}
-            viewport={{ once: true }}
-            className="text-center mb-16"
-          >
-            <h2 className="text-4xl font-bold text-gray-900 mb-4">
-              Real-Time Tracking Features
-            </h2>
-            <p className="text-xl text-gray-600 max-w-3xl mx-auto">
-              Everything you need for comprehensive, real-time carbon monitoring
-            </p>
+            <motion.div variants={fadeIn}>
+              <Card className="bg-gradient-to-br from-blue-500 to-indigo-600 text-white border-0">
+                <Flex alignItems="start">
+                  <div className="truncate">
+                    <Text className="text-blue-100">Daily Target</Text>
+                    <Metric className="text-white">320 tCO₂e</Metric>
+                  </div>
+                  <TrendingDown className="h-8 w-8 text-blue-200" />
+                </Flex>
+                <BadgeDelta
+                  deltaType={getDeltaType(currentEmissions, 320)}
+                  className="mt-2"
+                >
+                  {currentEmissions < 320 ? "23% below target" : "Above target"}
+                </BadgeDelta>
+              </Card>
+            </motion.div>
+
+            <motion.div variants={fadeIn}>
+              <Card className="bg-gradient-to-br from-purple-500 to-pink-600 text-white border-0">
+                <Flex alignItems="start">
+                  <div className="truncate">
+                    <Text className="text-purple-100">Week Progress</Text>
+                    <Metric className="text-white">73%</Metric>
+                  </div>
+                  <BarChart3 className="h-8 w-8 text-purple-200" />
+                </Flex>
+                <BadgeDelta deltaType="moderateIncrease" className="mt-2">
+                  +5% from last week
+                </BadgeDelta>
+              </Card>
+            </motion.div>
+
+            <motion.div variants={fadeIn}>
+              <Card className="bg-gradient-to-br from-orange-500 to-red-600 text-white border-0">
+                <Flex alignItems="start">
+                  <div className="truncate">
+                    <Text className="text-orange-100">Cost Impact</Text>
+                    <Metric className="text-white">$1,247</Metric>
+                  </div>
+                  <Zap className="h-8 w-8 text-orange-200" />
+                </Flex>
+                <BadgeDelta deltaType="moderateDecrease" className="mt-2">
+                  -12% cost reduction
+                </BadgeDelta>
+              </Card>
+            </motion.div>
           </motion.div>
 
-          <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-8">
-            {features.map((feature, index) => (
-              <motion.div
-                key={index}
-                initial={{ opacity: 0, y: 40 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.6, delay: index * 0.1 }}
-                viewport={{ once: true }}
+          {/* Time Range Selector */}
+          <motion.div
+            variants={fadeIn}
+            className="flex items-center space-x-2 mb-6"
+          >
+            <Text className="text-gray-600 mr-2">Time Range:</Text>
+            {["1h", "6h", "24h", "7d", "30d"].map((range) => (
+              <Button
+                key={range}
+                onClick={() => setSelectedTimeRange(range)}
+                variant={selectedTimeRange === range ? "default" : "outline"}
+                size="sm"
               >
-                <Card className="h-full border-0 shadow-lg hover:shadow-xl transition-shadow">
-                  <CardHeader>
-                    <div className="mb-4">{feature.icon}</div>
-                    <CardTitle className="text-xl">{feature.title}</CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <CardDescription className="text-base">
-                      {feature.description}
-                    </CardDescription>
-                  </CardContent>
-                </Card>
-              </motion.div>
+                {range}
+              </Button>
             ))}
-          </div>
+          </motion.div>
         </div>
       </section>
 
-      {/* CTA Section */}
-      <section className="py-20 bg-gradient-to-r from-green-600 to-emerald-600">
-        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-          <motion.div
-            initial={{ opacity: 0, y: 40 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.6 }}
-            viewport={{ once: true }}
+      {/* Main Dashboard */}
+      <section className="py-8">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <Grid
+            numItems={1}
+            numItemsSm={2}
+            numItemsLg={3}
+            className="gap-6 mb-8"
           >
-            <h2 className="text-4xl lg:text-5xl font-bold text-white mb-6">
-              Ready to track in real-time?
-            </h2>
-            <p className="text-xl text-green-100 mb-8">
-              Join businesses already monitoring their carbon footprint 24/7
-            </p>
+            {/* Real-time Emissions Chart */}
+            <Card className="col-span-2">
+              <Title>Real-Time Emissions Tracking</Title>
+              <Text>Live carbon emissions over time</Text>
+              <AreaChart
+                className="h-80 mt-4"
+                data={realtimeData}
+                index="time"
+                categories={["emissions"]}
+                colors={["green"]}
+                valueFormatter={(number) => `${number.toFixed(1)} tCO₂e`}
+                showLegend={false}
+                showGridLines={true}
+                curveType="monotone"
+                yAxisWidth={60}
+              />
+            </Card>
+
+            {/* Emission Sources Breakdown */}
+            <Card>
+              <Title>Emission Sources</Title>
+              <Text>Current distribution by source</Text>
+              <DonutChart
+                className="h-80 mt-4"
+                data={emissionSources}
+                category="value"
+                index="name"
+                colors={["emerald", "blue", "amber", "rose"]}
+                valueFormatter={(number) => `${number}%`}
+                showLabel={true}
+                showAnimation={true}
+              />
+            </Card>
+
+            {/* Daily Comparison */}
+            <Card className="col-span-2">
+              <Title>Weekly Comparison</Title>
+              <Text>Current vs previous week emissions</Text>
+              <BarChart
+                className="h-80 mt-4"
+                data={dailyComparison}
+                index="day"
+                categories={["current", "previous"]}
+                colors={["green", "gray"]}
+                valueFormatter={(number) => `${number} tCO₂e`}
+                showLegend={true}
+                yAxisWidth={60}
+              />
+            </Card>
+
+            {/* Alerts and Notifications */}
+            <Card>
+              <Title>Recent Alerts</Title>
+              <Text>Latest system notifications</Text>
+              <div className="h-80 mt-4 space-y-4">
+                <AnimatePresence>
+                  {alerts.map((alert) => (
+                    <motion.div
+                      key={alert.id}
+                      initial={{ opacity: 0, x: -20 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      exit={{ opacity: 0, x: 20 }}
+                      className={`p-4 rounded-lg border-l-4 ${
+                        alert.type === "warning"
+                          ? "bg-yellow-50 border-yellow-400"
+                          : alert.type === "success"
+                          ? "bg-green-50 border-green-400"
+                          : "bg-blue-50 border-blue-400"
+                      }`}
+                    >
+                      <div className="flex items-start space-x-3">
+                        {alert.type === "warning" && (
+                          <AlertTriangle className="h-5 w-5 text-yellow-600 mt-0.5" />
+                        )}
+                        {alert.type === "success" && (
+                          <CheckCircle className="h-5 w-5 text-green-600 mt-0.5" />
+                        )}
+                        {alert.type === "info" && (
+                          <Activity className="h-5 w-5 text-blue-600 mt-0.5" />
+                        )}
+                        <div className="flex-1">
+                          <p className="text-sm font-medium text-gray-900">
+                            {alert.message}
+                          </p>
+                          <p className="text-xs text-gray-500 mt-1">
+                            {alert.time}
+                          </p>
+                        </div>
+                      </div>
+                    </motion.div>
+                  ))}
+                </AnimatePresence>
+              </div>
+            </Card>
+
+            {/* Environmental Factors */}
+            <Card className="col-span-1 lg:col-span-3">
+              <Title>Environmental Factors</Title>
+              <Text>Temperature and humidity correlation with emissions</Text>
+              <LineChart
+                className="h-80 mt-4"
+                data={realtimeData}
+                index="time"
+                categories={["temperature", "humidity"]}
+                colors={["red", "blue"]}
+                valueFormatter={(number) => `${number.toFixed(1)}°`}
+                showLegend={true}
+                yAxisWidth={60}
+              />
+            </Card>
+          </Grid>
+        </div>
+      </section>
+
+      {/* Action Buttons */}
+      <section className="py-8 bg-white/50">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex flex-col sm:flex-row gap-4 justify-center">
             <Button
               size="lg"
-              className="bg-white text-green-600 hover:bg-gray-100 px-8 py-4 text-lg"
+              className="bg-green-600 hover:bg-green-700 text-white px-8 py-4"
             >
-              Get Started Free
+              <Zap className="h-5 w-5 mr-2" />
+              Generate Report
             </Button>
-          </motion.div>
+            <Button
+              variant="outline"
+              size="lg"
+              className="border-green-200 text-green-700 hover:bg-green-50 px-8 py-4"
+            >
+              <BarChart3 className="h-5 w-5 mr-2" />
+              Export Data
+            </Button>
+            <Button
+              variant="outline"
+              size="lg"
+              className="border-green-200 text-green-700 hover:bg-green-50 px-8 py-4"
+            >
+              <Globe className="h-5 w-5 mr-2" />
+              Share Dashboard
+            </Button>
+          </div>
         </div>
       </section>
     </div>
