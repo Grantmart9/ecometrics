@@ -16,6 +16,8 @@ import {
   Cloud,
   Zap,
   ChevronDown,
+  LogOut,
+  User,
 } from "lucide-react";
 import {
   Card,
@@ -24,10 +26,23 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import { useAuth } from "@/lib/auth-context";
+import { useRouter } from "next/navigation";
 
 export default function LandingPage() {
   const [signupModalOpen, setSignupModalOpen] = useState(false);
   const [isCalculateDropdownOpen, setIsCalculateDropdownOpen] = useState(false);
+  const { isAuthenticated, user, logout } = useAuth();
+  const router = useRouter();
+
+  const handleLogin = () => {
+    router.push("/login");
+  };
+
+  const handleLogout = () => {
+    logout();
+    router.push("/");
+  };
 
   const fadeIn = {
     initial: { opacity: 0, y: 60 },
@@ -141,6 +156,32 @@ export default function LandingPage() {
                 EcoMetrics
               </span>
             </div>
+            {isAuthenticated && user ? (
+              <div className="flex items-center space-x-4">
+                <span className="text-gray-700">
+                  <motion.div
+                    className="flex items-center space-x-4"
+                    whileHover={{ scale: 1.05 }}
+                  >
+                    <div className="flex items-center text-gray-700">
+                      <User className="h-5 w-5 mr-2 text-green-600" />
+                      <span className="font-medium">{user?.name}</span>
+                    </div>
+                    <Button
+                      onClick={handleLogout}
+                      variant="outline"
+                      size="sm"
+                      className="text-gray-700 border-green-200 hover:bg-green-50"
+                    >
+                      <LogOut className="h-4 w-4 mr-2" />
+                      Logout
+                    </Button>
+                  </motion.div>
+                </span>
+              </div>
+            ) : (
+              <></>
+            )}
             <div className="hidden md:flex space-x-8">
               <a
                 href="#about"
@@ -167,88 +208,104 @@ export default function LandingPage() {
                 Testimonials
               </a>
               <div className="relative">
-                <motion.button
-                  onClick={() =>
-                    setIsCalculateDropdownOpen(!isCalculateDropdownOpen)
-                  }
-                  className="text-gray-700 hover:text-green-600 transition-colors flex items-center px-3 py-2 rounded-lg hover:bg-green-50"
-                  whileHover={{ scale: 1.05 }}
-                  whileTap={{ scale: 0.95 }}
-                >
-                  Calculate
-                  <motion.div
-                    animate={{ rotate: isCalculateDropdownOpen ? 180 : 0 }}
-                    transition={{ duration: 0.2 }}
+                {isAuthenticated ? (
+                  <></>
+                ) : (
+                  <motion.button
+                    onClick={handleLogin}
+                    className="text-gray-700 hover:text-green-600 transition-colors flex items-center px-3 py-2 rounded-lg hover:bg-green-50"
+                    whileHover={{ scale: 1.05 }}
+                    whileTap={{ scale: 0.95 }}
                   >
-                    <ChevronDown className="ml-1 h-4 w-4" />
-                  </motion.div>
-                </motion.button>
-                <AnimatePresence>
-                  {isCalculateDropdownOpen && (
-                    <motion.div
-                      initial={{ opacity: 0, y: -10, scale: 0.95 }}
-                      animate={{ opacity: 1, y: 0, scale: 1 }}
-                      exit={{ opacity: 0, y: -10, scale: 0.95 }}
-                      transition={{ duration: 0.2 }}
-                      className="absolute top-full mt-2 bg-white/95 backdrop-blur-md border border-green-200 rounded-xl shadow-xl z-50 min-w-[200px] overflow-hidden"
+                    Login
+                  </motion.button>
+                )}
+                {isAuthenticated && (
+                  <div className="relative">
+                    <motion.button
+                      onClick={() =>
+                        setIsCalculateDropdownOpen(!isCalculateDropdownOpen)
+                      }
+                      className="text-gray-700 hover:text-green-600 transition-colors flex items-center px-3 py-2 rounded-lg hover:bg-green-50"
+                      whileHover={{ scale: 1.05 }}
+                      whileTap={{ scale: 0.95 }}
                     >
-                      <motion.a
-                        href="/real-time-carbon-tracking"
-                        className="block px-4 py-3 text-gray-700 hover:bg-green-50 hover:text-green-700 transition-colors"
-                        onClick={() => setIsCalculateDropdownOpen(false)}
-                        whileHover={{ x: 4 }}
-                        transition={{ duration: 0.1 }}
+                      Calculate
+                      <motion.div
+                        animate={{ rotate: isCalculateDropdownOpen ? 180 : 0 }}
+                        transition={{ duration: 0.2 }}
                       >
-                        Real-Time Carbon Tracking
-                      </motion.a>
-                      <motion.a
-                        href="/automated-reports"
-                        className="block px-4 py-3 text-gray-700 hover:bg-green-50 hover:text-green-700 transition-colors"
-                        onClick={() => setIsCalculateDropdownOpen(false)}
-                        whileHover={{ x: 4 }}
-                        transition={{ duration: 0.1 }}
-                      >
-                        Automated Reports
-                      </motion.a>
-                      <motion.a
-                        href="/custom-dashboards"
-                        className="block px-4 py-3 text-gray-700 hover:bg-green-50 hover:text-green-700 transition-colors"
-                        onClick={() => setIsCalculateDropdownOpen(false)}
-                        whileHover={{ x: 4 }}
-                        transition={{ duration: 0.1 }}
-                      >
-                        Custom Dashboards
-                      </motion.a>
-                      <motion.a
-                        href="/emission-source-breakdown"
-                        className="block px-4 py-3 text-gray-700 hover:bg-green-50 hover:text-green-700 transition-colors"
-                        onClick={() => setIsCalculateDropdownOpen(false)}
-                        whileHover={{ x: 4 }}
-                        transition={{ duration: 0.1 }}
-                      >
-                        Emission Source Breakdown
-                      </motion.a>
-                      <motion.a
-                        href="/cloud-integration"
-                        className="block px-4 py-3 text-gray-700 hover:bg-green-50 hover:text-green-700 transition-colors"
-                        onClick={() => setIsCalculateDropdownOpen(false)}
-                        whileHover={{ x: 4 }}
-                        transition={{ duration: 0.1 }}
-                      >
-                        Cloud Integration
-                      </motion.a>
-                      <motion.a
-                        href="/team-collaboration"
-                        className="block px-4 py-3 text-gray-700 hover:bg-green-50 hover:text-green-700 transition-colors"
-                        onClick={() => setIsCalculateDropdownOpen(false)}
-                        whileHover={{ x: 4 }}
-                        transition={{ duration: 0.1 }}
-                      >
-                        Team Collaboration
-                      </motion.a>
-                    </motion.div>
-                  )}
-                </AnimatePresence>
+                        <ChevronDown className="ml-1 h-4 w-4" />
+                      </motion.div>
+                    </motion.button>
+                    <AnimatePresence>
+                      {isCalculateDropdownOpen && (
+                        <motion.div
+                          initial={{ opacity: 0, y: -10, scale: 0.95 }}
+                          animate={{ opacity: 1, y: 0, scale: 1 }}
+                          exit={{ opacity: 0, y: -10, scale: 0.95 }}
+                          transition={{ duration: 0.2 }}
+                          className="absolute top-full mt-2 bg-white/95 backdrop-blur-md border border-green-200 rounded-xl shadow-xl z-50 min-w-[200px] overflow-hidden"
+                        >
+                          <motion.a
+                            href="/real-time-carbon-tracking"
+                            className="block px-4 py-3 text-gray-700 hover:bg-green-50 hover:text-green-700 transition-colors"
+                            onClick={() => setIsCalculateDropdownOpen(false)}
+                            whileHover={{ x: 4 }}
+                            transition={{ duration: 0.1 }}
+                          >
+                            Real-Time Carbon Tracking
+                          </motion.a>
+                          <motion.a
+                            href="/automated-reports"
+                            className="block px-4 py-3 text-gray-700 hover:bg-green-50 hover:text-green-700 transition-colors"
+                            onClick={() => setIsCalculateDropdownOpen(false)}
+                            whileHover={{ x: 4 }}
+                            transition={{ duration: 0.1 }}
+                          >
+                            Automated Reports
+                          </motion.a>
+                          <motion.a
+                            href="/custom-dashboards"
+                            className="block px-4 py-3 text-gray-700 hover:bg-green-50 hover:text-green-700 transition-colors"
+                            onClick={() => setIsCalculateDropdownOpen(false)}
+                            whileHover={{ x: 4 }}
+                            transition={{ duration: 0.1 }}
+                          >
+                            Custom Dashboards
+                          </motion.a>
+                          <motion.a
+                            href="/emission-source-breakdown"
+                            className="block px-4 py-3 text-gray-700 hover:bg-green-50 hover:text-green-700 transition-colors"
+                            onClick={() => setIsCalculateDropdownOpen(false)}
+                            whileHover={{ x: 4 }}
+                            transition={{ duration: 0.1 }}
+                          >
+                            Emission Source Breakdown
+                          </motion.a>
+                          <motion.a
+                            href="/cloud-integration"
+                            className="block px-4 py-3 text-gray-700 hover:bg-green-50 hover:text-green-700 transition-colors"
+                            onClick={() => setIsCalculateDropdownOpen(false)}
+                            whileHover={{ x: 4 }}
+                            transition={{ duration: 0.1 }}
+                          >
+                            Cloud Integration
+                          </motion.a>
+                          <motion.a
+                            href="/team-collaboration"
+                            className="block px-4 py-3 text-gray-700 hover:bg-green-50 hover:text-green-700 transition-colors"
+                            onClick={() => setIsCalculateDropdownOpen(false)}
+                            whileHover={{ x: 4 }}
+                            transition={{ duration: 0.1 }}
+                          >
+                            Team Collaboration
+                          </motion.a>
+                        </motion.div>
+                      )}
+                    </AnimatePresence>
+                  </div>
+                )}
               </div>
             </div>
           </div>

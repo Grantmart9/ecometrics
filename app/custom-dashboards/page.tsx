@@ -2,65 +2,23 @@
 
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import dynamic from "next/dynamic";
-// Dynamically import Tremor components to avoid SSR issues
-const Card = dynamic(() => import("@tremor/react").then((mod) => mod.Card), {
-  ssr: false,
-});
-const Title = dynamic(() => import("@tremor/react").then((mod) => mod.Title), {
-  ssr: false,
-});
-const Text = dynamic(() => import("@tremor/react").then((mod) => mod.Text), {
-  ssr: false,
-});
-const Metric = dynamic(
-  () => import("@tremor/react").then((mod) => mod.Metric),
-  { ssr: false }
-);
-const AreaChart = dynamic(
-  () => import("@tremor/react").then((mod) => mod.AreaChart),
-  { ssr: false }
-);
-const BarChart = dynamic(
-  () => import("@tremor/react").then((mod) => mod.BarChart),
-  { ssr: false }
-);
-const DonutChart = dynamic(
-  () => import("@tremor/react").then((mod) => mod.DonutChart),
-  { ssr: false }
-);
-const LineChart = dynamic(
-  () => import("@tremor/react").then((mod) => mod.LineChart),
-  { ssr: false }
-);
-const BadgeDelta = dynamic(
-  () => import("@tremor/react").then((mod) => mod.BadgeDelta),
-  { ssr: false }
-);
-const Flex = dynamic(() => import("@tremor/react").then((mod) => mod.Flex), {
-  ssr: false,
-});
-const Grid = dynamic(() => import("@tremor/react").then((mod) => mod.Grid), {
-  ssr: false,
-});
-const Button = dynamic(
-  () => import("@tremor/react").then((mod) => mod.Button),
-  { ssr: false }
-);
-const Select = dynamic(
-  () => import("@tremor/react").then((mod) => mod.Select),
-  {
-    ssr: false,
-  }
-);
-const SelectItem = dynamic(
-  () => import("@tremor/react").then((mod) => mod.SelectItem),
-  { ssr: false }
-);
-const TextInput = dynamic(
-  () => import("@tremor/react").then((mod) => mod.TextInput),
-  { ssr: false }
-);
+import {
+  AreaChart as RechartsAreaChart,
+  Area as RechartsArea,
+  BarChart as RechartsBarChart,
+  Bar as RechartsBar,
+  LineChart as RechartsLineChart,
+  Line as RechartsLine,
+  PieChart as RechartsPieChart,
+  Pie as RechartsPie,
+  Cell as RechartsCell,
+  XAxis as RechartsXAxis,
+  YAxis as RechartsYAxis,
+  CartesianGrid as RechartsCartesianGrid,
+  Tooltip as RechartsTooltip,
+  Legend as RechartsLegend,
+  ResponsiveContainer as RechartsResponsiveContainer,
+} from "recharts";
 import { Button as UIButton } from "@/components/ui/button";
 import {
   Card as UICard,
@@ -69,6 +27,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
 import Link from "next/link";
 import {
   Leaf,
@@ -279,71 +238,229 @@ export default function CustomDashboardsPage() {
   };
 
   const renderWidget = (widget: any) => {
-    const commonProps = {
-      className: "h-80",
-      showLegend: true,
-      showGridLines: true,
-      yAxisWidth: 60,
-    };
-
     switch (widget.type) {
       case "area-chart":
         return (
-          <AreaChart
-            {...commonProps}
-            data={areaData}
-            index="date"
-            categories={["emissions", "target"]}
-            colors={["green", "gray"]}
-            valueFormatter={(number) => `${number} tCO₂e`}
-          />
+          <div className="h-80">
+            <RechartsResponsiveContainer width="100%" height="100%">
+              <RechartsAreaChart
+                data={areaData}
+                margin={{ top: 10, right: 30, left: 0, bottom: 0 }}
+              >
+                <RechartsCartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
+                <RechartsXAxis
+                  dataKey="date"
+                  tick={{ fontSize: 12, fill: "#666" }}
+                  axisLine={{ stroke: "#e0e0e0" }}
+                  tickLine={{ stroke: "#e0e0e0" }}
+                />
+                <RechartsYAxis
+                  tick={{ fontSize: 12, fill: "#666" }}
+                  axisLine={{ stroke: "#e0e0e0" }}
+                  tickLine={{ stroke: "#e0e0e0" }}
+                  width={60}
+                  tickFormatter={(value) => `${value} tCO₂e`}
+                />
+                <RechartsTooltip
+                  formatter={(value) => [`${value} tCO₂e`, ""]}
+                  labelStyle={{ color: "#333", fontWeight: "bold" }}
+                  contentStyle={{
+                    backgroundColor: "white",
+                    border: "1px solid #e0e0e0",
+                    borderRadius: "8px",
+                    boxShadow: "0 4px 6px -1px rgba(0, 0, 0, 0.1)",
+                  }}
+                />
+                <RechartsLegend />
+                <RechartsArea
+                  type="monotone"
+                  dataKey="emissions"
+                  stackId="1"
+                  stroke="#10b981"
+                  fill="#10b981"
+                  fillOpacity={0.6}
+                  strokeWidth={2}
+                  name="Emissions"
+                />
+                <RechartsArea
+                  type="monotone"
+                  dataKey="target"
+                  stackId="2"
+                  stroke="#f59e0b"
+                  fill="#f59e0b"
+                  fillOpacity={0.6}
+                  strokeWidth={2}
+                  name="Target"
+                />
+              </RechartsAreaChart>
+            </RechartsResponsiveContainer>
+          </div>
         );
 
       case "bar-chart":
         return (
-          <BarChart
-            {...commonProps}
-            data={barData}
-            index="department"
-            categories={["emissions", "target"]}
-            colors={["green", "gray"]}
-            valueFormatter={(number) => `${number} tCO₂e`}
-          />
+          <div className="h-80">
+            <RechartsResponsiveContainer width="100%" height="100%">
+              <RechartsBarChart
+                data={barData}
+                margin={{ top: 20, right: 30, left: 0, bottom: 5 }}
+              >
+                <RechartsCartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
+                <RechartsXAxis
+                  dataKey="department"
+                  tick={{ fontSize: 12, fill: "#666" }}
+                  axisLine={{ stroke: "#e0e0e0" }}
+                  tickLine={{ stroke: "#e0e0e0" }}
+                  angle={-45}
+                  textAnchor="end"
+                  height={80}
+                />
+                <RechartsYAxis
+                  tick={{ fontSize: 12, fill: "#666" }}
+                  axisLine={{ stroke: "#e0e0e0" }}
+                  tickLine={{ stroke: "#e0e0e0" }}
+                  width={60}
+                  tickFormatter={(value) => `${value} tCO₂e`}
+                />
+                <RechartsTooltip
+                  formatter={(value) => [`${value} tCO₂e`, ""]}
+                  labelStyle={{ color: "#333", fontWeight: "bold" }}
+                  contentStyle={{
+                    backgroundColor: "white",
+                    border: "1px solid #e0e0e0",
+                    borderRadius: "8px",
+                    boxShadow: "0 4px 6px -1px rgba(0, 0, 0, 0.1)",
+                  }}
+                />
+                <RechartsLegend />
+                <RechartsBar
+                  dataKey="emissions"
+                  fill="#10b981"
+                  name="Emissions"
+                  radius={[8, 8, 0, 0]}
+                />
+                <RechartsBar
+                  dataKey="target"
+                  fill="#f59e0b"
+                  name="Target"
+                  radius={[8, 8, 0, 0]}
+                />
+              </RechartsBarChart>
+            </RechartsResponsiveContainer>
+          </div>
         );
 
       case "donut-chart":
         return (
-          <DonutChart
-            data={donutData}
-            category="value"
-            index="name"
-            colors={["red", "amber", "blue"]}
-            valueFormatter={(number) => `${number} tCO₂e`}
-            showLabel={true}
-            showAnimation={true}
-          />
+          <div className="h-80">
+            <RechartsResponsiveContainer width="100%" height="100%">
+              <RechartsPieChart>
+                <RechartsPie
+                  data={donutData}
+                  cx="50%"
+                  cy="50%"
+                  innerRadius={60}
+                  outerRadius={100}
+                  paddingAngle={5}
+                  dataKey="value"
+                  label={({ name, percent }) =>
+                    `${name}: ${(Number(percent) * 100).toFixed(0)}%`
+                  }
+                  labelLine={false}
+                >
+                  {donutData.map((entry, index) => (
+                    <RechartsCell key={`cell-${index}`} fill={entry.color} />
+                  ))}
+                </RechartsPie>
+                <RechartsTooltip
+                  formatter={(value) => [`${value} tCO₂e`, "Emissions"]}
+                  labelStyle={{ color: "#333", fontWeight: "bold" }}
+                  contentStyle={{
+                    backgroundColor: "white",
+                    border: "1px solid #e0e0e0",
+                    borderRadius: "8px",
+                    boxShadow: "0 4px 6px -1px rgba(0, 0, 0, 0.1)",
+                  }}
+                />
+              </RechartsPieChart>
+            </RechartsResponsiveContainer>
+          </div>
         );
 
       case "line-chart":
         return (
-          <LineChart
-            {...commonProps}
-            data={lineData}
-            index="time"
-            categories={["temperature", "efficiency"]}
-            colors={["red", "green"]}
-            valueFormatter={(number) => number.toFixed(1)}
-          />
+          <div className="h-80">
+            <RechartsResponsiveContainer width="100%" height="100%">
+              <RechartsLineChart
+                data={lineData}
+                margin={{ top: 10, right: 30, left: 0, bottom: 0 }}
+              >
+                <RechartsCartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
+                <RechartsXAxis
+                  dataKey="time"
+                  tick={{ fontSize: 12, fill: "#666" }}
+                  axisLine={{ stroke: "#e0e0e0" }}
+                  tickLine={{ stroke: "#e0e0e0" }}
+                />
+                <RechartsYAxis
+                  tick={{ fontSize: 12, fill: "#666" }}
+                  axisLine={{ stroke: "#e0e0e0" }}
+                  tickLine={{ stroke: "#e0e0e0" }}
+                  width={60}
+                  tickFormatter={(value) => Number(value).toFixed(1)}
+                />
+                <RechartsTooltip
+                  formatter={(value) => [Number(value).toFixed(1), ""]}
+                  labelStyle={{ color: "#333", fontWeight: "bold" }}
+                  contentStyle={{
+                    backgroundColor: "white",
+                    border: "1px solid #e0e0e0",
+                    borderRadius: "8px",
+                    boxShadow: "0 4px 6px -1px rgba(0, 0, 0, 0.1)",
+                  }}
+                />
+                <RechartsLegend />
+                <RechartsLine
+                  type="monotone"
+                  dataKey="temperature"
+                  stroke="#f43f5e"
+                  strokeWidth={3}
+                  dot={{ fill: "#f43f5e", strokeWidth: 2, r: 4 }}
+                  activeDot={{
+                    r: 6,
+                    fill: "#f43f5e",
+                    stroke: "#fff",
+                    strokeWidth: 2,
+                  }}
+                  name="Temperature"
+                />
+                <RechartsLine
+                  type="monotone"
+                  dataKey="efficiency"
+                  stroke="#10b981"
+                  strokeWidth={3}
+                  dot={{ fill: "#10b981", strokeWidth: 2, r: 4 }}
+                  activeDot={{
+                    r: 6,
+                    fill: "#10b981",
+                    stroke: "#fff",
+                    strokeWidth: 2,
+                  }}
+                  name="Efficiency"
+                />
+              </RechartsLineChart>
+            </RechartsResponsiveContainer>
+          </div>
         );
 
       case "metric-card":
         return (
           <div className="flex items-center justify-center h-full">
             <div className="text-center">
-              <Metric className="text-4xl text-green-600">
+              <p className="text-4xl font-bold text-green-600">
                 {widget.value}
-              </Metric>
-              <Text className="text-gray-600">{widget.unit}</Text>
+              </p>
+              <p className="text-gray-600 mt-2">{widget.unit}</p>
             </div>
           </div>
         );
@@ -422,15 +539,15 @@ export default function CustomDashboardsPage() {
                       <Save className="h-4 w-4 mr-2" />
                       Save Dashboard
                     </UIButton>
-                    <Button
-                      color="gray"
+                    <UIButton
+                      variant="outline"
                       onClick={() => {
                         setIsCreating(false);
                         setIsEditing(false);
                       }}
                     >
                       Cancel
-                    </Button>
+                    </UIButton>
                   </>
                 ) : (
                   <>
@@ -459,17 +576,12 @@ export default function CustomDashboardsPage() {
           {/* Template Selection */}
           {!isCreating && !isEditing && (
             <motion.div variants={fadeIn} className="mb-8">
-              <Text className="text-gray-600 mb-4">
+              <p className="text-gray-600 mb-4">
                 Choose a template to get started:
-              </Text>
-              <Grid
-                numItems={1}
-                numItemsSm={2}
-                numItemsLg={4}
-                className="gap-4"
-              >
+              </p>
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
                 {dashboardTemplates.map((template) => (
-                  <Card
+                  <UICard
                     key={template.id}
                     className="cursor-pointer hover:shadow-lg transition-shadow"
                     onClick={() => handleCreateFromTemplate(template)}
@@ -504,9 +616,9 @@ export default function CustomDashboardsPage() {
                         )}
                       </div>
                     </CardContent>
-                  </Card>
+                  </UICard>
                 ))}
-              </Grid>
+              </div>
             </motion.div>
           )}
 
@@ -514,10 +626,10 @@ export default function CustomDashboardsPage() {
           {(isCreating || isEditing) && (
             <motion.div variants={fadeIn} className="mb-6">
               <div className="flex items-center space-x-4">
-                <Text className="text-gray-600">Dashboard Name:</Text>
-                <TextInput
+                <p className="text-gray-600">Dashboard Name:</p>
+                <Input
                   value={dashboardName}
-                  onValueChange={setDashboardName}
+                  onChange={(e) => setDashboardName(e.target.value)}
                   placeholder="Enter dashboard name"
                   className="max-w-md"
                 />
@@ -537,60 +649,59 @@ export default function CustomDashboardsPage() {
               variants={staggerChildren}
               className="mb-8"
             >
-              <Grid
-                numItems={1}
-                numItemsSm={2}
-                numItemsLg={3}
-                className="gap-6"
-              >
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
                 {widgets.map((widget) => (
                   <motion.div key={widget.id} variants={fadeIn}>
-                    <Card className="relative">
-                      <div className="flex items-center justify-between mb-4">
-                        <Title>{widget.title}</Title>
-                        {(isCreating || isEditing) && (
-                          <UIButton
-                            onClick={() => handleRemoveWidget(widget.id)}
-                            variant="ghost"
-                            size="sm"
-                            className="text-red-600 hover:text-red-700 hover:bg-red-50"
-                          >
-                            <Trash2 className="h-4 w-4" />
-                          </UIButton>
-                        )}
-                      </div>
-                      {renderWidget(widget)}
-                    </Card>
+                    <UICard className="relative bg-white border-0 shadow-lg">
+                      <CardHeader>
+                        <div className="flex items-center justify-between">
+                          <CardTitle className="text-lg font-semibold text-gray-900">
+                            {widget.title}
+                          </CardTitle>
+                          {(isCreating || isEditing) && (
+                            <UIButton
+                              onClick={() => handleRemoveWidget(widget.id)}
+                              variant="ghost"
+                              size="sm"
+                              className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </UIButton>
+                          )}
+                        </div>
+                      </CardHeader>
+                      <CardContent>{renderWidget(widget)}</CardContent>
+                    </UICard>
                   </motion.div>
                 ))}
 
                 {/* Add Widget Button */}
                 {(isCreating || isEditing) && (
                   <motion.div variants={fadeIn}>
-                    <Card
+                    <UICard
                       className="border-dashed border-2 border-gray-300 hover:border-green-400 cursor-pointer transition-colors"
                       onClick={() => setShowWidgetPicker(true)}
                     >
                       <div className="flex items-center justify-center h-80">
                         <div className="text-center">
                           <Plus className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-                          <Text className="text-gray-500">Add Widget</Text>
+                          <p className="text-gray-500">Add Widget</p>
                         </div>
                       </div>
-                    </Card>
+                    </UICard>
                   </motion.div>
                 )}
-              </Grid>
+              </div>
             </motion.div>
           ) : (
             <motion.div variants={fadeIn} className="text-center py-16">
               <Layout className="h-16 w-16 text-gray-400 mx-auto mb-4" />
-              <Text className="text-gray-500 text-lg mb-2">
+              <p className="text-gray-500 text-lg mb-2">
                 No dashboard selected
-              </Text>
-              <Text className="text-gray-400">
+              </p>
+              <p className="text-gray-400">
                 Choose a template above or create a custom dashboard
-              </Text>
+              </p>
             </motion.div>
           )}
         </div>
@@ -625,14 +736,9 @@ export default function CustomDashboardsPage() {
                   ×
                 </UIButton>
               </div>
-              <Grid
-                numItems={1}
-                numItemsSm={2}
-                numItemsLg={3}
-                className="gap-4"
-              >
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                 {widgetTypes.map((widgetType) => (
-                  <Card
+                  <UICard
                     key={widgetType.type}
                     className="cursor-pointer hover:shadow-lg transition-shadow"
                     onClick={() => handleAddWidget(widgetType)}
@@ -649,9 +755,9 @@ export default function CustomDashboardsPage() {
                         </div>
                       </div>
                     </CardHeader>
-                  </Card>
+                  </UICard>
                 ))}
-              </Grid>
+              </div>
             </motion.div>
           </motion.div>
         )}

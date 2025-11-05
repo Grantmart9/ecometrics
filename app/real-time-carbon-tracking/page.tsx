@@ -3,6 +3,23 @@
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import dynamic from "next/dynamic";
+import {
+  BarChart as RechartsBarChart,
+  Bar,
+  AreaChart as RechartsAreaChart,
+  Area,
+  LineChart as RechartsLineChart,
+  Line,
+  PieChart as RechartsPieChart,
+  Pie,
+  Cell,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  Legend,
+  ResponsiveContainer,
+} from "recharts";
 // Dynamically import Tremor components to avoid SSR issues
 const Card = dynamic(() => import("@tremor/react").then((mod) => mod.Card), {
   ssr: false,
@@ -66,51 +83,57 @@ import {
   CheckCircle,
 } from "lucide-react";
 
-// Mock data for real-time tracking
+// Mock data for real-time tracking - Enhanced for demo
 const realtimeData = [
-  { time: "00:00", emissions: 245.8, temperature: 22.5, humidity: 65 },
-  { time: "04:00", emissions: 198.3, temperature: 21.8, humidity: 68 },
-  { time: "08:00", emissions: 312.7, temperature: 23.2, humidity: 62 },
-  { time: "12:00", emissions: 389.4, temperature: 25.1, humidity: 58 },
-  { time: "16:00", emissions: 456.2, temperature: 26.8, humidity: 55 },
-  { time: "20:00", emissions: 298.1, temperature: 24.3, humidity: 61 },
-  { time: "24:00", emissions: 267.9, temperature: 22.9, humidity: 64 },
+  { time: "00:00", emissions: 189.2, temperature: 22.1, humidity: 68 },
+  { time: "04:00", emissions: 156.8, temperature: 21.3, humidity: 71 },
+  { time: "08:00", emissions: 298.4, temperature: 23.7, humidity: 59 },
+  { time: "12:00", emissions: 412.6, temperature: 25.8, humidity: 54 },
+  { time: "16:00", emissions: 487.3, temperature: 27.2, humidity: 52 },
+  { time: "20:00", emissions: 334.7, temperature: 24.9, humidity: 58 },
+  { time: "24:00", emissions: 221.5, temperature: 23.1, humidity: 62 },
 ];
 
 const emissionSources = [
-  { name: "Electricity", value: 45, color: "#10b981" },
-  { name: "Transportation", value: 25, color: "#3b82f6" },
-  { name: "Manufacturing", value: 20, color: "#f59e0b" },
-  { name: "Heating", value: 10, color: "#ef4444" },
+  { name: "Solar Power", value: 38, color: "#22c55e" },
+  { name: "Fleet Vehicles", value: 24, color: "#3b82f6" },
+  { name: "Manufacturing", value: 22, color: "#f59e0b" },
+  { name: "Grid Electricity", value: 16, color: "#ef4444" },
 ];
 
 const dailyComparison = [
-  { day: "Mon", current: 245, previous: 289 },
-  { day: "Tue", current: 198, previous: 234 },
-  { day: "Wed", current: 312, previous: 298 },
-  { day: "Thu", current: 389, previous: 412 },
-  { day: "Fri", current: 456, previous: 478 },
-  { day: "Sat", current: 298, previous: 321 },
-  { day: "Sun", current: 267, previous: 289 },
+  { day: "Mon", current: 234, previous: 287 },
+  { day: "Tue", current: 198, previous: 241 },
+  { day: "Wed", current: 276, previous: 318 },
+  { day: "Thu", current: 312, previous: 356 },
+  { day: "Fri", current: 389, previous: 441 },
+  { day: "Sat", current: 267, previous: 298 },
+  { day: "Sun", current: 223, previous: 256 },
 ];
 
 const alerts = [
   {
     id: 1,
-    type: "warning",
-    message: "Emissions threshold exceeded in Building A",
-    time: "2 minutes ago",
+    type: "success",
+    message: "Solar panel efficiency increased to 94% - Record performance!",
+    time: "5 minutes ago",
   },
   {
     id: 2,
     type: "success",
-    message: "Energy consumption reduced by 15%",
-    time: "15 minutes ago",
+    message: "Carbon reduction target 23% ahead of schedule",
+    time: "12 minutes ago",
   },
   {
     id: 3,
     type: "info",
-    message: "New data source connected successfully",
+    message: "New IoT sensors deployed in Manufacturing Plant B",
+    time: "34 minutes ago",
+  },
+  {
+    id: 4,
+    type: "success",
+    message: "Electric vehicle fleet saved R45,200 this month",
     time: "1 hour ago",
   },
 ];
@@ -119,6 +142,17 @@ export default function RealTimeCarbonTrackingPage() {
   const [currentEmissions, setCurrentEmissions] = useState(245.8);
   const [selectedTimeRange, setSelectedTimeRange] = useState("24h");
   const [isLive, setIsLive] = useState(true);
+  const [isGeneratingReport, setIsGeneratingReport] = useState(false);
+
+  // Import the report generator functions
+  const {
+    generateCarbonTrackingReport,
+    captureElementAsImage,
+  } = require("@/lib/reportGenerator");
+  const { motion, AnimatePresence } = require("framer-motion");
+  const { Zap } = require("lucide-react");
+  const { Download, Image: ImageIcon } = require("lucide-react");
+  const { Button } = require("@/components/ui/button");
 
   // Simulate real-time updates
   useEffect(() => {
@@ -153,8 +187,42 @@ export default function RealTimeCarbonTrackingPage() {
     return "unchanged";
   };
 
+  const handleGenerateReport = async () => {
+    setIsGeneratingReport(true);
+    try {
+      const reportData = {
+        currentEmissions,
+        emissionSources,
+        dailyComparison,
+        alerts,
+      };
+      await generateCarbonTrackingReport(reportData);
+    } catch (error) {
+      console.error("Error generating report:", error);
+    } finally {
+      setIsGeneratingReport(false);
+    }
+  };
+
+  const handleExportData = async () => {
+    setIsGeneratingReport(true);
+    try {
+      await captureElementAsImage(
+        "real-time-dashboard",
+        `carbon-tracking-dashboard-${new Date().toISOString().split("T")[0]}`
+      );
+    } catch (error) {
+      console.error("Error exporting dashboard:", error);
+    } finally {
+      setIsGeneratingReport(false);
+    }
+  };
+
   return (
-    <div className="min-h-screen bg-gradient-to-br from-green-50 via-emerald-50 to-sky-50">
+    <div
+      id="real-time-dashboard"
+      className="min-h-screen bg-gradient-to-br from-green-50 via-emerald-50 to-sky-50"
+    >
       {/* Navigation */}
       <nav className="bg-white/80 backdrop-blur-md border-b border-green-100 sticky top-0 z-50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -289,7 +357,7 @@ export default function RealTimeCarbonTrackingPage() {
                 <Flex alignItems="start">
                   <div className="truncate">
                     <Text className="text-orange-100">Cost Impact</Text>
-                    <Metric className="text-white">$1,247</Metric>
+                    <Metric className="text-white">R23,070</Metric>
                   </div>
                   <Zap className="h-8 w-8 text-orange-200" />
                 </Flex>
@@ -333,50 +401,149 @@ export default function RealTimeCarbonTrackingPage() {
             <Card className="col-span-2">
               <Title>Real-Time Emissions Tracking</Title>
               <Text>Live carbon emissions over time</Text>
-              <AreaChart
-                className="h-80 mt-4"
-                data={realtimeData}
-                index="time"
-                categories={["emissions"]}
-                colors={["green"]}
-                valueFormatter={(number) => `${number.toFixed(1)} tCO₂e`}
-                showLegend={false}
-                showGridLines={true}
-                curveType="monotone"
-                yAxisWidth={60}
-              />
+              <div className="h-80 mt-4">
+                <ResponsiveContainer width="100%" height="100%">
+                  <RechartsAreaChart
+                    data={realtimeData}
+                    margin={{ top: 20, right: 30, left: 20, bottom: 5 }}
+                  >
+                    <CartesianGrid strokeDasharray="3 3" stroke="#f3f4f6" />
+                    <XAxis
+                      dataKey="time"
+                      stroke="#6b7280"
+                      style={{ fontSize: "12px" }}
+                    />
+                    <YAxis
+                      stroke="#6b7280"
+                      style={{ fontSize: "12px" }}
+                      label={{
+                        value: "Emissions (tCO₂e)",
+                        angle: -90,
+                        position: "insideLeft",
+                        style: { fontSize: "12px", fill: "#6b7280" },
+                      }}
+                    />
+                    <Tooltip
+                      contentStyle={{
+                        backgroundColor: "rgba(255, 255, 255, 0.95)",
+                        border: "1px solid #e5e7eb",
+                        borderRadius: "8px",
+                        boxShadow: "0 10px 15px -3px rgba(0, 0, 0, 0.1)",
+                      }}
+                      formatter={(value: number) => [
+                        `${value.toFixed(1)} tCO₂e`,
+                        "Emissions",
+                      ]}
+                      labelStyle={{ fontWeight: 600, marginBottom: "4px" }}
+                    />
+                    <Area
+                      type="monotone"
+                      dataKey="emissions"
+                      stroke="#10b981"
+                      fill="#10b981"
+                      fillOpacity={0.3}
+                      strokeWidth={2}
+                    />
+                  </RechartsAreaChart>
+                </ResponsiveContainer>
+              </div>
             </Card>
 
             {/* Emission Sources Breakdown */}
             <Card>
               <Title>Emission Sources</Title>
               <Text>Current distribution by source</Text>
-              <DonutChart
-                className="h-80 mt-4"
-                data={emissionSources}
-                category="value"
-                index="name"
-                colors={["emerald", "blue", "amber", "rose"]}
-                valueFormatter={(number) => `${number}%`}
-                showLabel={true}
-                showAnimation={true}
-              />
+              <div className="h-80 mt-4">
+                <ResponsiveContainer width="100%" height="100%">
+                  <RechartsPieChart>
+                    <Tooltip
+                      contentStyle={{
+                        backgroundColor: "rgba(255, 255, 255, 0.95)",
+                        border: "1px solid #e5e7eb",
+                        borderRadius: "8px",
+                        boxShadow: "0 10px 15px -3px rgba(0, 0, 0, 0.1)",
+                      }}
+                      formatter={(value: number) => [`${value}%`, "Percentage"]}
+                    />
+                    <Legend
+                      wrapperStyle={{ paddingTop: "20px" }}
+                      formatter={(value: string) => value}
+                    />
+                    <Pie
+                      data={emissionSources}
+                      cx="50%"
+                      cy="50%"
+                      innerRadius={60}
+                      outerRadius={120}
+                      paddingAngle={5}
+                      dataKey="value"
+                    >
+                      {emissionSources.map((entry, index) => (
+                        <Cell key={`cell-${index}`} fill={entry.color} />
+                      ))}
+                    </Pie>
+                  </RechartsPieChart>
+                </ResponsiveContainer>
+              </div>
             </Card>
 
             {/* Daily Comparison */}
             <Card className="col-span-2">
               <Title>Weekly Comparison</Title>
               <Text>Current vs previous week emissions</Text>
-              <BarChart
-                className="h-80 mt-4"
-                data={dailyComparison}
-                index="day"
-                categories={["current", "previous"]}
-                colors={["green", "gray"]}
-                valueFormatter={(number) => `${number} tCO₂e`}
-                showLegend={true}
-                yAxisWidth={60}
-              />
+              <div className="h-80 mt-4">
+                <ResponsiveContainer width="100%" height="100%">
+                  <RechartsBarChart
+                    data={dailyComparison}
+                    margin={{ top: 20, right: 30, left: 20, bottom: 5 }}
+                  >
+                    <CartesianGrid strokeDasharray="3 3" stroke="#f3f4f6" />
+                    <XAxis
+                      dataKey="day"
+                      stroke="#6b7280"
+                      style={{ fontSize: "12px" }}
+                    />
+                    <YAxis
+                      stroke="#6b7280"
+                      style={{ fontSize: "12px" }}
+                      label={{
+                        value: "Emissions (tCO₂e)",
+                        angle: -90,
+                        position: "insideLeft",
+                        style: { fontSize: "12px", fill: "#6b7280" },
+                      }}
+                    />
+                    <Tooltip
+                      contentStyle={{
+                        backgroundColor: "rgba(255, 255, 255, 0.95)",
+                        border: "1px solid #e5e7eb",
+                        borderRadius: "8px",
+                        boxShadow: "0 10px 15px -3px rgba(0, 0, 0, 0.1)",
+                      }}
+                      formatter={(value: number) => [`${value} tCO₂e`, ""]}
+                      labelStyle={{ fontWeight: 600, marginBottom: "4px" }}
+                    />
+                    <Legend
+                      wrapperStyle={{ paddingTop: "20px" }}
+                      formatter={(value) =>
+                        value === "current" ? "Current Week" : "Previous Week"
+                      }
+                    />
+                    <Bar
+                      dataKey="current"
+                      fill="#10b981"
+                      name="Current Week"
+                      radius={[4, 4, 0, 0]}
+                    />
+                    <Bar
+                      dataKey="previous"
+                      fill="#f59e0b"
+                      name="Previous Week"
+                      radius={[4, 4, 0, 0]}
+                    />
+                  </RechartsBarChart>
+                </ResponsiveContainer>
+              </div>
             </Card>
 
             {/* Alerts and Notifications */}
@@ -385,7 +552,7 @@ export default function RealTimeCarbonTrackingPage() {
               <Text>Latest system notifications</Text>
               <div className="h-80 mt-4 space-y-4">
                 <AnimatePresence>
-                  {alerts.map((alert) => (
+                  {alerts.slice(0, 3).map((alert) => (
                     <motion.div
                       key={alert.id}
                       initial={{ opacity: 0, x: -20 }}
@@ -428,16 +595,72 @@ export default function RealTimeCarbonTrackingPage() {
             <Card className="col-span-1 lg:col-span-3">
               <Title>Environmental Factors</Title>
               <Text>Temperature and humidity correlation with emissions</Text>
-              <LineChart
-                className="h-80 mt-4"
-                data={realtimeData}
-                index="time"
-                categories={["temperature", "humidity"]}
-                colors={["red", "blue"]}
-                valueFormatter={(number) => `${number.toFixed(1)}°`}
-                showLegend={true}
-                yAxisWidth={60}
-              />
+              <div className="h-80 mt-4">
+                <ResponsiveContainer width="100%" height="100%">
+                  <RechartsLineChart
+                    data={realtimeData}
+                    margin={{ top: 20, right: 30, left: 20, bottom: 5 }}
+                  >
+                    <CartesianGrid strokeDasharray="3 3" stroke="#f3f4f6" />
+                    <XAxis
+                      dataKey="time"
+                      stroke="#6b7280"
+                      style={{ fontSize: "12px" }}
+                    />
+                    <YAxis
+                      stroke="#6b7280"
+                      style={{ fontSize: "12px" }}
+                      label={{
+                        value: "Values",
+                        angle: -90,
+                        position: "insideLeft",
+                        style: { fontSize: "12px", fill: "#6b7280" },
+                      }}
+                    />
+                    <Tooltip
+                      contentStyle={{
+                        backgroundColor: "rgba(255, 255, 255, 0.95)",
+                        border: "1px solid #e5e7eb",
+                        borderRadius: "8px",
+                        boxShadow: "0 10px 15px -3px rgba(0, 0, 0, 0.1)",
+                      }}
+                      formatter={(value: number, name: string) => {
+                        if (name === "temperature")
+                          return [`${value.toFixed(1)}°C`, "Temperature"];
+                        if (name === "humidity")
+                          return [`${Math.round(value)}%`, "Humidity"];
+                        return [value, name];
+                      }}
+                    />
+                    <Legend
+                      wrapperStyle={{ paddingTop: "20px" }}
+                      formatter={(value: string) =>
+                        value === "temperature"
+                          ? "Temperature"
+                          : value === "humidity"
+                          ? "Humidity"
+                          : value
+                      }
+                    />
+                    <Line
+                      type="monotone"
+                      dataKey="temperature"
+                      stroke="#f43f5e"
+                      strokeWidth={2}
+                      dot={{ r: 4 }}
+                      activeDot={{ r: 6 }}
+                    />
+                    <Line
+                      type="monotone"
+                      dataKey="humidity"
+                      stroke="#3b82f6"
+                      strokeWidth={2}
+                      dot={{ r: 4 }}
+                      activeDot={{ r: 6 }}
+                    />
+                  </RechartsLineChart>
+                </ResponsiveContainer>
+              </div>
             </Card>
           </Grid>
         </div>
@@ -450,22 +673,38 @@ export default function RealTimeCarbonTrackingPage() {
             <Button
               size="lg"
               className="bg-green-600 hover:bg-green-700 text-white px-8 py-4"
+              onClick={handleGenerateReport}
+              disabled={isGeneratingReport}
             >
               <Zap className="h-5 w-5 mr-2" />
-              Generate Report
+              {isGeneratingReport ? "Generating..." : "Generate Report"}
             </Button>
             <Button
               variant="outline"
               size="lg"
               className="border-green-200 text-green-700 hover:bg-green-50 px-8 py-4"
+              onClick={handleExportData}
+              disabled={isGeneratingReport}
             >
-              <BarChart3 className="h-5 w-5 mr-2" />
-              Export Data
+              <ImageIcon className="h-5 w-5 mr-2" />
+              {isGeneratingReport ? "Exporting..." : "Export Dashboard"}
             </Button>
             <Button
               variant="outline"
               size="lg"
               className="border-green-200 text-green-700 hover:bg-green-50 px-8 py-4"
+              onClick={() => {
+                if (navigator.share) {
+                  navigator.share({
+                    title: "Carbon Tracking Dashboard",
+                    text: "View our real-time carbon emissions tracking dashboard",
+                    url: window.location.href,
+                  });
+                } else {
+                  navigator.clipboard.writeText(window.location.href);
+                  alert("Dashboard URL copied to clipboard!");
+                }
+              }}
             >
               <Globe className="h-5 w-5 mr-2" />
               Share Dashboard

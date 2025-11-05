@@ -3,6 +3,25 @@
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import dynamic from "next/dynamic";
+import {
+  BarChart as RechartsBarChart,
+  Bar,
+  AreaChart as RechartsAreaChart,
+  Area,
+  LineChart as RechartsLineChart,
+  Line,
+  ScatterChart as RechartsScatterChart,
+  Scatter,
+  PieChart as RechartsPieChart,
+  Pie,
+  Cell,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  Legend,
+  ResponsiveContainer,
+} from "recharts";
 // Dynamically import Tremor components to avoid SSR issues
 const Card = dynamic(() => import("@tremor/react").then((mod) => mod.Card), {
   ssr: false,
@@ -220,38 +239,45 @@ const comparisonData = [
 
 const reductionOpportunities = [
   {
-    source: "Electricity Consumption",
-    potential: 78,
-    cost: "Low",
-    effort: "Easy",
-    impact: "High",
-  },
-  {
-    source: "Supply Chain",
-    potential: 51,
+    source: "Solar Panel Expansion",
+    potential: 145,
     cost: "Medium",
     effort: "Medium",
     impact: "High",
   },
   {
-    source: "Business Travel",
+    source: "EV Fleet Conversion",
+    potential: 89,
+    cost: "High",
+    effort: "Hard",
+    impact: "High",
+  },
+  {
+    source: "Manufacturing Efficiency",
+    potential: 67,
+    cost: "Low",
+    effort: "Easy",
+    impact: "Medium",
+  },
+  {
+    source: "Smart Building Controls",
+    potential: 54,
+    cost: "Low",
+    effort: "Easy",
+    impact: "High",
+  },
+  {
+    source: "Renewable Energy Contracts",
     potential: 43,
     cost: "Low",
     effort: "Medium",
     impact: "Medium",
   },
   {
-    source: "Natural Gas",
+    source: "Waste Heat Recovery",
     potential: 38,
-    cost: "High",
-    effort: "Hard",
-    impact: "Medium",
-  },
-  {
-    source: "Company Vehicles",
-    potential: 32,
     cost: "Medium",
-    effort: "Medium",
+    effort: "Hard",
     impact: "Medium",
   },
 ];
@@ -278,6 +304,17 @@ export default function EmissionSourceBreakdownPage() {
   const [selectedScope, setSelectedScope] = useState("all");
   const [selectedDepartment, setSelectedDepartment] = useState("all");
   const [selectedTimeRange, setSelectedTimeRange] = useState("6months");
+  const [isGeneratingReport, setIsGeneratingReport] = useState(false);
+
+  // Import the report generator functions
+  const {
+    generateEmissionBreakdownReport,
+    captureElementAsImage,
+  } = require("@/lib/reportGenerator");
+  const { motion, AnimatePresence } = require("framer-motion");
+  const { Download } = require("lucide-react");
+  const { Button } = require("@tremor/react");
+  const { Button: UIButton } = require("@/components/ui/button");
 
   const fadeIn = {
     initial: { opacity: 0, y: 60 },
@@ -318,8 +355,42 @@ export default function EmissionSourceBreakdownPage() {
     return true;
   });
 
+  const handleGenerateReport = async () => {
+    setIsGeneratingReport(true);
+    try {
+      const reportData = {
+        reductionOpportunities,
+        scopeBreakdown,
+        trendData,
+        departmentData,
+      };
+      await generateEmissionBreakdownReport(reportData);
+    } catch (error) {
+      console.error("Error generating report:", error);
+    } finally {
+      setIsGeneratingReport(false);
+    }
+  };
+
+  const handleExportData = async () => {
+    setIsGeneratingReport(true);
+    try {
+      await captureElementAsImage(
+        "emission-breakdown-dashboard",
+        `emission-breakdown-dashboard-${new Date().toISOString().split("T")[0]}`
+      );
+    } catch (error) {
+      console.error("Error exporting dashboard:", error);
+    } finally {
+      setIsGeneratingReport(false);
+    }
+  };
+
   return (
-    <div className="min-h-screen bg-gradient-to-br from-green-50 via-emerald-50 to-sky-50">
+    <div
+      id="emission-breakdown-dashboard"
+      className="min-h-screen bg-gradient-to-br from-green-50 via-emerald-50 to-sky-50"
+    >
       {/* Navigation */}
       <nav className="bg-white/80 backdrop-blur-md border-b border-green-100 sticky top-0 z-50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -377,9 +448,11 @@ export default function EmissionSourceBreakdownPage() {
                 <Button
                   size="lg"
                   className="bg-green-600 hover:bg-green-700 text-white"
+                  onClick={handleExportData}
+                  disabled={isGeneratingReport}
                 >
                   <Download className="h-4 w-4 mr-2" />
-                  Export Analysis
+                  {isGeneratingReport ? "Exporting..." : "Export Analysis"}
                 </Button>
               </div>
             </motion.div>
@@ -529,32 +602,123 @@ export default function EmissionSourceBreakdownPage() {
                   <Card className="col-span-2">
                     <Title>Emissions by Scope</Title>
                     <Text>Distribution across all emission scopes</Text>
-                    <DonutChart
-                      className="h-80 mt-4"
-                      data={scopeBreakdown}
-                      category="value"
-                      index="name"
-                      colors={["red", "amber", "blue"]}
-                      valueFormatter={(number) => `${number} tCO₂e`}
-                      showLabel={true}
-                      showAnimation={true}
-                    />
+                    <div className="h-80 mt-4">
+                      <ResponsiveContainer width="100%" height="100%">
+                        <RechartsPieChart>
+                          <Tooltip
+                            contentStyle={{
+                              backgroundColor: "rgba(255, 255, 255, 0.95)",
+                              border: "1px solid #e5e7eb",
+                              borderRadius: "8px",
+                              boxShadow: "0 10px 15px -3px rgba(0, 0, 0, 0.1)",
+                            }}
+                            formatter={(value: number) => [
+                              `${value} tCO₂e`,
+                              "Emissions",
+                            ]}
+                          />
+                          <Legend
+                            wrapperStyle={{ paddingTop: "20px" }}
+                            formatter={(value: string) => value}
+                          />
+                          <Pie
+                            data={scopeBreakdown}
+                            cx="50%"
+                            cy="50%"
+                            innerRadius={60}
+                            outerRadius={120}
+                            paddingAngle={5}
+                            dataKey="value"
+                          >
+                            {scopeBreakdown.map((entry, index) => (
+                              <Cell key={`cell-${index}`} fill={entry.color} />
+                            ))}
+                          </Pie>
+                        </RechartsPieChart>
+                      </ResponsiveContainer>
+                    </div>
                   </Card>
 
                   {/* Trend Analysis */}
                   <Card>
                     <Title>Scope Trends</Title>
                     <Text>Monthly emission trends by scope</Text>
-                    <AreaChart
-                      className="h-80 mt-4"
-                      data={trendData}
-                      index="month"
-                      categories={["scope1", "scope2", "scope3"]}
-                      colors={["red", "amber", "blue"]}
-                      valueFormatter={(number) => `${number} tCO₂e`}
-                      showLegend={true}
-                      yAxisWidth={60}
-                    />
+                    <div className="h-80 mt-4">
+                      <ResponsiveContainer width="100%" height="100%">
+                        <RechartsAreaChart
+                          data={trendData}
+                          margin={{ top: 20, right: 30, left: 20, bottom: 5 }}
+                        >
+                          <CartesianGrid
+                            strokeDasharray="3 3"
+                            stroke="#f3f4f6"
+                          />
+                          <XAxis
+                            dataKey="month"
+                            stroke="#6b7280"
+                            style={{ fontSize: "12px" }}
+                          />
+                          <YAxis
+                            stroke="#6b7280"
+                            style={{ fontSize: "12px" }}
+                            label={{
+                              value: "Emissions (tCO₂e)",
+                              angle: -90,
+                              position: "insideLeft",
+                              style: { fontSize: "12px", fill: "#6b7280" },
+                            }}
+                          />
+                          <Tooltip
+                            contentStyle={{
+                              backgroundColor: "rgba(255, 255, 255, 0.95)",
+                              border: "1px solid #e5e7eb",
+                              borderRadius: "8px",
+                              boxShadow: "0 10px 15px -3px rgba(0, 0, 0, 0.1)",
+                            }}
+                            formatter={(value: number) => [
+                              `${value} tCO₂e`,
+                              "",
+                            ]}
+                          />
+                          <Legend
+                            wrapperStyle={{ paddingTop: "20px" }}
+                            formatter={(value: string) =>
+                              value === "scope1"
+                                ? "Scope 1"
+                                : value === "scope2"
+                                ? "Scope 2"
+                                : value === "scope3"
+                                ? "Scope 3"
+                                : value
+                            }
+                          />
+                          <Area
+                            type="monotone"
+                            dataKey="scope1"
+                            stackId="1"
+                            stroke="#f43f5e"
+                            fill="#f43f5e"
+                            fillOpacity={0.6}
+                          />
+                          <Area
+                            type="monotone"
+                            dataKey="scope2"
+                            stackId="1"
+                            stroke="#f59e0b"
+                            fill="#f59e0b"
+                            fillOpacity={0.6}
+                          />
+                          <Area
+                            type="monotone"
+                            dataKey="scope3"
+                            stackId="1"
+                            stroke="#3b82f6"
+                            fill="#3b82f6"
+                            fillOpacity={0.6}
+                          />
+                        </RechartsAreaChart>
+                      </ResponsiveContainer>
+                    </div>
                   </Card>
 
                   {/* Department Breakdown */}
@@ -563,16 +727,80 @@ export default function EmissionSourceBreakdownPage() {
                     <Text>
                       Department-wise emission breakdown across all scopes
                     </Text>
-                    <BarChart
-                      className="h-80 mt-4"
-                      data={departmentData}
-                      index="department"
-                      categories={["scope1", "scope2", "scope3"]}
-                      colors={["red", "amber", "blue"]}
-                      valueFormatter={(number) => `${number} tCO₂e`}
-                      showLegend={true}
-                      yAxisWidth={80}
-                    />
+                    <div className="h-80 mt-4">
+                      <ResponsiveContainer width="100%" height="100%">
+                        <RechartsBarChart
+                          data={departmentData}
+                          margin={{ top: 20, right: 30, left: 20, bottom: 5 }}
+                        >
+                          <CartesianGrid
+                            strokeDasharray="3 3"
+                            stroke="#f3f4f6"
+                          />
+                          <XAxis
+                            dataKey="department"
+                            stroke="#6b7280"
+                            style={{ fontSize: "12px" }}
+                            interval={0}
+                            angle={-45}
+                            textAnchor="end"
+                            height={80}
+                          />
+                          <YAxis
+                            stroke="#6b7280"
+                            style={{ fontSize: "12px" }}
+                            label={{
+                              value: "Emissions (tCO₂e)",
+                              angle: -90,
+                              position: "insideLeft",
+                              style: { fontSize: "12px", fill: "#6b7280" },
+                            }}
+                          />
+                          <Tooltip
+                            contentStyle={{
+                              backgroundColor: "rgba(255, 255, 255, 0.95)",
+                              border: "1px solid #e5e7eb",
+                              borderRadius: "8px",
+                              boxShadow: "0 10px 15px -3px rgba(0, 0, 0, 0.1)",
+                            }}
+                            formatter={(value: number) => [
+                              `${value} tCO₂e`,
+                              "",
+                            ]}
+                          />
+                          <Legend
+                            wrapperStyle={{ paddingTop: "20px" }}
+                            formatter={(value: string) =>
+                              value === "scope1"
+                                ? "Scope 1"
+                                : value === "scope2"
+                                ? "Scope 2"
+                                : value === "scope3"
+                                ? "Scope 3"
+                                : value
+                            }
+                          />
+                          <Bar
+                            dataKey="scope1"
+                            fill="#f43f5e"
+                            name="Scope 1"
+                            radius={[4, 4, 0, 0]}
+                          />
+                          <Bar
+                            dataKey="scope2"
+                            fill="#f59e0b"
+                            name="Scope 2"
+                            radius={[4, 4, 0, 0]}
+                          />
+                          <Bar
+                            dataKey="scope3"
+                            fill="#3b82f6"
+                            name="Scope 3"
+                            radius={[4, 4, 0, 0]}
+                          />
+                        </RechartsBarChart>
+                      </ResponsiveContainer>
+                    </div>
                   </Card>
                 </Grid>
               </TabPanel>
@@ -779,14 +1007,73 @@ export default function EmissionSourceBreakdownPage() {
                   <Card>
                     <Title>Industry Benchmarking</Title>
                     <Text>Performance vs industry standards</Text>
-                    <ScatterChart
-                      className="h-80 mt-4"
-                      data={comparisonData}
-                      x="emissions"
-                      y="efficiency"
-                      category="industry"
-                      colors={["green", "gray", "blue", "red"]}
-                    />
+                    <div className="h-80 mt-4">
+                      <ResponsiveContainer width="100%" height="100%">
+                        <RechartsScatterChart
+                          data={comparisonData}
+                          margin={{ top: 20, right: 20, bottom: 20, left: 20 }}
+                        >
+                          <CartesianGrid
+                            strokeDasharray="3 3"
+                            stroke="#f3f4f6"
+                          />
+                          <XAxis
+                            type="number"
+                            dataKey="emissions"
+                            stroke="#6b7280"
+                            style={{ fontSize: "12px" }}
+                            name="Emissions"
+                            label={{
+                              value: "Emissions (tCO₂e)",
+                              position: "insideBottom",
+                              offset: -10,
+                              style: { fontSize: "12px", fill: "#6b7280" },
+                            }}
+                          />
+                          <YAxis
+                            type="number"
+                            dataKey="efficiency"
+                            stroke="#6b7280"
+                            style={{ fontSize: "12px" }}
+                            name="Efficiency"
+                            label={{
+                              value: "Efficiency (%)",
+                              angle: -90,
+                              position: "insideLeft",
+                              style: { fontSize: "12px", fill: "#6b7280" },
+                            }}
+                          />
+                          <Tooltip
+                            cursor={{ strokeDasharray: "3 3" }}
+                            contentStyle={{
+                              backgroundColor: "rgba(255, 255, 255, 0.95)",
+                              border: "1px solid #e5e7eb",
+                              borderRadius: "8px",
+                              boxShadow: "0 10px 15px -3px rgba(0, 0, 0, 0.1)",
+                            }}
+                            formatter={(value: number, name: string) => {
+                              if (name === "emissions")
+                                return [`${value} tCO₂e`, "Emissions"];
+                              if (name === "efficiency")
+                                return [`${value}%`, "Efficiency"];
+                              return [value, name];
+                            }}
+                            labelFormatter={(label: string) =>
+                              `Industry: ${label}`
+                            }
+                          />
+                          <Legend
+                            wrapperStyle={{ paddingTop: "20px" }}
+                            formatter={(value: string) => value}
+                          />
+                          <Scatter
+                            name="Industry"
+                            data={comparisonData}
+                            fill="#10b981"
+                          />
+                        </RechartsScatterChart>
+                      </ResponsiveContainer>
+                    </div>
                   </Card>
 
                   {/* Competitive Position */}
@@ -845,22 +1132,38 @@ export default function EmissionSourceBreakdownPage() {
             <Button
               size="lg"
               className="bg-green-600 hover:bg-green-700 text-white px-8 py-4"
+              onClick={handleGenerateReport}
+              disabled={isGeneratingReport}
             >
               <Download className="h-5 w-5 mr-2" />
-              Download Full Report
+              {isGeneratingReport ? "Generating..." : "Download Full Report"}
             </Button>
             <UIButton
               variant="outline"
               size="lg"
               className="border-green-200 text-green-700 hover:bg-green-50 px-8 py-4"
+              onClick={handleExportData}
+              disabled={isGeneratingReport}
             >
               <Settings className="h-5 w-5 mr-2" />
-              Configure Alerts
+              {isGeneratingReport ? "Exporting..." : "Export Dashboard"}
             </UIButton>
             <UIButton
               variant="outline"
               size="lg"
               className="border-green-200 text-green-700 hover:bg-green-50 px-8 py-4"
+              onClick={() => {
+                if (navigator.share) {
+                  navigator.share({
+                    title: "Emission Source Breakdown Dashboard",
+                    text: "View our comprehensive emission source breakdown analysis",
+                    url: window.location.href,
+                  });
+                } else {
+                  navigator.clipboard.writeText(window.location.href);
+                  alert("Dashboard URL copied to clipboard!");
+                }
+              }}
             >
               <RefreshCw className="h-5 w-5 mr-2" />
               Refresh Data

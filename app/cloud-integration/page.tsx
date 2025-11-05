@@ -3,24 +3,18 @@
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
-  Card,
-  Title,
-  Text,
-  Metric,
-  LineChart,
-  BarChart,
-  DonutChart,
-  BadgeDelta,
-  Flex,
-  Grid,
-  Button as TremorButton,
-  TabGroup,
-  TabList,
-  Tab,
-  TabPanels,
-  TabPanel,
-  Callout,
-} from "@tremor/react";
+  LineChart as RechartsLineChart,
+  Line as RechartsLine,
+  PieChart as RechartsPieChart,
+  Pie as RechartsPie,
+  Cell as RechartsCell,
+  XAxis as RechartsXAxis,
+  YAxis as RechartsYAxis,
+  CartesianGrid as RechartsCartesianGrid,
+  Tooltip as RechartsTooltip,
+  Legend as RechartsLegend,
+  ResponsiveContainer as RechartsResponsiveContainer,
+} from "recharts";
 import { Button } from "@/components/ui/button";
 import {
   Card as UICard,
@@ -348,95 +342,114 @@ export default function CloudIntegrationPage() {
             className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8"
           >
             <motion.div variants={fadeIn}>
-              <Card className="bg-gradient-to-br from-green-500 to-emerald-600 text-white border-0">
-                <Flex alignItems="start">
-                  <div className="truncate">
-                    <Text className="text-green-100">Active Connections</Text>
-                    <Metric className="text-white">
-                      {connectedIntegrations}/{totalIntegrations}
-                    </Metric>
+              <UICard className="bg-gradient-to-br from-green-500 to-emerald-600 text-white border-0 shadow-lg">
+                <CardContent className="p-6">
+                  <div className="flex items-start justify-between">
+                    <div className="truncate">
+                      <p className="text-green-100 text-sm font-medium">
+                        Active Connections
+                      </p>
+                      <p className="text-white text-2xl font-bold mt-1">
+                        {connectedIntegrations}/{totalIntegrations}
+                      </p>
+                    </div>
+                    <Link2 className="h-8 w-8 text-green-200" />
                   </div>
-                  <Link2 className="h-8 w-8 text-green-200" />
-                </Flex>
-                <BadgeDelta
-                  deltaType="moderateIncrease"
-                  className="mt-2 bg-white/20 text-white border-white/30"
-                >
-                  +2 this month
-                </BadgeDelta>
-              </Card>
+                  <div className="mt-4">
+                    <div className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-white/20 text-white border border-white/30">
+                      +2 this month
+                    </div>
+                  </div>
+                </CardContent>
+              </UICard>
             </motion.div>
 
             <motion.div variants={fadeIn}>
-              <Card className="bg-gradient-to-br from-blue-500 to-indigo-600 text-white border-0">
-                <Flex alignItems="start">
-                  <div className="truncate">
-                    <Text className="text-blue-100">Data Flow</Text>
-                    <Metric className="text-white">
-                      {totalDataFlow.toFixed(1)} MB/s
-                    </Metric>
+              <UICard className="bg-gradient-to-br from-blue-500 to-indigo-600 text-white border-0 shadow-lg">
+                <CardContent className="p-6">
+                  <div className="flex items-start justify-between">
+                    <div className="truncate">
+                      <p className="text-blue-100 text-sm font-medium">
+                        Data Flow
+                      </p>
+                      <p className="text-white text-2xl font-bold mt-1">
+                        {totalDataFlow.toFixed(1)} MB/s
+                      </p>
+                    </div>
+                    <Download className="h-8 w-8 text-blue-200" />
                   </div>
-                  <Download className="h-8 w-8 text-blue-200" />
-                </Flex>
-                <BadgeDelta
-                  deltaType="moderateIncrease"
-                  className="mt-2 bg-white/20 text-white border-white/30"
-                >
-                  +15% vs last week
-                </BadgeDelta>
-              </Card>
+                  <div className="mt-4">
+                    <div className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-white/20 text-white border border-white/30">
+                      +15% vs last week
+                    </div>
+                  </div>
+                </CardContent>
+              </UICard>
             </motion.div>
 
             <motion.div variants={fadeIn}>
-              <Card className="bg-gradient-to-br from-purple-500 to-pink-600 text-white border-0">
-                <Flex alignItems="start">
-                  <div className="truncate">
-                    <Text className="text-purple-100">System Uptime</Text>
-                    <Metric className="text-white">
-                      {averageUptime.toFixed(1)}%
-                    </Metric>
+              <UICard className="bg-gradient-to-br from-purple-500 to-pink-600 text-white border-0 shadow-lg">
+                <CardContent className="p-6">
+                  <div className="flex items-start justify-between">
+                    <div className="truncate">
+                      <p className="text-purple-100 text-sm font-medium">
+                        System Uptime
+                      </p>
+                      <p className="text-white text-2xl font-bold mt-1">
+                        {averageUptime.toFixed(1)}%
+                      </p>
+                    </div>
+                    <Monitor className="h-8 w-8 text-purple-200" />
                   </div>
-                  <Monitor className="h-8 w-8 text-purple-200" />
-                </Flex>
-                <BadgeDelta
-                  deltaType="moderateDecrease"
-                  className="mt-2 bg-white/20 text-white border-white/30"
-                >
-                  -0.1% from target
-                </BadgeDelta>
-              </Card>
+                  <div className="mt-4">
+                    <div className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-white/20 text-white border border-white/30">
+                      -0.1% from target
+                    </div>
+                  </div>
+                </CardContent>
+              </UICard>
             </motion.div>
 
             <motion.div variants={fadeIn}>
-              <Card className="bg-gradient-to-br from-orange-500 to-red-600 text-white border-0">
-                <Flex alignItems="start">
-                  <div className="truncate">
-                    <Text className="text-orange-100">Avg Response Time</Text>
-                    <Metric className="text-white">245 ms</Metric>
+              <UICard className="bg-gradient-to-br from-orange-500 to-red-600 text-white border-0 shadow-lg">
+                <CardContent className="p-6">
+                  <div className="flex items-start justify-between">
+                    <div className="truncate">
+                      <p className="text-orange-100 text-sm font-medium">
+                        Avg Response Time
+                      </p>
+                      <p className="text-white text-2xl font-bold mt-1">
+                        245 ms
+                      </p>
+                    </div>
+                    <Zap className="h-8 w-8 text-orange-200" />
                   </div>
-                  <Zap className="h-8 w-8 text-orange-200" />
-                </Flex>
-                <BadgeDelta
-                  deltaType="moderateDecrease"
-                  className="mt-2 bg-white/20 text-white border-white/30"
-                >
-                  -12% improvement
-                </BadgeDelta>
-              </Card>
+                  <div className="mt-4">
+                    <div className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-white/20 text-white border border-white/30">
+                      -12% improvement
+                    </div>
+                  </div>
+                </CardContent>
+              </UICard>
             </motion.div>
           </motion.div>
 
           {/* Alerts */}
           <motion.div variants={fadeIn} className="mb-6">
-            <Callout
-              className="mb-4"
-              title="Integration Health Check"
-              icon={Shield}
-              color="yellow"
-            >
-              1 integration requires attention: Google Analytics sync delayed by
-              15 minutes
-            </Callout>
+            <div className="mb-4 p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
+              <div className="flex items-start">
+                <Shield className="h-5 w-5 text-yellow-600 mr-3 mt-0.5" />
+                <div>
+                  <h3 className="font-semibold text-yellow-900 mb-1">
+                    Integration Health Check
+                  </h3>
+                  <p className="text-sm text-yellow-800">
+                    1 integration requires attention: Google Analytics sync
+                    delayed by 15 minutes
+                  </p>
+                </div>
+              </div>
+            </div>
           </motion.div>
         </div>
       </section>
@@ -444,140 +457,285 @@ export default function CloudIntegrationPage() {
       {/* Main Dashboard */}
       <section className="py-8">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <TabGroup index={activeTab} onIndexChange={setActiveTab}>
-            <TabList className="mb-8">
-              <Tab>Overview</Tab>
-              <Tab>Integrations</Tab>
-              <Tab>Setup Guide</Tab>
-              <Tab>Performance</Tab>
-            </TabList>
+          <div className="mb-8">
+            <div className="flex space-x-2 mb-8 border-b border-gray-200">
+              {["Overview", "Integrations", "Setup Guide", "Performance"].map(
+                (tab, index) => (
+                  <button
+                    key={index}
+                    onClick={() => setActiveTab(index)}
+                    className={`px-4 py-2 font-medium text-sm border-b-2 transition-colors ${
+                      activeTab === index
+                        ? "border-green-600 text-green-600"
+                        : "border-transparent text-gray-600 hover:text-gray-900"
+                    }`}
+                  >
+                    {tab}
+                  </button>
+                )
+              )}
+            </div>
 
-            <TabPanels>
+            <div>
               {/* Overview Tab */}
-              <TabPanel>
-                <Grid
-                  numItems={1}
-                  numItemsSm={2}
-                  numItemsLg={3}
-                  className="gap-6 mb-8"
-                >
+              {activeTab === 0 && (
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
                   {/* Data Flow Chart */}
-                  <Card className="col-span-2">
-                    <Title>Real-time Data Flow</Title>
-                    <Text>Incoming and outgoing data volumes</Text>
-                    <LineChart
-                      className="h-80 mt-4"
-                      data={dataFlowHistory}
-                      index="time"
-                      categories={["inbound", "outbound", "total"]}
-                      colors={["blue", "green", "orange"]}
-                      valueFormatter={(number) => `${number} MB/s`}
-                      showLegend={true}
-                      yAxisWidth={60}
-                    />
-                  </Card>
+                  <UICard className="col-span-2 bg-white border-0 shadow-lg">
+                    <CardHeader>
+                      <CardTitle className="text-lg font-semibold text-gray-900">
+                        Real-time Data Flow
+                      </CardTitle>
+                      <CardDescription>
+                        Incoming and outgoing data volumes
+                      </CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="h-80">
+                        <RechartsResponsiveContainer width="100%" height="100%">
+                          <RechartsLineChart
+                            data={dataFlowHistory}
+                            margin={{ top: 10, right: 30, left: 0, bottom: 0 }}
+                          >
+                            <RechartsCartesianGrid
+                              strokeDasharray="3 3"
+                              stroke="#f0f0f0"
+                            />
+                            <RechartsXAxis
+                              dataKey="time"
+                              tick={{ fontSize: 12, fill: "#666" }}
+                              axisLine={{ stroke: "#e0e0e0" }}
+                              tickLine={{ stroke: "#e0e0e0" }}
+                            />
+                            <RechartsYAxis
+                              tick={{ fontSize: 12, fill: "#666" }}
+                              axisLine={{ stroke: "#e0e0e0" }}
+                              tickLine={{ stroke: "#e0e0e0" }}
+                              width={60}
+                              tickFormatter={(value) => `${value} MB/s`}
+                            />
+                            <RechartsTooltip
+                              formatter={(value) => [`${value} MB/s`, ""]}
+                              labelStyle={{ color: "#333", fontWeight: "bold" }}
+                              contentStyle={{
+                                backgroundColor: "white",
+                                border: "1px solid #e0e0e0",
+                                borderRadius: "8px",
+                                boxShadow: "0 4px 6px -1px rgba(0, 0, 0, 0.1)",
+                              }}
+                            />
+                            <RechartsLegend />
+                            <RechartsLine
+                              type="monotone"
+                              dataKey="inbound"
+                              stroke="#6366f1"
+                              strokeWidth={3}
+                              dot={{ fill: "#6366f1", strokeWidth: 2, r: 4 }}
+                              activeDot={{
+                                r: 6,
+                                fill: "#6366f1",
+                                stroke: "#fff",
+                                strokeWidth: 2,
+                              }}
+                              name="Inbound"
+                            />
+                            <RechartsLine
+                              type="monotone"
+                              dataKey="outbound"
+                              stroke="#10b981"
+                              strokeWidth={3}
+                              dot={{ fill: "#10b981", strokeWidth: 2, r: 4 }}
+                              activeDot={{
+                                r: 6,
+                                fill: "#10b981",
+                                stroke: "#fff",
+                                strokeWidth: 2,
+                              }}
+                              name="Outbound"
+                            />
+                            <RechartsLine
+                              type="monotone"
+                              dataKey="total"
+                              stroke="#f59e0b"
+                              strokeWidth={3}
+                              dot={{ fill: "#f59e0b", strokeWidth: 2, r: 4 }}
+                              activeDot={{
+                                r: 6,
+                                fill: "#f59e0b",
+                                stroke: "#fff",
+                                strokeWidth: 2,
+                              }}
+                              name="Total"
+                            />
+                          </RechartsLineChart>
+                        </RechartsResponsiveContainer>
+                      </div>
+                    </CardContent>
+                  </UICard>
 
                   {/* Category Breakdown */}
-                  <Card>
-                    <Title>Data by Category</Title>
-                    <Text>Volume distributed across integration types</Text>
-                    <DonutChart
-                      className="h-80 mt-4"
-                      data={categoryBreakdown}
-                      category="dataVolume"
-                      index="category"
-                      colors={[
-                        "orange",
-                        "blue",
-                        "green",
-                        "purple",
-                        "red",
-                        "indigo",
-                      ]}
-                      valueFormatter={(number) => `${number.toFixed(1)} GB`}
-                      showLabel={true}
-                      showAnimation={true}
-                    />
-                  </Card>
+                  <UICard className="bg-white border-0 shadow-lg">
+                    <CardHeader>
+                      <CardTitle className="text-lg font-semibold text-gray-900">
+                        Data by Category
+                      </CardTitle>
+                      <CardDescription>
+                        Volume distributed across integration types
+                      </CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="h-80">
+                        <RechartsResponsiveContainer width="100%" height="100%">
+                          <RechartsPieChart>
+                            <RechartsPie
+                              data={categoryBreakdown}
+                              cx="50%"
+                              cy="50%"
+                              innerRadius={60}
+                              outerRadius={100}
+                              paddingAngle={5}
+                              dataKey="dataVolume"
+                              label={({ category, percent }) =>
+                                `${category}: ${(Number(percent) * 100).toFixed(
+                                  0
+                                )}%`
+                              }
+                              labelLine={false}
+                            >
+                              {categoryBreakdown.map((entry, index) => (
+                                <RechartsCell
+                                  key={`cell-${index}`}
+                                  fill={
+                                    [
+                                      "#f43f5e",
+                                      "#6366f1",
+                                      "#10b981",
+                                      "#8b5cf6",
+                                      "#f59e0b",
+                                      "#06b6d4",
+                                    ][index]
+                                  }
+                                />
+                              ))}
+                            </RechartsPie>
+                            <RechartsTooltip
+                              formatter={(value) => [
+                                `${Number(value).toFixed(1)} GB`,
+                                "Data Volume",
+                              ]}
+                              labelStyle={{ color: "#333", fontWeight: "bold" }}
+                              contentStyle={{
+                                backgroundColor: "white",
+                                border: "1px solid #e0e0e0",
+                                borderRadius: "8px",
+                                boxShadow: "0 4px 6px -1px rgba(0, 0, 0, 0.1)",
+                              }}
+                            />
+                          </RechartsPieChart>
+                        </RechartsResponsiveContainer>
+                      </div>
+                    </CardContent>
+                  </UICard>
 
                   {/* System Status */}
-                  <Card className="col-span-1 lg:col-span-3">
-                    <Title>Integration Status</Title>
-                    <Text>Real-time status of all connected systems</Text>
-                    <div className="mt-6 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                      {integrationsData.map((integration, index) => (
-                        <motion.div
-                          key={index}
-                          initial={{ opacity: 0, y: 20 }}
-                          animate={{ opacity: 1, y: 0 }}
-                          transition={{ delay: index * 0.05 }}
-                          className="p-4 bg-white rounded-lg border border-gray-200 hover:shadow-md transition-shadow"
-                        >
-                          <div className="flex items-center justify-between mb-3">
-                            <h3 className="font-semibold text-gray-900">
-                              {integration.name}
-                            </h3>
-                            <div
-                              className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${getStatusColor(
-                                integration.status
-                              )}`}
-                            >
-                              {getStatusIcon(integration.status)}
-                              <span className="ml-1 capitalize">
-                                {integration.status}
-                              </span>
+                  <UICard className="col-span-1 lg:col-span-3 bg-white border-0 shadow-lg">
+                    <CardHeader>
+                      <CardTitle className="text-lg font-semibold text-gray-900">
+                        Integration Status
+                      </CardTitle>
+                      <CardDescription>
+                        Real-time status of all connected systems
+                      </CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="mt-6 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                        {integrationsData.map((integration, index) => (
+                          <motion.div
+                            key={index}
+                            initial={{ opacity: 0, y: 20 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            transition={{ delay: index * 0.05 }}
+                            className="p-4 bg-white rounded-lg border border-gray-200 hover:shadow-md transition-shadow"
+                          >
+                            <div className="flex items-center justify-between mb-3">
+                              <h3 className="font-semibold text-gray-900">
+                                {integration.name}
+                              </h3>
+                              <div
+                                className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${getStatusColor(
+                                  integration.status
+                                )}`}
+                              >
+                                {getStatusIcon(integration.status)}
+                                <span className="ml-1 capitalize">
+                                  {integration.status}
+                                </span>
+                              </div>
                             </div>
-                          </div>
-                          <div className="space-y-2">
-                            <div className="flex justify-between text-sm">
-                              <span className="text-gray-600">Data Flow:</span>
-                              <span className="font-medium">
-                                {integration.dataFlow.toFixed(1)} MB/s
-                              </span>
+                            <div className="space-y-2">
+                              <div className="flex justify-between text-sm">
+                                <span className="text-gray-600">
+                                  Data Flow:
+                                </span>
+                                <span className="font-medium">
+                                  {integration.dataFlow.toFixed(1)} MB/s
+                                </span>
+                              </div>
+                              <div className="flex justify-between text-sm">
+                                <span className="text-gray-600">
+                                  Last Sync:
+                                </span>
+                                <span className="font-medium">
+                                  {integration.lastSync}
+                                </span>
+                              </div>
+                              <div className="flex justify-between text-sm">
+                                <span className="text-gray-600">Uptime:</span>
+                                <span className="font-medium">
+                                  {integration.uptime}%
+                                </span>
+                              </div>
+                              <div className="flex justify-between text-sm">
+                                <span className="text-gray-600">Category:</span>
+                                <span className="font-medium">
+                                  {integration.category}
+                                </span>
+                              </div>
                             </div>
-                            <div className="flex justify-between text-sm">
-                              <span className="text-gray-600">Last Sync:</span>
-                              <span className="font-medium">
-                                {integration.lastSync}
-                              </span>
-                            </div>
-                            <div className="flex justify-between text-sm">
-                              <span className="text-gray-600">Uptime:</span>
-                              <span className="font-medium">
-                                {integration.uptime}%
-                              </span>
-                            </div>
-                            <div className="flex justify-between text-sm">
-                              <span className="text-gray-600">Category:</span>
-                              <span className="font-medium">
-                                {integration.category}
-                              </span>
-                            </div>
-                          </div>
-                        </motion.div>
-                      ))}
-                    </div>
-                  </Card>
-                </Grid>
-              </TabPanel>
+                          </motion.div>
+                        ))}
+                      </div>
+                    </CardContent>
+                  </UICard>
+                </div>
+              )}
 
               {/* Integrations Tab */}
-              <TabPanel>
-                <Card>
-                  <Title>Manage Integrations</Title>
-                  <Text>
-                    Configure and monitor all your data source connections
-                  </Text>
-                  <div className="mt-6">
-                    <div className="flex items-center space-x-4 mb-6">
-                      <Text className="text-gray-600">Filter by category:</Text>
-                      <TremorButton
-                        color={selectedCategory === "all" ? "green" : "gray"}
+              {activeTab === 1 && (
+                <UICard className="bg-white border-0 shadow-lg">
+                  <CardHeader>
+                    <CardTitle className="text-lg font-semibold text-gray-900">
+                      Manage Integrations
+                    </CardTitle>
+                    <CardDescription>
+                      Configure and monitor all your data source connections
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="flex items-center flex-wrap gap-2 mb-6">
+                      <p className="text-gray-600 text-sm">
+                        Filter by category:
+                      </p>
+                      <button
+                        className={`px-3 py-1 rounded text-sm font-medium transition-colors ${
+                          selectedCategory === "all"
+                            ? "bg-green-600 text-white"
+                            : "bg-gray-200 text-gray-700 hover:bg-gray-300"
+                        }`}
                         onClick={() => setSelectedCategory("all")}
-                        size="sm"
                       >
                         All
-                      </TremorButton>
+                      </button>
                       {[
                         "Storage",
                         "Database",
@@ -586,16 +744,17 @@ export default function CloudIntegrationPage() {
                         "ERP",
                         "Communication",
                       ].map((category) => (
-                        <TremorButton
+                        <button
                           key={category}
-                          color={
-                            selectedCategory === category ? "green" : "gray"
-                          }
+                          className={`px-3 py-1 rounded text-sm font-medium transition-colors ${
+                            selectedCategory === category
+                              ? "bg-green-600 text-white"
+                              : "bg-gray-200 text-gray-700 hover:bg-gray-300"
+                          }`}
                           onClick={() => setSelectedCategory(category)}
-                          size="sm"
                         >
                           {category}
-                        </TremorButton>
+                        </button>
                       ))}
                     </div>
 
@@ -694,247 +853,280 @@ export default function CloudIntegrationPage() {
                           </motion.div>
                         ))}
                     </div>
-                  </div>
-                </Card>
-              </TabPanel>
+                  </CardContent>
+                </UICard>
+              )}
 
               {/* Setup Guide Tab */}
-              <TabPanel>
-                <Grid numItems={1} numItemsLg={2} className="gap-6 mb-8">
+              {activeTab === 2 && (
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
                   {/* Setup Steps */}
-                  <Card>
-                    <Title>Integration Setup</Title>
-                    <Text>
-                      Follow these steps to connect your first data source
-                    </Text>
-                    <div className="mt-6 space-y-6">
-                      {integrationSteps.map((step, index) => (
-                        <motion.div
-                          key={index}
-                          initial={{ opacity: 0, x: -20 }}
-                          animate={{ opacity: 1, x: 0 }}
-                          transition={{ delay: index * 0.1 }}
-                          className="flex items-start space-x-4"
-                        >
-                          <div
-                            className={`flex-shrink-0 w-10 h-10 rounded-full flex items-center justify-center font-bold text-sm ${
-                              step.status === "completed"
-                                ? "bg-green-100 text-green-600"
-                                : step.status === "in-progress"
-                                ? "bg-blue-100 text-blue-600"
-                                : "bg-gray-100 text-gray-400"
-                            }`}
+                  <UICard className="bg-white border-0 shadow-lg">
+                    <CardHeader>
+                      <CardTitle className="text-lg font-semibold text-gray-900">
+                        Integration Setup
+                      </CardTitle>
+                      <CardDescription>
+                        Follow these steps to connect your first data source
+                      </CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="space-y-6">
+                        {integrationSteps.map((step, index) => (
+                          <motion.div
+                            key={index}
+                            initial={{ opacity: 0, x: -20 }}
+                            animate={{ opacity: 1, x: 0 }}
+                            transition={{ delay: index * 0.1 }}
+                            className="flex items-start space-x-4"
                           >
-                            {step.status === "completed" ? (
-                              <CheckCircle className="h-5 w-5" />
-                            ) : (
-                              step.step
-                            )}
-                          </div>
-                          <div className="flex-1">
-                            <h3 className="font-semibold text-gray-900">
-                              {step.title}
-                            </h3>
-                            <p className="text-sm text-gray-600 mb-2">
-                              {step.description}
-                            </p>
-                            {step.status === "in-progress" && (
-                              <div className="w-full bg-gray-200 rounded-full h-2">
-                                <div
-                                  className="bg-blue-600 h-2 rounded-full"
-                                  style={{ width: "60%" }}
-                                ></div>
-                              </div>
-                            )}
-                          </div>
-                        </motion.div>
-                      ))}
-                    </div>
-                  </Card>
-
-                  {/* Quick Setup Options */}
-                  <Card>
-                    <Title>Quick Setup Options</Title>
-                    <Text>Popular integrations ready to connect</Text>
-                    <div className="mt-6 space-y-4">
-                      {[
-                        {
-                          name: "AWS S3",
-                          description: "Cloud storage for emissions data",
-                          popular: true,
-                        },
-                        {
-                          name: "Google Analytics",
-                          description: "Website and app analytics",
-                          popular: true,
-                        },
-                        {
-                          name: "Salesforce",
-                          description: "Customer relationship management",
-                          popular: false,
-                        },
-                        {
-                          name: "SAP ERP",
-                          description: "Enterprise resource planning",
-                          popular: true,
-                        },
-                        {
-                          name: "Slack",
-                          description: "Team communication platform",
-                          popular: false,
-                        },
-                      ].map((integration, index) => (
-                        <div
-                          key={index}
-                          className="flex items-center justify-between p-4 bg-gray-50 rounded-lg"
-                        >
-                          <div>
-                            <h3 className="font-semibold text-gray-900">
-                              {integration.name}
-                            </h3>
-                            <p className="text-sm text-gray-600">
-                              {integration.description}
-                            </p>
-                          </div>
-                          <div className="flex items-center space-x-2">
-                            {integration.popular && (
-                              <span className="px-2 py-1 bg-orange-100 text-orange-800 text-xs font-medium rounded-full">
-                                Popular
-                              </span>
-                            )}
-                            <Button size="sm">Connect</Button>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  </Card>
-                </Grid>
-              </TabPanel>
-
-              {/* Performance Tab */}
-              <TabPanel>
-                <Grid numItems={1} numItemsLg={2} className="gap-6 mb-8">
-                  {/* Performance Metrics */}
-                  <Card>
-                    <Title>System Performance</Title>
-                    <Text>Real-time performance indicators</Text>
-                    <div className="mt-6 space-y-6">
-                      {performanceMetrics.map((metric, index) => (
-                        <motion.div
-                          key={index}
-                          initial={{ opacity: 0, y: 20 }}
-                          animate={{ opacity: 1, y: 0 }}
-                          transition={{ delay: index * 0.1 }}
-                          className="flex items-center justify-between p-4 bg-gray-50 rounded-lg"
-                        >
-                          <div>
-                            <h3 className="font-semibold text-gray-900">
-                              {metric.metric}
-                            </h3>
-                            <p className="text-sm text-gray-600">
-                              Target: {metric.target}
-                              {metric.unit}
-                            </p>
-                          </div>
-                          <div className="text-right">
-                            <div className="flex items-center space-x-2">
-                              <span className="text-2xl font-bold text-gray-900">
-                                {typeof metric.value === "number" &&
-                                metric.value % 1 !== 0
-                                  ? metric.value.toFixed(2)
-                                  : metric.value}
-                              </span>
-                              <span className="text-sm text-gray-600">
-                                {metric.unit}
-                              </span>
-                            </div>
                             <div
-                              className={`flex items-center text-sm ${
-                                metric.trend === "up"
-                                  ? "text-green-600"
-                                  : "text-red-600"
+                              className={`flex-shrink-0 w-10 h-10 rounded-full flex items-center justify-center font-bold text-sm ${
+                                step.status === "completed"
+                                  ? "bg-green-100 text-green-600"
+                                  : step.status === "in-progress"
+                                  ? "bg-blue-100 text-blue-600"
+                                  : "bg-gray-100 text-gray-400"
                               }`}
                             >
-                              {getTrendIcon(metric.trend)}
-                              <span className="ml-1">vs target</span>
+                              {step.status === "completed" ? (
+                                <CheckCircle className="h-5 w-5" />
+                              ) : (
+                                step.step
+                              )}
+                            </div>
+                            <div className="flex-1">
+                              <h3 className="font-semibold text-gray-900">
+                                {step.title}
+                              </h3>
+                              <p className="text-sm text-gray-600 mb-2">
+                                {step.description}
+                              </p>
+                              {step.status === "in-progress" && (
+                                <div className="w-full bg-gray-200 rounded-full h-2">
+                                  <div
+                                    className="bg-blue-600 h-2 rounded-full"
+                                    style={{ width: "60%" }}
+                                  ></div>
+                                </div>
+                              )}
+                            </div>
+                          </motion.div>
+                        ))}
+                      </div>
+                    </CardContent>
+                  </UICard>
+
+                  {/* Quick Setup Options */}
+                  <UICard className="bg-white border-0 shadow-lg">
+                    <CardHeader>
+                      <CardTitle className="text-lg font-semibold text-gray-900">
+                        Quick Setup Options
+                      </CardTitle>
+                      <CardDescription>
+                        Popular integrations ready to connect
+                      </CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="space-y-4">
+                        {[
+                          {
+                            name: "AWS S3",
+                            description: "Cloud storage for emissions data",
+                            popular: true,
+                          },
+                          {
+                            name: "Google Analytics",
+                            description: "Website and app analytics",
+                            popular: true,
+                          },
+                          {
+                            name: "Salesforce",
+                            description: "Customer relationship management",
+                            popular: false,
+                          },
+                          {
+                            name: "SAP ERP",
+                            description: "Enterprise resource planning",
+                            popular: true,
+                          },
+                          {
+                            name: "Slack",
+                            description: "Team communication platform",
+                            popular: false,
+                          },
+                        ].map((integration, index) => (
+                          <div
+                            key={index}
+                            className="flex items-center justify-between p-4 bg-gray-50 rounded-lg"
+                          >
+                            <div>
+                              <h3 className="font-semibold text-gray-900">
+                                {integration.name}
+                              </h3>
+                              <p className="text-sm text-gray-600">
+                                {integration.description}
+                              </p>
+                            </div>
+                            <div className="flex items-center space-x-2">
+                              {integration.popular && (
+                                <span className="px-2 py-1 bg-orange-100 text-orange-800 text-xs font-medium rounded-full">
+                                  Popular
+                                </span>
+                              )}
+                              <Button size="sm">Connect</Button>
                             </div>
                           </div>
-                        </motion.div>
-                      ))}
-                    </div>
-                  </Card>
+                        ))}
+                      </div>
+                    </CardContent>
+                  </UICard>
+                </div>
+              )}
+
+              {/* Performance Tab */}
+              {activeTab === 3 && (
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+                  {/* Performance Metrics */}
+                  <UICard className="bg-white border-0 shadow-lg">
+                    <CardHeader>
+                      <CardTitle className="text-lg font-semibold text-gray-900">
+                        System Performance
+                      </CardTitle>
+                      <CardDescription>
+                        Real-time performance indicators
+                      </CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="space-y-6">
+                        {performanceMetrics.map((metric, index) => (
+                          <motion.div
+                            key={index}
+                            initial={{ opacity: 0, y: 20 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            transition={{ delay: index * 0.1 }}
+                            className="flex items-center justify-between p-4 bg-gray-50 rounded-lg"
+                          >
+                            <div>
+                              <h3 className="font-semibold text-gray-900">
+                                {metric.metric}
+                              </h3>
+                              <p className="text-sm text-gray-600">
+                                Target: {metric.target}
+                                {metric.unit}
+                              </p>
+                            </div>
+                            <div className="text-right">
+                              <div className="flex items-center space-x-2">
+                                <span className="text-2xl font-bold text-gray-900">
+                                  {typeof metric.value === "number" &&
+                                  metric.value % 1 !== 0
+                                    ? metric.value.toFixed(2)
+                                    : metric.value}
+                                </span>
+                                <span className="text-sm text-gray-600">
+                                  {metric.unit}
+                                </span>
+                              </div>
+                              <div
+                                className={`flex items-center text-sm ${
+                                  metric.trend === "up"
+                                    ? "text-green-600"
+                                    : "text-red-600"
+                                }`}
+                              >
+                                {getTrendIcon(metric.trend)}
+                                <span className="ml-1">vs target</span>
+                              </div>
+                            </div>
+                          </motion.div>
+                        ))}
+                      </div>
+                    </CardContent>
+                  </UICard>
 
                   {/* Recent Activity */}
-                  <Card>
-                    <Title>Recent Activity</Title>
-                    <Text>Latest integration events and updates</Text>
-                    <div className="mt-6 space-y-4">
-                      {[
-                        {
-                          time: "2 min ago",
-                          event: "Data sync completed",
-                          source: "AWS S3",
-                          status: "success",
-                        },
-                        {
-                          time: "5 min ago",
-                          event: "API rate limit warning",
-                          source: "Google Analytics",
-                          status: "warning",
-                        },
-                        {
-                          time: "12 min ago",
-                          event: "Connection established",
-                          source: "Azure SQL",
-                          status: "success",
-                        },
-                        {
-                          time: "1 hour ago",
-                          event: "Integration configured",
-                          source: "Salesforce",
-                          status: "info",
-                        },
-                        {
-                          time: "2 hours ago",
-                          event: "Data mapping updated",
-                          source: "Slack",
-                          status: "info",
-                        },
-                        {
-                          time: "3 hours ago",
-                          event: "Sync failed",
-                          source: "SAP ERP",
-                          status: "error",
-                        },
-                      ].map((activity, index) => (
-                        <div key={index} className="flex items-start space-x-3">
+                  <UICard className="bg-white border-0 shadow-lg">
+                    <CardHeader>
+                      <CardTitle className="text-lg font-semibold text-gray-900">
+                        Recent Activity
+                      </CardTitle>
+                      <CardDescription>
+                        Latest integration events and updates
+                      </CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="space-y-4">
+                        {[
+                          {
+                            time: "2 min ago",
+                            event: "Data sync completed",
+                            source: "AWS S3",
+                            status: "success",
+                          },
+                          {
+                            time: "5 min ago",
+                            event: "API rate limit warning",
+                            source: "Google Analytics",
+                            status: "warning",
+                          },
+                          {
+                            time: "12 min ago",
+                            event: "Connection established",
+                            source: "Azure SQL",
+                            status: "success",
+                          },
+                          {
+                            time: "1 hour ago",
+                            event: "Integration configured",
+                            source: "Salesforce",
+                            status: "info",
+                          },
+                          {
+                            time: "2 hours ago",
+                            event: "Data mapping updated",
+                            source: "Slack",
+                            status: "info",
+                          },
+                          {
+                            time: "3 hours ago",
+                            event: "Sync failed",
+                            source: "SAP ERP",
+                            status: "error",
+                          },
+                        ].map((activity, index) => (
                           <div
-                            className={`w-2 h-2 rounded-full mt-2 ${
-                              activity.status === "success"
-                                ? "bg-green-500"
-                                : activity.status === "warning"
-                                ? "bg-yellow-500"
-                                : activity.status === "error"
-                                ? "bg-red-500"
-                                : "bg-blue-500"
-                            }`}
-                          ></div>
-                          <div className="flex-1">
-                            <p className="text-sm font-medium text-gray-900">
-                              {activity.event}
-                            </p>
-                            <p className="text-xs text-gray-600">
-                              {activity.source} • {activity.time}
-                            </p>
+                            key={index}
+                            className="flex items-start space-x-3"
+                          >
+                            <div
+                              className={`w-2 h-2 rounded-full mt-2 ${
+                                activity.status === "success"
+                                  ? "bg-green-500"
+                                  : activity.status === "warning"
+                                  ? "bg-yellow-500"
+                                  : activity.status === "error"
+                                  ? "bg-red-500"
+                                  : "bg-blue-500"
+                              }`}
+                            ></div>
+                            <div className="flex-1">
+                              <p className="text-sm font-medium text-gray-900">
+                                {activity.event}
+                              </p>
+                              <p className="text-xs text-gray-600">
+                                {activity.source} • {activity.time}
+                              </p>
+                            </div>
                           </div>
-                        </div>
-                      ))}
-                    </div>
-                  </Card>
-                </Grid>
-              </TabPanel>
-            </TabPanels>
-          </TabGroup>
+                        ))}
+                      </div>
+                    </CardContent>
+                  </UICard>
+                </div>
+              )}
+            </div>
+          </div>
         </div>
       </section>
 

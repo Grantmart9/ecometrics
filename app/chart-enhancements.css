@@ -1,0 +1,287 @@
+/* Enhanced Chart Styling for EcoMetrics */
+
+/* Base chart container improvements */
+.tremor-Card {
+  border-radius: 12px !important;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1),
+    0 2px 4px -1px rgba(0, 0, 0, 0.06) !important;
+  border: 1px solid rgba(229, 231, 235, 0.5) !important;
+  transition: all 0.3s ease !important;
+}
+
+.tremor-Card:hover {
+  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1),
+    0 4px 6px -2px rgba(0, 0, 0, 0.05) !important;
+  transform: translateY(-1px) !important;
+}
+
+/* Chart title and text styling */
+.tremor-Title {
+  color: #111827 !important;
+  font-weight: 600 !important;
+  font-size: 1.125rem !important;
+  line-height: 1.75rem !important;
+}
+
+.tremor-Text {
+  color: #6b7280 !important;
+  font-size: 0.875rem !important;
+}
+
+/* Metric card styling */
+.tremor-Metric {
+  font-weight: 700 !important;
+  font-size: 2rem !important;
+  line-height: 2.5rem !important;
+}
+
+/* Badge delta styling */
+.tremor-BadgeDelta {
+  font-size: 0.75rem !important;
+  font-weight: 500 !important;
+  padding: 0.25rem 0.5rem !important;
+  border-radius: 0.375rem !important;
+}
+
+/* Chart legend improvements */
+.tremor-Legend {
+  padding: 0.5rem 0 !important;
+}
+
+/* Custom gradient backgrounds for cards */
+.gradient-emerald {
+  background: linear-gradient(135deg, #10b981 0%, #059669 100%) !important;
+}
+
+.gradient-blue {
+  background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%) !important;
+}
+
+.gradient-rose {
+  background: linear-gradient(135deg, #f43f5e 0%, #e11d48 100%) !important;
+}
+
+.gradient-amber {
+  background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%) !important;
+}
+
+.gradient-purple {
+  background: linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%) !important;
+}
+
+/* Chart specific enhancements */
+.tremor-AreaChart {
+  border-radius: 8px !important;
+}
+
+.tremor-LineChart {
+  border-radius: 8px !important;
+}
+
+.tremor-BarChart {
+  border-radius: 8px !important;
+}
+
+.tremor-DonutChart {
+  border-radius: 8px !important;
+}
+
+.tremor-ScatterChart {
+  border-radius: 8px !important;
+}
+
+/* Axis styling */
+.tremor-Axis {
+  font-size: 0.75rem !important;
+  color: #9ca3af !important;
+}
+
+.tremor-YAxisLabel,
+.tremor-XAxisLabel {
+  font-size: 0.75rem !important;
+  color: #6b7280 !important;
+  font-weight: 500 !important;
+}
+
+/* Grid line styling */
+.tremor-Grid {
+  stroke: #f3f4f6 !important;
+  stroke-width: 1 !important;
+  opacity: 0.5 !important;
+}
+
+/* Tooltip enhancements */
+.tremor-Tooltip {
+  background: rgba(255, 255, 255, 0.95) !important;
+  backdrop-filter: blur(8px) !important;
+  border: 1px solid rgba(229, 231, 235, 0.5) !important;
+  border-radius: 8px !important;
+  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1),
+    0 4px 6px -2px rgba(0, 0, 0, 0.05) !important;
+  padding: 0.75rem !important;
+}
+
+/* Table enhancements */
+.tremor-Table {
+  border-radius: 8px !important;
+  overflow: hidden !important;
+}
+
+.tremor-TableHeaderCell {
+  background-color: #f9fafb !important;
+  color: #374151 !important;
+  font-weight: 600 !important;
+  font-size: 0.75rem !important;
+  text-transform: uppercase !important;
+  letter-spacing: 0.05em !important;
+  padding: 0.75rem 1rem !important;
+}
+
+.tremor-TableCell {
+  padding: 0.75rem 1rem !important;
+  border-bottom: 1px solid #f3f4f6 !important;
+}
+
+/* Button styling */
+.tremor-Button {
+  border-radius: 0.5rem !important;
+  font-weight: 500 !important;
+  transition: all 0.2s ease !important;
+}
+
+.tremor-Button:hover {
+  transform: translateY(-1px) !important;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1) !important;
+}
+
+/* Tab styling */
+.tremor-TabList {
+  background: #f9fafb !important;
+  border-radius: 0.75rem !important;
+  padding: 0.25rem !important;
+}
+
+.tremor-Tab {
+  border-radius: 0.5rem !important;
+  font-weight: 500 !important;
+  font-size: 0.875rem !important;
+  transition: all 0.2s ease !important;
+}
+
+.tremor-Tab[aria-selected="true"] {
+  background: white !important;
+  color: #059669 !important;
+  box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1) !important;
+}
+
+/* Responsive design improvements */
+@media (max-width: 768px) {
+  .tremor-Card {
+    margin-bottom: 1rem !important;
+  }
+
+  .tremor-Title {
+    font-size: 1rem !important;
+    line-height: 1.5rem !important;
+  }
+
+  .tremor-Metric {
+    font-size: 1.5rem !important;
+    line-height: 2rem !important;
+  }
+
+  .tremor-AreaChart,
+  .tremor-LineChart,
+  .tremor-BarChart,
+  .tremor-DonutChart,
+  .tremor-ScatterChart {
+    height: 200px !important;
+  }
+}
+
+@media (max-width: 640px) {
+  .tremor-AreaChart,
+  .tremor-LineChart,
+  .tremor-BarChart,
+  .tremor-DonutChart,
+  .tremor-ScatterChart {
+    height: 180px !important;
+  }
+}
+
+/* Animation enhancements */
+.tremor-Card {
+  animation: fadeInUp 0.6s ease-out;
+}
+
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Loading states */
+.chart-loading {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 200px;
+  background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
+  background-size: 200% 100%;
+  animation: loading 1.5s infinite;
+}
+
+@keyframes loading {
+  0% {
+    background-position: 200% 0;
+  }
+  100% {
+    background-position: -200% 0;
+  }
+}
+
+/* High contrast mode support */
+@media (prefers-contrast: high) {
+  .tremor-Card {
+    border: 2px solid #000 !important;
+  }
+
+  .tremor-Title {
+    color: #000 !important;
+  }
+
+  .tremor-Text {
+    color: #333 !important;
+  }
+}
+
+/* Dark mode support */
+@media (prefers-color-scheme: dark) {
+  .tremor-Card {
+    background: #1f2937 !important;
+    border-color: #374151 !important;
+  }
+
+  .tremor-Title {
+    color: #f9fafb !important;
+  }
+
+  .tremor-Text {
+    color: #d1d5db !important;
+  }
+
+  .tremor-TableHeaderCell {
+    background-color: #374151 !important;
+    color: #f9fafb !important;
+  }
+
+  .tremor-TableCell {
+    color: #e5e7eb !important;
+    border-bottom-color: #374151 !important;
+  }
+}

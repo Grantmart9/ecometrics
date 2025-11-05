@@ -2,74 +2,23 @@
 
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import dynamic from "next/dynamic";
-// Dynamically import Tremor components to avoid SSR issues
-const Card = dynamic(() => import("@tremor/react").then((mod) => mod.Card), {
-  ssr: false,
-});
-const Title = dynamic(() => import("@tremor/react").then((mod) => mod.Title), {
-  ssr: false,
-});
-const Text = dynamic(() => import("@tremor/react").then((mod) => mod.Text), {
-  ssr: false,
-});
-const Metric = dynamic(
-  () => import("@tremor/react").then((mod) => mod.Metric),
-  { ssr: false }
-);
-const AreaChart = dynamic(
-  () => import("@tremor/react").then((mod) => mod.AreaChart),
-  { ssr: false }
-);
-const BarChart = dynamic(
-  () => import("@tremor/react").then((mod) => mod.BarChart),
-  { ssr: false }
-);
-const DonutChart = dynamic(
-  () => import("@tremor/react").then((mod) => mod.DonutChart),
-  { ssr: false }
-);
-const LineChart = dynamic(
-  () => import("@tremor/react").then((mod) => mod.LineChart),
-  { ssr: false }
-);
-const Table = dynamic(() => import("@tremor/react").then((mod) => mod.Table), {
-  ssr: false,
-});
-const TableHead = dynamic(
-  () => import("@tremor/react").then((mod) => mod.TableHead),
-  { ssr: false }
-);
-const TableRow = dynamic(
-  () => import("@tremor/react").then((mod) => mod.TableRow),
-  { ssr: false }
-);
-const TableHeaderCell = dynamic(
-  () => import("@tremor/react").then((mod) => mod.TableHeaderCell),
-  { ssr: false }
-);
-const TableBody = dynamic(
-  () => import("@tremor/react").then((mod) => mod.TableBody),
-  { ssr: false }
-);
-const TableCell = dynamic(
-  () => import("@tremor/react").then((mod) => mod.TableCell),
-  { ssr: false }
-);
-const BadgeDelta = dynamic(
-  () => import("@tremor/react").then((mod) => mod.BadgeDelta),
-  { ssr: false }
-);
-const Flex = dynamic(() => import("@tremor/react").then((mod) => mod.Flex), {
-  ssr: false,
-});
-const Grid = dynamic(() => import("@tremor/react").then((mod) => mod.Grid), {
-  ssr: false,
-});
-const Button = dynamic(
-  () => import("@tremor/react").then((mod) => mod.Button),
-  { ssr: false }
-);
+import {
+  AreaChart as RechartsAreaChart,
+  Area as RechartsArea,
+  BarChart as RechartsBarChart,
+  Bar as RechartsBar,
+  LineChart as RechartsLineChart,
+  Line as RechartsLine,
+  PieChart as RechartsPieChart,
+  Pie as RechartsPie,
+  Cell as RechartsCell,
+  XAxis as RechartsXAxis,
+  YAxis as RechartsYAxis,
+  CartesianGrid as RechartsCartesianGrid,
+  Tooltip as RechartsTooltip,
+  Legend as RechartsLegend,
+  ResponsiveContainer as RechartsResponsiveContainer,
+} from "recharts";
 import { Button as UIButton } from "@/components/ui/button";
 import {
   Card as UICard,
@@ -78,6 +27,8 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import { ReportScheduleDialog } from "@/components/report-schedule-dialog";
+import { RecipientsManagementDialog } from "@/components/recipients-management-dialog";
 import Link from "next/link";
 import {
   Leaf,
@@ -97,6 +48,7 @@ import {
   Filter,
   RefreshCw,
 } from "lucide-react";
+import { generateAutomatedReportsSummary } from "@/lib/reportGenerator";
 
 // Mock data for automated reports
 const reportHistory = [
@@ -145,6 +97,12 @@ const emissionsTrend = [
   { month: "Apr 2023", total: 1150, scope1: 340, scope2: 480, scope3: 330 },
   { month: "May 2023", total: 1090, scope1: 320, scope2: 450, scope3: 320 },
   { month: "Jun 2023", total: 980, scope1: 290, scope2: 400, scope3: 290 },
+  { month: "Jul 2023", total: 875, scope1: 260, scope2: 370, scope3: 245 },
+  { month: "Aug 2023", total: 820, scope1: 240, scope2: 350, scope3: 230 },
+  { month: "Sep 2023", total: 765, scope1: 220, scope2: 330, scope3: 215 },
+  { month: "Oct 2023", total: 720, scope1: 200, scope2: 310, scope3: 210 },
+  { month: "Nov 2023", total: 685, scope1: 185, scope2: 295, scope3: 205 },
+  { month: "Dec 2023", total: 650, scope1: 170, scope2: 280, scope3: 200 },
 ];
 
 const departmentEmissions = [
@@ -168,31 +126,31 @@ const departmentEmissions = [
 const kpiData = [
   {
     name: "Carbon Intensity",
-    value: "245.8",
-    unit: "tCO₂e/$M",
+    value: "198.4",
+    unit: "tCO₂e/R",
     target: "260",
     trend: "down",
   },
   {
     name: "Energy Efficiency",
-    value: "87.3",
+    value: "94.2",
     unit: "%",
     target: "85",
     trend: "up",
   },
   {
     name: "Renewable Energy",
-    value: "62.1",
+    value: "87.6",
     unit: "%",
     target: "70",
     trend: "up",
   },
   {
     name: "Waste Diversion",
-    value: "78.9",
+    value: "92.3",
     unit: "%",
     target: "80",
-    trend: "down",
+    trend: "up",
   },
 ];
 
@@ -209,6 +167,9 @@ export default function AutomatedReportsPage() {
   const [selectedReport, setSelectedReport] = useState(null);
   const [selectedTimeRange, setSelectedTimeRange] = useState("6months");
   const [isGenerating, setIsGenerating] = useState(false);
+  const [isGeneratingReport, setIsGeneratingReport] = useState(false);
+  const [isScheduleDialogOpen, setIsScheduleDialogOpen] = useState(false);
+  const [isRecipientsDialogOpen, setIsRecipientsDialogOpen] = useState(false);
 
   const fadeIn = {
     initial: { opacity: 0, y: 60 },
@@ -262,8 +223,28 @@ export default function AutomatedReportsPage() {
     setIsGenerating(false);
   };
 
+  const handleExportAllReports = async () => {
+    setIsGeneratingReport(true);
+    try {
+      const reportData = {
+        kpiData,
+        departmentEmissions,
+        emissionsTrend,
+        reportHistory,
+      };
+      await generateAutomatedReportsSummary(reportData);
+    } catch (error) {
+      console.error("Error generating reports summary:", error);
+    } finally {
+      setIsGeneratingReport(false);
+    }
+  };
+
   return (
-    <div className="min-h-screen bg-gradient-to-br from-green-50 via-emerald-50 to-sky-50">
+    <div
+      id="automated-reports-dashboard"
+      className="min-h-screen bg-gradient-to-br from-green-50 via-emerald-50 to-sky-50"
+    >
       {/* Navigation */}
       <nav className="bg-white/80 backdrop-blur-md border-b border-green-100 sticky top-0 z-50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -317,11 +298,10 @@ export default function AutomatedReportsPage() {
                 </p>
               </div>
               <div className="flex items-center space-x-4 mt-4 lg:mt-0">
-                <Button
+                <button
                   onClick={handleGenerateReport}
                   disabled={isGenerating}
-                  size="lg"
-                  className="bg-green-600 hover:bg-green-700 text-white"
+                  className="inline-flex items-center px-6 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   {isGenerating ? (
                     <>
@@ -334,7 +314,7 @@ export default function AutomatedReportsPage() {
                       Generate Report
                     </>
                   )}
-                </Button>
+                </button>
               </div>
             </motion.div>
           </motion.div>
@@ -348,26 +328,28 @@ export default function AutomatedReportsPage() {
           >
             {kpiData.map((kpi, index) => (
               <motion.div key={index} variants={fadeIn}>
-                <Card className="bg-gradient-to-br from-green-500 to-emerald-600 text-white border-0">
-                  <Flex alignItems="start">
-                    <div className="truncate">
-                      <Text className="text-green-100">{kpi.name}</Text>
-                      <Metric className="text-white">
-                        {kpi.value} {kpi.unit}
-                      </Metric>
+                <UICard className="bg-gradient-to-br from-green-500 to-emerald-600 text-white border-0 shadow-lg">
+                  <CardContent className="p-6">
+                    <div className="flex items-start justify-between">
+                      <div className="truncate">
+                        <p className="text-green-100 text-sm font-medium">
+                          {kpi.name}
+                        </p>
+                        <p className="text-white text-2xl font-bold mt-1">
+                          {kpi.value} {kpi.unit}
+                        </p>
+                      </div>
+                      <TrendingUp className="h-8 w-8 text-green-200" />
                     </div>
-                    <TrendingUp className="h-8 w-8 text-green-200" />
-                  </Flex>
-                  <BadgeDelta
-                    deltaType={getDeltaType(
-                      parseFloat(kpi.value.replace(",", ".")),
-                      parseFloat(kpi.target)
-                    )}
-                    className="mt-2 bg-white/20 text-white border-white/30"
-                  >
-                    Target: {kpi.target}
-                  </BadgeDelta>
-                </Card>
+                    <div className="mt-4">
+                      <div
+                        className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-white/20 text-white border border-white/30`}
+                      >
+                        Target: {kpi.target}
+                      </div>
+                    </div>
+                  </CardContent>
+                </UICard>
               </motion.div>
             ))}
           </motion.div>
@@ -377,27 +359,27 @@ export default function AutomatedReportsPage() {
             variants={fadeIn}
             className="flex items-center space-x-4 mb-6"
           >
-            <Button
-              color="green"
-              icon={Calendar}
+            <button
+              className="inline-flex items-center px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
               onClick={() => setSelectedTimeRange("3months")}
             >
+              <Calendar className="h-4 w-4 mr-2" />
               This Quarter
-            </Button>
-            <Button
-              color="gray"
-              icon={Filter}
+            </button>
+            <button
+              className="inline-flex items-center px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors"
               onClick={() => setSelectedTimeRange("6months")}
             >
+              <Filter className="h-4 w-4 mr-2" />
               Last 6 Months
-            </Button>
-            <Button
-              color="gray"
-              icon={BarChart3}
+            </button>
+            <button
+              className="inline-flex items-center px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors"
               onClick={() => setSelectedTimeRange("1year")}
             >
+              <BarChart3 className="h-4 w-4 mr-2" />
               This Year
-            </Button>
+            </button>
           </motion.div>
         </div>
       </section>
@@ -405,146 +387,400 @@ export default function AutomatedReportsPage() {
       {/* Main Dashboard */}
       <section className="py-8">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <Grid
-            numItems={1}
-            numItemsSm={2}
-            numItemsLg={3}
-            className="gap-6 mb-8"
-          >
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
             {/* Emissions Trend */}
-            <Card className="col-span-2">
-              <Title>Emissions Trend Analysis</Title>
-              <Text>Monthly emissions by scope over time</Text>
-              <AreaChart
-                className="h-80 mt-4"
-                data={emissionsTrend}
-                index="month"
-                categories={["total", "scope1", "scope2", "scope3"]}
-                colors={["green", "red", "orange", "blue"]}
-                valueFormatter={(number) => `${number} tCO₂e`}
-                showLegend={true}
-                showGridLines={true}
-                curveType="monotone"
-                yAxisWidth={60}
-              />
-            </Card>
+            <UICard className="col-span-2 bg-white border-0 shadow-lg">
+              <CardHeader>
+                <CardTitle className="text-lg font-semibold text-gray-900">
+                  Emissions Trend Analysis
+                </CardTitle>
+                <CardDescription>
+                  Monthly emissions by scope over time
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="h-80">
+                  <RechartsResponsiveContainer width="100%" height="100%">
+                    <RechartsAreaChart
+                      data={emissionsTrend}
+                      margin={{ top: 10, right: 30, left: 0, bottom: 0 }}
+                    >
+                      <RechartsCartesianGrid
+                        strokeDasharray="3 3"
+                        stroke="#f0f0f0"
+                      />
+                      <RechartsXAxis
+                        dataKey="month"
+                        tick={{ fontSize: 12, fill: "#666" }}
+                        axisLine={{ stroke: "#e0e0e0" }}
+                        tickLine={{ stroke: "#e0e0e0" }}
+                      />
+                      <RechartsYAxis
+                        tick={{ fontSize: 12, fill: "#666" }}
+                        axisLine={{ stroke: "#e0e0e0" }}
+                        tickLine={{ stroke: "#e0e0e0" }}
+                        width={60}
+                        tickFormatter={(value) => `${value} tCO₂e`}
+                      />
+                      <RechartsTooltip
+                        formatter={(value) => [`${value} tCO₂e`, ""]}
+                        labelStyle={{ color: "#333", fontWeight: "bold" }}
+                        contentStyle={{
+                          backgroundColor: "white",
+                          border: "1px solid #e0e0e0",
+                          borderRadius: "8px",
+                          boxShadow: "0 4px 6px -1px rgba(0, 0, 0, 0.1)",
+                        }}
+                      />
+                      <RechartsLegend />
+                      <RechartsArea
+                        type="monotone"
+                        dataKey="total"
+                        stackId="1"
+                        stroke="#10b981"
+                        fill="#10b981"
+                        fillOpacity={0.6}
+                        strokeWidth={2}
+                        name="Total Emissions"
+                      />
+                      <RechartsArea
+                        type="monotone"
+                        dataKey="scope1"
+                        stackId="2"
+                        stroke="#f43f5e"
+                        fill="#f43f5e"
+                        fillOpacity={0.6}
+                        strokeWidth={2}
+                        name="Scope 1"
+                      />
+                      <RechartsArea
+                        type="monotone"
+                        dataKey="scope2"
+                        stackId="3"
+                        stroke="#f59e0b"
+                        fill="#f59e0b"
+                        fillOpacity={0.6}
+                        strokeWidth={2}
+                        name="Scope 2"
+                      />
+                      <RechartsArea
+                        type="monotone"
+                        dataKey="scope3"
+                        stackId="4"
+                        stroke="#3b82f6"
+                        fill="#3b82f6"
+                        fillOpacity={0.6}
+                        strokeWidth={2}
+                        name="Scope 3"
+                      />
+                    </RechartsAreaChart>
+                  </RechartsResponsiveContainer>
+                </div>
+              </CardContent>
+            </UICard>
 
             {/* Department Performance */}
-            <Card>
-              <Title>Department Targets</Title>
-              <Text>Current performance vs targets</Text>
-              <BarChart
-                className="h-80 mt-4"
-                data={departmentEmissions}
-                index="department"
-                categories={["emissions", "target"]}
-                colors={["green", "gray"]}
-                valueFormatter={(number) => `${number} tCO₂e`}
-                showLegend={true}
-                yAxisWidth={60}
-                onValueChange={(value) => console.log(value)}
-              />
-            </Card>
+            <UICard className="bg-white border-0 shadow-lg">
+              <CardHeader>
+                <CardTitle className="text-lg font-semibold text-gray-900">
+                  Department Targets
+                </CardTitle>
+                <CardDescription>
+                  Current performance vs targets
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="h-80">
+                  <RechartsResponsiveContainer width="100%" height="100%">
+                    <RechartsBarChart
+                      data={departmentEmissions}
+                      margin={{ top: 20, right: 30, left: 0, bottom: 5 }}
+                    >
+                      <RechartsCartesianGrid
+                        strokeDasharray="3 3"
+                        stroke="#f0f0f0"
+                      />
+                      <RechartsXAxis
+                        dataKey="department"
+                        tick={{ fontSize: 12, fill: "#666" }}
+                        axisLine={{ stroke: "#e0e0e0" }}
+                        tickLine={{ stroke: "#e0e0e0" }}
+                        angle={-45}
+                        textAnchor="end"
+                        height={80}
+                      />
+                      <RechartsYAxis
+                        tick={{ fontSize: 12, fill: "#666" }}
+                        axisLine={{ stroke: "#e0e0e0" }}
+                        tickLine={{ stroke: "#e0e0e0" }}
+                        width={60}
+                        tickFormatter={(value) => `${value} tCO₂e`}
+                      />
+                      <RechartsTooltip
+                        formatter={(value) => [`${value} tCO₂e`, ""]}
+                        labelStyle={{ color: "#333", fontWeight: "bold" }}
+                        contentStyle={{
+                          backgroundColor: "white",
+                          border: "1px solid #e0e0e0",
+                          borderRadius: "8px",
+                          boxShadow: "0 4px 6px -1px rgba(0, 0, 0, 0.1)",
+                        }}
+                      />
+                      <RechartsLegend />
+                      <RechartsBar
+                        dataKey="emissions"
+                        fill="#10b981"
+                        name="Current Emissions"
+                        radius={[2, 2, 0, 0]}
+                      />
+                      <RechartsBar
+                        dataKey="target"
+                        fill="#6b7280"
+                        name="Target"
+                        radius={[2, 2, 0, 0]}
+                      />
+                    </RechartsBarChart>
+                  </RechartsResponsiveContainer>
+                </div>
+              </CardContent>
+            </UICard>
 
             {/* Monthly Comparison */}
-            <Card className="col-span-2">
-              <Title>Year-over-Year Comparison</Title>
-              <Text>Current year vs previous year emissions</Text>
-              <BarChart
-                className="h-80 mt-4"
-                data={monthlyComparison}
-                index="month"
-                categories={["currentYear", "previousYear"]}
-                colors={["green", "gray"]}
-                valueFormatter={(number) => `${number} tCO₂e`}
-                showLegend={true}
-                yAxisWidth={60}
-              />
-            </Card>
+            <UICard className="col-span-2 bg-white border-0 shadow-lg">
+              <CardHeader>
+                <CardTitle className="text-lg font-semibold text-gray-900">
+                  Year-over-Year Comparison
+                </CardTitle>
+                <CardDescription>
+                  Current year vs previous year emissions
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="h-80">
+                  <RechartsResponsiveContainer width="100%" height="100%">
+                    <RechartsBarChart
+                      data={monthlyComparison}
+                      margin={{ top: 20, right: 30, left: 0, bottom: 5 }}
+                    >
+                      <RechartsCartesianGrid
+                        strokeDasharray="3 3"
+                        stroke="#f0f0f0"
+                      />
+                      <RechartsXAxis
+                        dataKey="month"
+                        tick={{ fontSize: 12, fill: "#666" }}
+                        axisLine={{ stroke: "#e0e0e0" }}
+                        tickLine={{ stroke: "#e0e0e0" }}
+                      />
+                      <RechartsYAxis
+                        tick={{ fontSize: 12, fill: "#666" }}
+                        axisLine={{ stroke: "#e0e0e0" }}
+                        tickLine={{ stroke: "#e0e0e0" }}
+                        width={60}
+                        tickFormatter={(value) => `${value} tCO₂e`}
+                      />
+                      <RechartsTooltip
+                        formatter={(value) => [`${value} tCO₂e`, ""]}
+                        labelStyle={{ color: "#333", fontWeight: "bold" }}
+                        contentStyle={{
+                          backgroundColor: "white",
+                          border: "1px solid #e0e0e0",
+                          borderRadius: "8px",
+                          boxShadow: "0 4px 6px -1px rgba(0, 0, 0, 0.1)",
+                        }}
+                      />
+                      <RechartsLegend />
+                      <RechartsBar
+                        dataKey="currentYear"
+                        fill="#10b981"
+                        name="Current Year"
+                        radius={[2, 2, 0, 0]}
+                      />
+                      <RechartsBar
+                        dataKey="previousYear"
+                        fill="#6b7280"
+                        name="Previous Year"
+                        radius={[2, 2, 0, 0]}
+                      />
+                    </RechartsBarChart>
+                  </RechartsResponsiveContainer>
+                </div>
+              </CardContent>
+            </UICard>
 
             {/* Report History */}
-            <Card>
-              <Title>Recent Reports</Title>
-              <Text>Generated and scheduled reports</Text>
-              <div className="h-80 mt-4">
-                <Table>
-                  <TableHead>
-                    <TableRow>
-                      <TableHeaderCell>Report</TableHeaderCell>
-                      <TableHeaderCell>Status</TableHeaderCell>
-                    </TableRow>
-                  </TableHead>
-                  <TableBody>
+            <UICard className="bg-white border-0 shadow-lg">
+              <CardHeader>
+                <CardTitle className="text-lg font-semibold text-gray-900">
+                  Recent Reports
+                </CardTitle>
+                <CardDescription>
+                  Generated and scheduled reports
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="h-80 overflow-y-auto">
+                  <div className="space-y-3">
                     {reportHistory.map((report) => (
-                      <TableRow key={report.id}>
-                        <TableCell>
-                          <div>
-                            <Text className="font-medium">{report.name}</Text>
-                            <Text className="text-xs text-gray-500">
-                              {report.type} • {report.generated}
-                            </Text>
-                          </div>
-                        </TableCell>
-                        <TableCell>
-                          <div
-                            className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${getStatusColor(
-                              report.status
-                            )}`}
-                          >
-                            {getStatusIcon(report.status)}
-                            <span className="ml-1 capitalize">
-                              {report.status}
-                            </span>
-                          </div>
-                        </TableCell>
-                      </TableRow>
+                      <div
+                        key={report.id}
+                        className="flex items-center justify-between p-3 bg-gray-50 rounded-lg"
+                      >
+                        <div>
+                          <p className="font-medium text-gray-900">
+                            {report.name}
+                          </p>
+                          <p className="text-xs text-gray-500">
+                            {report.type} • {report.generated} • {report.size}
+                          </p>
+                        </div>
+                        <div
+                          className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${getStatusColor(
+                            report.status
+                          )}`}
+                        >
+                          {getStatusIcon(report.status)}
+                          <span className="ml-1 capitalize">
+                            {report.status}
+                          </span>
+                        </div>
+                      </div>
                     ))}
-                  </TableBody>
-                </Table>
-              </div>
-            </Card>
-          </Grid>
+                  </div>
+                </div>
+              </CardContent>
+            </UICard>
+          </div>
 
           {/* Additional Charts Section */}
-          <Grid numItems={1} numItemsLg={2} className="gap-6 mb-8">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
             {/* Carbon Intensity Trend */}
-            <Card>
-              <Title>Carbon Intensity Progress</Title>
-              <Text>Track improvement in carbon efficiency</Text>
-              <LineChart
-                className="h-80 mt-4"
-                data={emissionsTrend}
-                index="month"
-                categories={["total"]}
-                colors={["green"]}
-                valueFormatter={(number) => `${number.toFixed(1)} tCO₂e/$M`}
-                showLegend={false}
-                showGridLines={true}
-                curveType="monotone"
-                yAxisWidth={80}
-              />
-            </Card>
+            <UICard className="bg-white border-0 shadow-lg">
+              <CardHeader>
+                <CardTitle className="text-lg font-semibold text-gray-900">
+                  Carbon Intensity Progress
+                </CardTitle>
+                <CardDescription>
+                  Track improvement in carbon efficiency
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="h-80">
+                  <RechartsResponsiveContainer width="100%" height="100%">
+                    <RechartsLineChart
+                      data={emissionsTrend}
+                      margin={{ top: 10, right: 30, left: 0, bottom: 0 }}
+                    >
+                      <RechartsCartesianGrid
+                        strokeDasharray="3 3"
+                        stroke="#f0f0f0"
+                      />
+                      <RechartsXAxis
+                        dataKey="month"
+                        tick={{ fontSize: 12, fill: "#666" }}
+                        axisLine={{ stroke: "#e0e0e0" }}
+                        tickLine={{ stroke: "#e0e0e0" }}
+                      />
+                      <RechartsYAxis
+                        tick={{ fontSize: 12, fill: "#666" }}
+                        axisLine={{ stroke: "#e0e0e0" }}
+                        tickLine={{ stroke: "#e0e0e0" }}
+                        width={80}
+                        tickFormatter={(value) =>
+                          `${Number(value).toFixed(1)} tCO₂e/R`
+                        }
+                      />
+                      <RechartsTooltip
+                        formatter={(value) => [
+                          `${Number(value).toFixed(1)} tCO₂e/R`,
+                          "Carbon Intensity",
+                        ]}
+                        labelStyle={{ color: "#333", fontWeight: "bold" }}
+                        contentStyle={{
+                          backgroundColor: "white",
+                          border: "1px solid #e0e0e0",
+                          borderRadius: "8px",
+                          boxShadow: "0 4px 6px -1px rgba(0, 0, 0, 0.1)",
+                        }}
+                      />
+                      <RechartsLine
+                        type="monotone"
+                        dataKey="total"
+                        stroke="#10b981"
+                        strokeWidth={3}
+                        dot={{ fill: "#10b981", strokeWidth: 2, r: 4 }}
+                        activeDot={{
+                          r: 6,
+                          fill: "#10b981",
+                          stroke: "#fff",
+                          strokeWidth: 2,
+                        }}
+                        name="Carbon Intensity"
+                      />
+                    </RechartsLineChart>
+                  </RechartsResponsiveContainer>
+                </div>
+              </CardContent>
+            </UICard>
 
             {/* Scope Breakdown */}
-            <Card>
-              <Title>Emissions by Scope</Title>
-              <Text>Current distribution across all scopes</Text>
-              <DonutChart
-                className="h-80 mt-4"
-                data={[
-                  { name: "Scope 1 (Direct)", value: 380 },
-                  { name: "Scope 2 (Energy)", value: 520 },
-                  { name: "Scope 3 (Indirect)", value: 340 },
-                ]}
-                category="value"
-                index="name"
-                colors={["red", "orange", "blue"]}
-                valueFormatter={(number) => `${number} tCO₂e`}
-                showLabel={true}
-                showAnimation={true}
-              />
-            </Card>
-          </Grid>
+            <UICard className="bg-white border-0 shadow-lg">
+              <CardHeader>
+                <CardTitle className="text-lg font-semibold text-gray-900">
+                  Emissions by Scope
+                </CardTitle>
+                <CardDescription>
+                  Current distribution across all scopes
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="h-80">
+                  <RechartsResponsiveContainer width="100%" height="100%">
+                    <RechartsPieChart>
+                      <RechartsPie
+                        data={[
+                          { name: "Scope 1 (Direct)", value: 380 },
+                          { name: "Scope 2 (Energy)", value: 520 },
+                          { name: "Scope 3 (Indirect)", value: 340 },
+                        ]}
+                        cx="50%"
+                        cy="50%"
+                        innerRadius={60}
+                        outerRadius={100}
+                        paddingAngle={5}
+                        dataKey="value"
+                        label={({ name, percent }) =>
+                          `${name}: ${(Number(percent) * 100).toFixed(0)}%`
+                        }
+                        labelLine={false}
+                      >
+                        {[
+                          { name: "Scope 1 (Direct)", value: 380 },
+                          { name: "Scope 2 (Energy)", value: 520 },
+                          { name: "Scope 3 (Indirect)", value: 340 },
+                        ].map((entry, index) => (
+                          <RechartsCell
+                            key={`cell-${index}`}
+                            fill={["#f43f5e", "#f59e0b", "#3b82f6"][index]}
+                          />
+                        ))}
+                      </RechartsPie>
+                      <RechartsTooltip
+                        formatter={(value) => [`${value} tCO₂e`, "Emissions"]}
+                        labelStyle={{ color: "#333", fontWeight: "bold" }}
+                        contentStyle={{
+                          backgroundColor: "white",
+                          border: "1px solid #e0e0e0",
+                          borderRadius: "8px",
+                          boxShadow: "0 4px 6px -1px rgba(0, 0, 0, 0.1)",
+                        }}
+                      />
+                    </RechartsPieChart>
+                  </RechartsResponsiveContainer>
+                </div>
+              </CardContent>
+            </UICard>
+          </div>
         </div>
       </section>
 
@@ -555,14 +791,17 @@ export default function AutomatedReportsPage() {
             <UIButton
               size="lg"
               className="bg-green-600 hover:bg-green-700 text-white px-8 py-4"
+              onClick={handleExportAllReports}
+              disabled={isGeneratingReport}
             >
               <Download className="h-5 w-5 mr-2" />
-              Export All Reports
+              {isGeneratingReport ? "Exporting..." : "Export All Reports"}
             </UIButton>
             <UIButton
               variant="outline"
               size="lg"
               className="border-green-200 text-green-700 hover:bg-green-50 px-8 py-4"
+              onClick={() => setIsScheduleDialogOpen(true)}
             >
               <Settings className="h-5 w-5 mr-2" />
               Configure Schedules
@@ -571,6 +810,7 @@ export default function AutomatedReportsPage() {
               variant="outline"
               size="lg"
               className="border-green-200 text-green-700 hover:bg-green-50 px-8 py-4"
+              onClick={() => setIsRecipientsDialogOpen(true)}
             >
               <Users className="h-5 w-5 mr-2" />
               Manage Recipients
@@ -578,6 +818,16 @@ export default function AutomatedReportsPage() {
           </div>
         </div>
       </section>
+
+      {/* Dialogs */}
+      <ReportScheduleDialog
+        open={isScheduleDialogOpen}
+        onOpenChange={setIsScheduleDialogOpen}
+      />
+      <RecipientsManagementDialog
+        open={isRecipientsDialogOpen}
+        onOpenChange={setIsRecipientsDialogOpen}
+      />
     </div>
   );
 }
