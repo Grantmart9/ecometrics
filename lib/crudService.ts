@@ -85,14 +85,20 @@ class CrudService {
 
   private getMockResponse(endpoint: string, data: any, operation: string): any {
     // Return appropriate mock data based on the endpoint and operation
+    const identifier = data.email || data.username || "user@example.com";
+    const isEmail = data.email && data.email.includes("@");
+    const displayName =
+      data.name ||
+      (isEmail ? data.email.split("@")[0] : data.username || "User");
+
     const mockResponses: { [key: string]: any } = {
       users: {
         Status: 200,
         Data: [
           {
             Id: "1",
-            Email: data.email,
-            Name: data.name,
+            Email: identifier,
+            Name: displayName,
             Surname: "Mock",
             Identity: "USER",
             Status: 0,
@@ -105,7 +111,7 @@ class CrudService {
           {
             Id: "1",
             Name: data.name,
-            Email: data.email,
+            Email: identifier,
             Surname: "Mock",
             Identity: "COMPANY",
             Status: 0,
@@ -135,8 +141,22 @@ class CrudService {
             token: "mock_jwt_token",
             user: {
               id: "1",
-              email: data.email,
-              name: data.email.split("@")[0],
+              email: identifier,
+              name: displayName,
+            },
+          },
+        ],
+      },
+      "auth/signup": {
+        Status: 200,
+        Data: [
+          {
+            success: true,
+            token: "mock_jwt_token",
+            user: {
+              id: "1",
+              email: identifier,
+              name: displayName,
             },
           },
         ],

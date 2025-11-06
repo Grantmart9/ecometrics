@@ -15,12 +15,13 @@ interface AuthContextType {
   isAuthenticated: boolean;
   user: User | null;
   session: Session | null;
-  login: (email: string, password: string) => Promise<{ error?: string }>;
+  login: (identifier: string, password: string) => Promise<{ error?: string }>;
   register: (
-    email: string,
+    identifier: string,
     password: string,
     name: string,
-    company?: string
+    company?: string,
+    username?: string
   ) => Promise<{ error?: string }>;
   logout: () => Promise<void>;
   loading: boolean;
@@ -75,14 +76,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     checkAuthStatus();
   }, [crudService]);
 
-  const login = async (email: string, password: string) => {
+  const login = async (identifier: string, password: string) => {
     try {
       setLoading(true);
 
+      // Determine if identifier is email or username
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      const isEmail = emailRegex.test(identifier);
+
       // Call the login method through CRUD service with proper data object
       const result = await crudServiceInstance.login({
-        email,
+        email: identifier, // Send as email field for backend compatibility
         password,
+        identifier_type: isEmail ? "email" : "username", // Custom field for backend
       });
 
       if (result && result.Status === 200) {
@@ -97,8 +103,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         // Set user data
         const userData: User = {
           id: userRecord?.id || "1",
-          name: userRecord?.name || email.split("@")[0],
-          email: userRecord?.email || email,
+          name:
+            userRecord?.name ||
+            (isEmail ? identifier.split("@")[0] : identifier),
+          email:
+            userRecord?.email ||
+            (isEmail ? identifier : userRecord?.email || ""),
           company: userRecord?.company || "",
           createdAt: new Date().toISOString(),
           updatedAt: new Date().toISOString(),
@@ -121,17 +131,23 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   const register = async (
-    email: string,
+    identifier: string,
     password: string,
     name: string,
-    company?: string
+    company?: string,
+    username?: string
   ) => {
     try {
       setLoading(true);
 
+      // Determine if identifier is email or username
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      const isEmail = emailRegex.test(identifier);
+
       // Create registration data
       const registerData = {
-        email,
+        email: isEmail ? identifier : "", // Only send email if identifier is email
+        username: !isEmail ? identifier : username, // Use identifier as username if not email
         password,
         name,
         company: company || "",
@@ -153,7 +169,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         const userData: User = {
           id: userRecord?.id || "1",
           name: userRecord?.name || name,
-          email: userRecord?.email || email,
+          email:
+            userRecord?.email ||
+            (isEmail ? identifier : userRecord?.email || ""),
           company: userRecord?.company || company || "",
           createdAt: new Date().toISOString(),
           updatedAt: new Date().toISOString(),

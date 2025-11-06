@@ -6,8 +6,11 @@ interface EnvironmentConfig {
 }
 
 export const environment: EnvironmentConfig = {
-  // Use the CRUD API from the reference app
-  apiUrl: "http://localhost:3003/api",
+  // Determine API URL based on environment
+  apiUrl:
+    process.env.NODE_ENV === "production"
+      ? process.env.NEXT_PUBLIC_API_URL || "/api"
+      : "http://localhost:3003/api",
   isDevelopment: process.env.NODE_ENV === "development",
   appName: "EcoMetrics",
   version: "1.0.0",

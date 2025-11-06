@@ -53,7 +53,7 @@ export default function LoginPage() {
       } else {
         // Register
         const { error: registerError } = await register(
-          formData.email,
+          formData.email, // This can be either email or username
           formData.password,
           formData.name,
           formData.company
@@ -160,7 +160,7 @@ export default function LoginPage() {
 
               <div>
                 <label htmlFor="email" className="sr-only">
-                  Email address
+                  Email address or username
                 </label>
                 <div className="relative">
                   <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
@@ -173,7 +173,7 @@ export default function LoginPage() {
                     autoComplete="email"
                     required
                     className="pl-10"
-                    placeholder="Email address (or username)"
+                    placeholder="Email address or username"
                     value={formData.email}
                     onChange={handleInputChange}
                   />
