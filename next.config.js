@@ -2,10 +2,19 @@
 const nextConfig = {
     images: {
         domains: ['images.unsplash.com', 'via.placeholder.com'],
-        unoptimized: true,  // Add this for static export
     },
-    output: 'export',  // Add this line for static export
-    trailingSlash: true,  // Add trailing slash for static hosting
+    async rewrites() {
+        return [
+            {
+                source: "/api/:path*",
+                destination: "https://api.temo.co.za/advice/dev/:path*",
+            },
+            {
+                source: "/temo-api/:path*",
+                destination: "https://api.temo.co.za/:path*",
+            },
+        ];
+    },
 }
 
 module.exports = nextConfig

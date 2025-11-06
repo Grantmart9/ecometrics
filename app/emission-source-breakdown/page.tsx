@@ -113,7 +113,9 @@ import {
   AlertTriangle,
   CheckCircle,
   Target,
+  ChevronDown,
 } from "lucide-react";
+import { useAuth } from "@/lib/auth-context";
 
 // Mock data for emission sources
 const emissionSourcesData = [
@@ -305,6 +307,42 @@ export default function EmissionSourceBreakdownPage() {
   const [selectedDepartment, setSelectedDepartment] = useState("all");
   const [selectedTimeRange, setSelectedTimeRange] = useState("6months");
   const [isGeneratingReport, setIsGeneratingReport] = useState(false);
+  const [isCalculateDropdownOpen, setIsCalculateDropdownOpen] = useState(false);
+
+  const { user } = useAuth();
+
+  const calculateMenuItems = [
+    {
+      href: "/real-time-carbon-tracking",
+      label: "Real-Time Carbon Tracking",
+      description: "Live emissions monitoring",
+    },
+    {
+      href: "/automated-reports",
+      label: "Automated Reports",
+      description: "Generate comprehensive reports",
+    },
+    {
+      href: "/custom-dashboards",
+      label: "Custom Dashboards",
+      description: "Personalized dashboard views",
+    },
+    {
+      href: "/emission-source-breakdown",
+      label: "Emission Source Breakdown",
+      description: "Detailed source analysis",
+    },
+    {
+      href: "/cloud-integration",
+      label: "Cloud Integration",
+      description: "Connect with cloud providers",
+    },
+    {
+      href: "/team-collaboration",
+      label: "Team Collaboration",
+      description: "Collaborate with your team",
+    },
+  ];
 
   // Import the report generator functions
   const {
@@ -391,37 +429,6 @@ export default function EmissionSourceBreakdownPage() {
       id="emission-breakdown-dashboard"
       className="min-h-screen bg-gradient-to-br from-green-50 via-emerald-50 to-sky-50"
     >
-      {/* Navigation */}
-      <nav className="bg-white/80 backdrop-blur-md border-b border-green-100 sticky top-0 z-50">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center py-4">
-            <div className="flex items-center">
-              <Link href="/">
-                <ArrowLeft className="h-6 w-6 text-gray-600 mr-4 hover:text-green-600 transition-colors" />
-              </Link>
-              <Leaf className="h-8 w-8 text-green-600 mr-2" />
-              <span className="text-2xl font-bold text-gray-900">
-                EcoMetrics
-              </span>
-            </div>
-            <div className="hidden md:flex space-x-8">
-              <Link
-                href="/"
-                className="text-gray-700 hover:text-green-600 transition-colors"
-              >
-                Home
-              </Link>
-              <Link
-                href="/#features"
-                className="text-gray-700 hover:text-green-600 transition-colors"
-              >
-                Features
-              </Link>
-            </div>
-          </div>
-        </div>
-      </nav>
-
       {/* Dashboard Header */}
       <section className="py-8 bg-white/50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -686,10 +693,10 @@ export default function EmissionSourceBreakdownPage() {
                               value === "scope1"
                                 ? "Scope 1"
                                 : value === "scope2"
-                                ? "Scope 2"
-                                : value === "scope3"
-                                ? "Scope 3"
-                                : value
+                                  ? "Scope 2"
+                                  : value === "scope3"
+                                    ? "Scope 3"
+                                    : value
                             }
                           />
                           <Area
@@ -774,10 +781,10 @@ export default function EmissionSourceBreakdownPage() {
                               value === "scope1"
                                 ? "Scope 1"
                                 : value === "scope2"
-                                ? "Scope 2"
-                                : value === "scope3"
-                                ? "Scope 3"
-                                : value
+                                  ? "Scope 2"
+                                  : value === "scope3"
+                                    ? "Scope 3"
+                                    : value
                             }
                           />
                           <Bar
@@ -825,8 +832,8 @@ export default function EmissionSourceBreakdownPage() {
                               source.category === "Scope 1"
                                 ? "bg-red-100 text-red-600"
                                 : source.category === "Scope 2"
-                                ? "bg-amber-100 text-amber-600"
-                                : "bg-blue-100 text-blue-600"
+                                  ? "bg-amber-100 text-amber-600"
+                                  : "bg-blue-100 text-blue-600"
                             }`}
                           >
                             {getSourceIcon(source.source)}
@@ -909,8 +916,8 @@ export default function EmissionSourceBreakdownPage() {
                                     opportunity.cost === "Low"
                                       ? "bg-green-100 text-green-800"
                                       : opportunity.cost === "Medium"
-                                      ? "bg-yellow-100 text-yellow-800"
-                                      : "bg-red-100 text-red-800"
+                                        ? "bg-yellow-100 text-yellow-800"
+                                        : "bg-red-100 text-red-800"
                                   }`}
                                 >
                                   {opportunity.cost}
@@ -925,8 +932,8 @@ export default function EmissionSourceBreakdownPage() {
                                     opportunity.effort === "Easy"
                                       ? "bg-green-100 text-green-800"
                                       : opportunity.effort === "Medium"
-                                      ? "bg-yellow-100 text-yellow-800"
-                                      : "bg-red-100 text-red-800"
+                                        ? "bg-yellow-100 text-yellow-800"
+                                        : "bg-red-100 text-red-800"
                                   }`}
                                 >
                                   {opportunity.effort}

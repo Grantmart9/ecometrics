@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   AreaChart as RechartsAreaChart,
@@ -28,9 +28,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import Link from "next/link";
 import {
-  Leaf,
   Layout,
   Plus,
   Edit3,
@@ -40,14 +38,28 @@ import {
   BarChart3,
   TrendingUp,
   Settings,
-  ArrowLeft,
   Grid3X3,
   PieChart,
   LineChart as LineChartIcon,
   Activity,
-  Zap,
   Download,
+  ChevronLeft,
 } from "lucide-react";
+import Link from "next/link";
+import { useAuth } from "@/lib/auth-context";
+
+// Widget interface definition
+interface Widget {
+  id: number;
+  type: string;
+  title: string;
+  dataKey: string;
+  value?: string;
+  unit?: string;
+  trend?: string;
+  trendUp?: boolean;
+  status?: string;
+}
 
 // Dashboard templates and widget data
 const dashboardTemplates = [
@@ -189,13 +201,243 @@ const currentDashboard = {
   ],
 };
 
+// Template-specific widget configurations
+const templateWidgetConfigs: Record<string, Widget[]> = {
+  "executive-summary": [
+    {
+      id: 1,
+      type: "metric-card",
+      title: "Total Emissions",
+      dataKey: "total-emissions",
+      value: "1,245",
+      unit: "tCO₂e",
+      trend: "-8.2%",
+      trendUp: false,
+    },
+    {
+      id: 2,
+      type: "metric-card",
+      title: "Target Achievement",
+      dataKey: "target-progress",
+      value: "94.3",
+      unit: "%",
+      trend: "+2.1%",
+      trendUp: true,
+    },
+    {
+      id: 3,
+      type: "area-chart",
+      title: "Monthly Emissions Trend",
+      dataKey: "emissions-trend",
+    },
+    {
+      id: 4,
+      type: "donut-chart",
+      title: "Scope Breakdown",
+      dataKey: "scope-breakdown",
+    },
+  ],
+  "operations-dashboard": [
+    {
+      id: 1,
+      type: "line-chart",
+      title: "Real-time Emissions",
+      dataKey: "realtime-emissions",
+    },
+    {
+      id: 2,
+      type: "bar-chart",
+      title: "Department Performance",
+      dataKey: "department-performance",
+    },
+    {
+      id: 3,
+      type: "metric-card",
+      title: "Active Alerts",
+      dataKey: "active-alerts",
+      value: "3",
+      unit: "alerts",
+    },
+    {
+      id: 4,
+      type: "area-chart",
+      title: "Efficiency Trends",
+      dataKey: "efficiency-trends",
+    },
+  ],
+  "compliance-report": [
+    {
+      id: 1,
+      type: "donut-chart",
+      title: "Scope 1 vs 2 vs 3",
+      dataKey: "scope-comparison",
+    },
+    {
+      id: 2,
+      type: "metric-card",
+      title: "Compliance Status",
+      dataKey: "compliance-status",
+      value: "100",
+      unit: "%",
+      status: "compliant",
+    },
+    {
+      id: 3,
+      type: "area-chart",
+      title: "Emission Targets vs Actual",
+      dataKey: "targets-vs-actual",
+    },
+    {
+      id: 4,
+      type: "bar-chart",
+      title: "Certification Progress",
+      dataKey: "certification-progress",
+    },
+  ],
+  "sustainability-scorecard": [
+    {
+      id: 1,
+      type: "metric-card",
+      title: "Sustainability Score",
+      dataKey: "sustainability-score",
+      value: "87.5",
+      unit: "/100",
+    },
+    {
+      id: 2,
+      type: "donut-chart",
+      title: "Carbon Reduction Areas",
+      dataKey: "reduction-areas",
+    },
+    {
+      id: 3,
+      type: "area-chart",
+      title: "Sustainability KPIs",
+      dataKey: "sustainability-kpis",
+    },
+    {
+      id: 4,
+      type: "line-chart",
+      title: "Progress Towards Goals",
+      dataKey: "goals-progress",
+    },
+  ],
+};
+
+// Additional mock data for specific templates
+const executiveData = {
+  "total-emissions": {
+    value: "1,245",
+    unit: "tCO₂e",
+    trend: "-8.2%",
+    trendUp: false,
+  },
+  "target-progress": {
+    value: "94.3",
+    unit: "%",
+    trend: "+2.1%",
+    trendUp: true,
+  },
+  "emissions-trend": [
+    { month: "Jan", actual: 1450, target: 1300, reduction: 150 },
+    { month: "Feb", actual: 1380, target: 1300, reduction: 80 },
+    { month: "Mar", actual: 1420, target: 1300, reduction: -120 },
+    { month: "Apr", actual: 1290, target: 1300, reduction: 10 },
+    { month: "May", actual: 1245, target: 1300, reduction: 55 },
+  ],
+  "scope-breakdown": [
+    { name: "Scope 1", value: 380, color: "#ef4444" },
+    { name: "Scope 2", value: 520, color: "#f59e0b" },
+    { name: "Scope 3", value: 345, color: "#3b82f6" },
+  ],
+};
+
+const operationsData = {
+  "realtime-emissions": [
+    { time: "00:00", emissions: 125, efficiency: 87 },
+    { time: "04:00", emissions: 118, efficiency: 89 },
+    { time: "08:00", emissions: 142, efficiency: 85 },
+    { time: "12:00", emissions: 151, efficiency: 82 },
+    { time: "16:00", emissions: 168, efficiency: 78 },
+    { time: "20:00", emissions: 143, efficiency: 84 },
+  ],
+  "department-performance": [
+    { department: "Manufacturing", current: 450, target: 480 },
+    { department: "Transport", current: 320, target: 350 },
+    { department: "Facilities", current: 280, target: 250 },
+    { department: "IT Systems", current: 150, target: 180 },
+  ],
+  "active-alerts": { value: "3", unit: "alerts" },
+  "efficiency-trends": [
+    { month: "Jan", efficiency: 82, cost: 4500 },
+    { month: "Feb", efficiency: 85, cost: 4200 },
+    { month: "Mar", efficiency: 83, cost: 4400 },
+    { month: "Apr", efficiency: 87, cost: 4100 },
+    { month: "May", efficiency: 89, cost: 3900 },
+  ],
+};
+
+const complianceData = {
+  "scope-comparison": [
+    { name: "Scope 1", value: 380, color: "#ef4444" },
+    { name: "Scope 2", value: 520, color: "#f59e0b" },
+    { name: "Scope 3", value: 345, color: "#3b82f6" },
+  ],
+  "compliance-status": { value: "100", unit: "%", status: "compliant" },
+  "targets-vs-actual": [
+    { month: "Jan", actual: 1450, target: 1300 },
+    { month: "Feb", actual: 1380, target: 1300 },
+    { month: "Mar", actual: 1420, target: 1300 },
+    { month: "Apr", actual: 1290, target: 1300 },
+    { month: "May", actual: 1245, target: 1300 },
+  ],
+  "certification-progress": [
+    { cert: "ISO 14001", progress: 95, color: "#10b981" },
+    { cert: "GHG Protocol", progress: 88, color: "#3b82f6" },
+    { cert: "CDP", progress: 72, color: "#f59e0b" },
+    { cert: "SBTi", progress: 65, color: "#8b5cf6" },
+  ],
+};
+
+const sustainabilityData = {
+  "sustainability-score": { value: "87.5", unit: "/100" },
+  "reduction-areas": [
+    { name: "Energy", value: 35, color: "#10b981" },
+    { name: "Transport", value: 28, color: "#3b82f6" },
+    { name: "Waste", value: 22, color: "#f59e0b" },
+    { name: "Supply Chain", value: 15, color: "#8b5cf6" },
+  ],
+  "sustainability-kpis": [
+    { quarter: "Q1", energy: 82, waste: 75, water: 88 },
+    { quarter: "Q2", energy: 85, waste: 78, water: 90 },
+    { quarter: "Q3", energy: 87, waste: 82, water: 92 },
+    { quarter: "Q4", energy: 89, waste: 85, water: 94 },
+  ],
+  "goals-progress": [
+    { goal: "Net Zero", progress: 45, target: 100 },
+    { goal: "Renewable 100%", progress: 67, target: 100 },
+    { goal: "Zero Waste", progress: 78, target: 100 },
+  ],
+};
+
+interface Template {
+  id: number;
+  name: string;
+  description: string;
+  icon: React.ReactNode;
+  widgets: string[];
+}
+
 export default function CustomDashboardsPage() {
-  const [selectedTemplate, setSelectedTemplate] = useState(null);
+  const [selectedTemplate, setSelectedTemplate] = useState<Template | null>(
+    null
+  );
   const [dashboardName, setDashboardName] = useState("My Custom Dashboard");
-  const [widgets, setWidgets] = useState(currentDashboard.widgets);
+  const [widgets, setWidgets] = useState<Widget[]>([]);
   const [isCreating, setIsCreating] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
   const [showWidgetPicker, setShowWidgetPicker] = useState(false);
+  const { user } = useAuth();
 
   const fadeIn = {
     initial: { opacity: 0, y: 60 },
@@ -212,11 +454,18 @@ export default function CustomDashboardsPage() {
 
   const handleCreateFromTemplate = (template: any) => {
     setSelectedTemplate(template);
+    setDashboardName(`${template.name} Dashboard`);
+
+    // Load template-specific widgets
+    const templateKey = template.name.toLowerCase().replace(/\s+/g, "-");
+    const templateWidgets = templateWidgetConfigs[templateKey] || [];
+    setWidgets(templateWidgets);
+
     setIsCreating(true);
   };
 
   const handleAddWidget = (widgetType: any) => {
-    const newWidget = {
+    const newWidget: Widget = {
       id: Date.now(),
       type: widgetType.type,
       title: `New ${widgetType.name}`,
@@ -237,19 +486,79 @@ export default function CustomDashboardsPage() {
     setIsEditing(false);
   };
 
-  const renderWidget = (widget: any) => {
+  const getDataForWidget = (dataKey: string) => {
+    // Map dataKey to appropriate data source
+    const templateKey = selectedTemplate?.name
+      .toLowerCase()
+      .replace(/\s+/g, "-");
+
+    switch (dataKey) {
+      case "emissions-trend":
+        return executiveData["emissions-trend"];
+      case "efficiency-trends":
+        return operationsData["efficiency-trends"];
+      case "targets-vs-actual":
+        return complianceData["targets-vs-actual"];
+      case "sustainability-kpis":
+        return sustainabilityData["sustainability-kpis"];
+      default:
+        return areaData;
+    }
+  };
+
+  const getDonutDataForWidget = (dataKey: string) => {
+    switch (dataKey) {
+      case "scope-breakdown":
+        return executiveData["scope-breakdown"];
+      case "scope-comparison":
+        return complianceData["scope-comparison"];
+      case "reduction-areas":
+        return sustainabilityData["reduction-areas"];
+      default:
+        return donutData;
+    }
+  };
+
+  const getBarDataForWidget = (dataKey: string) => {
+    switch (dataKey) {
+      case "department-performance":
+        return operationsData["department-performance"];
+      case "certification-progress":
+        return complianceData["certification-progress"];
+      default:
+        return barData;
+    }
+  };
+
+  const getLineDataForWidget = (dataKey: string) => {
+    switch (dataKey) {
+      case "realtime-emissions":
+        return operationsData["realtime-emissions"];
+      case "goals-progress":
+        return sustainabilityData["goals-progress"];
+      default:
+        return lineData;
+    }
+  };
+
+  const renderWidget = (widget: Widget) => {
     switch (widget.type) {
       case "area-chart":
+        const areaDataToUse = getDataForWidget(widget.dataKey);
         return (
           <div className="h-80">
             <RechartsResponsiveContainer width="100%" height="100%">
               <RechartsAreaChart
-                data={areaData}
+                data={areaDataToUse}
                 margin={{ top: 10, right: 30, left: 0, bottom: 0 }}
               >
                 <RechartsCartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
                 <RechartsXAxis
-                  dataKey="date"
+                  dataKey={
+                    widget.dataKey === "sustainability-kpis"
+                      ? "quarter"
+                      : "month"
+                  }
                   tick={{ fontSize: 12, fill: "#666" }}
                   axisLine={{ stroke: "#e0e0e0" }}
                   tickLine={{ stroke: "#e0e0e0" }}
@@ -259,10 +568,10 @@ export default function CustomDashboardsPage() {
                   axisLine={{ stroke: "#e0e0e0" }}
                   tickLine={{ stroke: "#e0e0e0" }}
                   width={60}
-                  tickFormatter={(value) => `${value} tCO₂e`}
+                  tickFormatter={(value) => `${value}`}
                 />
                 <RechartsTooltip
-                  formatter={(value) => [`${value} tCO₂e`, ""]}
+                  formatter={(value) => [value, ""]}
                   labelStyle={{ color: "#333", fontWeight: "bold" }}
                   contentStyle={{
                     backgroundColor: "white",
@@ -274,17 +583,25 @@ export default function CustomDashboardsPage() {
                 <RechartsLegend />
                 <RechartsArea
                   type="monotone"
-                  dataKey="emissions"
+                  dataKey={
+                    widget.dataKey === "sustainability-kpis"
+                      ? "energy"
+                      : "actual"
+                  }
                   stackId="1"
                   stroke="#10b981"
                   fill="#10b981"
                   fillOpacity={0.6}
                   strokeWidth={2}
-                  name="Emissions"
+                  name="Current"
                 />
                 <RechartsArea
                   type="monotone"
-                  dataKey="target"
+                  dataKey={
+                    widget.dataKey === "sustainability-kpis"
+                      ? "waste"
+                      : "target"
+                  }
                   stackId="2"
                   stroke="#f59e0b"
                   fill="#f59e0b"
@@ -298,16 +615,21 @@ export default function CustomDashboardsPage() {
         );
 
       case "bar-chart":
+        const barDataToUse = getBarDataForWidget(widget.dataKey);
         return (
           <div className="h-80">
             <RechartsResponsiveContainer width="100%" height="100%">
               <RechartsBarChart
-                data={barData}
+                data={barDataToUse}
                 margin={{ top: 20, right: 30, left: 0, bottom: 5 }}
               >
                 <RechartsCartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
                 <RechartsXAxis
-                  dataKey="department"
+                  dataKey={
+                    widget.dataKey === "certification-progress"
+                      ? "cert"
+                      : "department"
+                  }
                   tick={{ fontSize: 12, fill: "#666" }}
                   axisLine={{ stroke: "#e0e0e0" }}
                   tickLine={{ stroke: "#e0e0e0" }}
@@ -320,10 +642,19 @@ export default function CustomDashboardsPage() {
                   axisLine={{ stroke: "#e0e0e0" }}
                   tickLine={{ stroke: "#e0e0e0" }}
                   width={60}
-                  tickFormatter={(value) => `${value} tCO₂e`}
+                  tickFormatter={(value) =>
+                    widget.dataKey === "certification-progress"
+                      ? `${value}%`
+                      : `${value} tCO₂e`
+                  }
                 />
                 <RechartsTooltip
-                  formatter={(value) => [`${value} tCO₂e`, ""]}
+                  formatter={(value) => [
+                    widget.dataKey === "certification-progress"
+                      ? `${value}%`
+                      : `${value} tCO₂e`,
+                    "",
+                  ]}
                   labelStyle={{ color: "#333", fontWeight: "bold" }}
                   contentStyle={{
                     backgroundColor: "white",
@@ -333,30 +664,50 @@ export default function CustomDashboardsPage() {
                   }}
                 />
                 <RechartsLegend />
-                <RechartsBar
-                  dataKey="emissions"
-                  fill="#10b981"
-                  name="Emissions"
-                  radius={[8, 8, 0, 0]}
-                />
-                <RechartsBar
-                  dataKey="target"
-                  fill="#f59e0b"
-                  name="Target"
-                  radius={[8, 8, 0, 0]}
-                />
+                {widget.dataKey === "certification-progress" ? (
+                  <RechartsBar
+                    dataKey="progress"
+                    fill="#10b981"
+                    name="Progress"
+                    radius={[8, 8, 0, 0]}
+                  />
+                ) : (
+                  <>
+                    <RechartsBar
+                      dataKey={
+                        widget.dataKey === "department-performance"
+                          ? "current"
+                          : "emissions"
+                      }
+                      fill="#10b981"
+                      name="Current"
+                      radius={[8, 8, 0, 0]}
+                    />
+                    <RechartsBar
+                      dataKey={
+                        widget.dataKey === "department-performance"
+                          ? "target"
+                          : "target"
+                      }
+                      fill="#f59e0b"
+                      name="Target"
+                      radius={[8, 8, 0, 0]}
+                    />
+                  </>
+                )}
               </RechartsBarChart>
             </RechartsResponsiveContainer>
           </div>
         );
 
       case "donut-chart":
+        const donutDataToUse = getDonutDataForWidget(widget.dataKey);
         return (
           <div className="h-80">
             <RechartsResponsiveContainer width="100%" height="100%">
               <RechartsPieChart>
                 <RechartsPie
-                  data={donutData}
+                  data={donutDataToUse}
                   cx="50%"
                   cy="50%"
                   innerRadius={60}
@@ -368,7 +719,7 @@ export default function CustomDashboardsPage() {
                   }
                   labelLine={false}
                 >
-                  {donutData.map((entry, index) => (
+                  {donutDataToUse.map((entry, index) => (
                     <RechartsCell key={`cell-${index}`} fill={entry.color} />
                   ))}
                 </RechartsPie>
@@ -388,16 +739,19 @@ export default function CustomDashboardsPage() {
         );
 
       case "line-chart":
+        const lineDataToUse = getLineDataForWidget(widget.dataKey);
         return (
           <div className="h-80">
             <RechartsResponsiveContainer width="100%" height="100%">
               <RechartsLineChart
-                data={lineData}
+                data={lineDataToUse}
                 margin={{ top: 10, right: 30, left: 0, bottom: 0 }}
               >
                 <RechartsCartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
                 <RechartsXAxis
-                  dataKey="time"
+                  dataKey={
+                    widget.dataKey === "realtime-emissions" ? "time" : "goal"
+                  }
                   tick={{ fontSize: 12, fill: "#666" }}
                   axisLine={{ stroke: "#e0e0e0" }}
                   tickLine={{ stroke: "#e0e0e0" }}
@@ -407,10 +761,19 @@ export default function CustomDashboardsPage() {
                   axisLine={{ stroke: "#e0e0e0" }}
                   tickLine={{ stroke: "#e0e0e0" }}
                   width={60}
-                  tickFormatter={(value) => Number(value).toFixed(1)}
+                  tickFormatter={(value) =>
+                    widget.dataKey === "goals-progress"
+                      ? `${value}%`
+                      : Number(value).toFixed(1)
+                  }
                 />
                 <RechartsTooltip
-                  formatter={(value) => [Number(value).toFixed(1), ""]}
+                  formatter={(value) => [
+                    widget.dataKey === "goals-progress"
+                      ? `${value}%`
+                      : Number(value).toFixed(1),
+                    "",
+                  ]}
                   labelStyle={{ color: "#333", fontWeight: "bold" }}
                   contentStyle={{
                     backgroundColor: "white",
@@ -420,34 +783,53 @@ export default function CustomDashboardsPage() {
                   }}
                 />
                 <RechartsLegend />
-                <RechartsLine
-                  type="monotone"
-                  dataKey="temperature"
-                  stroke="#f43f5e"
-                  strokeWidth={3}
-                  dot={{ fill: "#f43f5e", strokeWidth: 2, r: 4 }}
-                  activeDot={{
-                    r: 6,
-                    fill: "#f43f5e",
-                    stroke: "#fff",
-                    strokeWidth: 2,
-                  }}
-                  name="Temperature"
-                />
-                <RechartsLine
-                  type="monotone"
-                  dataKey="efficiency"
-                  stroke="#10b981"
-                  strokeWidth={3}
-                  dot={{ fill: "#10b981", strokeWidth: 2, r: 4 }}
-                  activeDot={{
-                    r: 6,
-                    fill: "#10b981",
-                    stroke: "#fff",
-                    strokeWidth: 2,
-                  }}
-                  name="Efficiency"
-                />
+                {widget.dataKey === "realtime-emissions" ? (
+                  <>
+                    <RechartsLine
+                      type="monotone"
+                      dataKey="emissions"
+                      stroke="#f43f5e"
+                      strokeWidth={3}
+                      dot={{ fill: "#f43f5e", strokeWidth: 2, r: 4 }}
+                      activeDot={{
+                        r: 6,
+                        fill: "#f43f5e",
+                        stroke: "#fff",
+                        strokeWidth: 2,
+                      }}
+                      name="Emissions"
+                    />
+                    <RechartsLine
+                      type="monotone"
+                      dataKey="efficiency"
+                      stroke="#10b981"
+                      strokeWidth={3}
+                      dot={{ fill: "#10b981", strokeWidth: 2, r: 4 }}
+                      activeDot={{
+                        r: 6,
+                        fill: "#10b981",
+                        stroke: "#fff",
+                        strokeWidth: 2,
+                      }}
+                      name="Efficiency"
+                    />
+                  </>
+                ) : (
+                  <RechartsLine
+                    type="monotone"
+                    dataKey="progress"
+                    stroke="#10b981"
+                    strokeWidth={3}
+                    dot={{ fill: "#10b981", strokeWidth: 2, r: 4 }}
+                    activeDot={{
+                      r: 6,
+                      fill: "#10b981",
+                      stroke: "#fff",
+                      strokeWidth: 2,
+                    }}
+                    name="Progress"
+                  />
+                )}
               </RechartsLineChart>
             </RechartsResponsiveContainer>
           </div>
@@ -476,36 +858,16 @@ export default function CustomDashboardsPage() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-green-50 via-emerald-50 to-sky-50">
-      {/* Navigation */}
-      <nav className="bg-white/80 backdrop-blur-md border-b border-green-100 sticky top-0 z-50">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center py-4">
-            <div className="flex items-center">
-              <Link href="/">
-                <ArrowLeft className="h-6 w-6 text-gray-600 mr-4 hover:text-green-600 transition-colors" />
-              </Link>
-              <Leaf className="h-8 w-8 text-green-600 mr-2" />
-              <span className="text-2xl font-bold text-gray-900">
-                EcoMetrics
-              </span>
-            </div>
-            <div className="hidden md:flex space-x-8">
-              <Link
-                href="/"
-                className="text-gray-700 hover:text-green-600 transition-colors"
-              >
-                Home
-              </Link>
-              <Link
-                href="/#features"
-                className="text-gray-700 hover:text-green-600 transition-colors"
-              >
-                Features
-              </Link>
-            </div>
-          </div>
-        </div>
-      </nav>
+      {/* Back button */}
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-6">
+        <Link
+          href="/"
+          className="inline-flex items-center text-gray-600 hover:text-green-600 transition-colors"
+        >
+          <ChevronLeft className="h-4 w-4 mr-1" />
+          Back to Home
+        </Link>
+      </div>
 
       {/* Dashboard Header */}
       <section className="py-8 bg-white/50">
@@ -584,7 +946,12 @@ export default function CustomDashboardsPage() {
                   <UICard
                     key={template.id}
                     className="cursor-pointer hover:shadow-lg transition-shadow"
-                    onClick={() => handleCreateFromTemplate(template)}
+                    onClick={() => {
+                      // Navigate to the specific template page
+                      window.location.href = `/custom-dashboards/${template.name
+                        .toLowerCase()
+                        .replace(/\s+/g, "-")}`;
+                    }}
                   >
                     <CardHeader>
                       <div className="flex items-center space-x-3">

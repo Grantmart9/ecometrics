@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { supabase } from "@/lib/supabaseClient";
+import { crudService } from "@/lib/crudService";
 
 export async function POST(request: NextRequest) {
   try {
@@ -12,17 +12,23 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const { data, error } = await supabase.auth.signUp({
+    const result = await crudService.signup({
       email,
       password,
     });
 
-    if (error) {
-      return NextResponse.json({ error: error.message }, { status: 400 });
+    if (!result || result.Status !== 200) {
+      return NextResponse.json(
+        { error: result?.error || "Registration failed" },
+        { status: 400 }
+      );
     }
 
     return NextResponse.json(
-      { message: "User created successfully", user: data.user },
+      {
+        message: "User created successfully",
+        user: result.Data?.[0],
+      },
       { status: 201 }
     );
   } catch (error) {

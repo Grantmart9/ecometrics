@@ -25,7 +25,6 @@ import {
 } from "@/components/ui/card";
 import Link from "next/link";
 import {
-  Leaf,
   Cloud,
   Database,
   Zap,
@@ -49,6 +48,7 @@ import {
   Plus,
   Users,
 } from "lucide-react";
+import { useAuth } from "@/lib/auth-context";
 
 // Mock data for cloud integrations
 const integrationsData = [
@@ -227,6 +227,7 @@ const getTrendIcon = (trend: string) => {
 export default function CloudIntegrationPage() {
   const [selectedCategory, setSelectedCategory] = useState("all");
   const [activeTab, setActiveTab] = useState(0);
+  const { user } = useAuth();
 
   const fadeIn = {
     initial: { opacity: 0, y: 60 },
@@ -261,39 +262,19 @@ export default function CloudIntegrationPage() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-green-50 via-emerald-50 to-sky-50">
-      {/* Navigation */}
-      <nav className="bg-white/80 backdrop-blur-md border-b border-green-100 sticky top-0 z-50">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center py-4">
-            <div className="flex items-center">
-              <Link href="/">
-                <ArrowLeft className="h-6 w-6 text-gray-600 mr-4 hover:text-green-600 transition-colors" />
-              </Link>
-              <Leaf className="h-8 w-8 text-green-600 mr-2" />
-              <span className="text-2xl font-bold text-gray-900">
-                EcoMetrics
-              </span>
-            </div>
-            <div className="hidden md:flex space-x-8">
-              <Link
-                href="/"
-                className="text-gray-700 hover:text-green-600 transition-colors"
-              >
-                Home
-              </Link>
-              <Link
-                href="/#features"
-                className="text-gray-700 hover:text-green-600 transition-colors"
-              >
-                Features
-              </Link>
-            </div>
-          </div>
-        </div>
-      </nav>
+      {/* Back button */}
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-6">
+        <Link
+          href="/"
+          className="inline-flex items-center text-gray-600 hover:text-green-600 transition-colors"
+        >
+          <ArrowLeft className="h-4 w-4 mr-1" />
+          Back to Home
+        </Link>
+      </div>
 
       {/* Dashboard Header */}
-      <section className="py-8 bg-white/50">
+      <section className="py-8 bg-gradient-to-r from-purple-600 via-purple-700 to-purple-800">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <motion.div
             initial="initial"
@@ -779,14 +760,14 @@ export default function CloudIntegrationPage() {
                                   integration.color === "orange"
                                     ? "bg-orange-100 text-orange-600"
                                     : integration.color === "blue"
-                                    ? "bg-blue-100 text-blue-600"
-                                    : integration.color === "green"
-                                    ? "bg-green-100 text-green-600"
-                                    : integration.color === "purple"
-                                    ? "bg-purple-100 text-purple-600"
-                                    : integration.color === "red"
-                                    ? "bg-red-100 text-red-600"
-                                    : "bg-indigo-100 text-indigo-600"
+                                      ? "bg-blue-100 text-blue-600"
+                                      : integration.color === "green"
+                                        ? "bg-green-100 text-green-600"
+                                        : integration.color === "purple"
+                                          ? "bg-purple-100 text-purple-600"
+                                          : integration.color === "red"
+                                            ? "bg-red-100 text-red-600"
+                                            : "bg-indigo-100 text-indigo-600"
                                 }`}
                               >
                                 {integration.category === "Storage" && (
@@ -885,8 +866,8 @@ export default function CloudIntegrationPage() {
                                 step.status === "completed"
                                   ? "bg-green-100 text-green-600"
                                   : step.status === "in-progress"
-                                  ? "bg-blue-100 text-blue-600"
-                                  : "bg-gray-100 text-gray-400"
+                                    ? "bg-blue-100 text-blue-600"
+                                    : "bg-gray-100 text-gray-400"
                               }`}
                             >
                               {step.status === "completed" ? (
@@ -1104,10 +1085,10 @@ export default function CloudIntegrationPage() {
                                 activity.status === "success"
                                   ? "bg-green-500"
                                   : activity.status === "warning"
-                                  ? "bg-yellow-500"
-                                  : activity.status === "error"
-                                  ? "bg-red-500"
-                                  : "bg-blue-500"
+                                    ? "bg-yellow-500"
+                                    : activity.status === "error"
+                                      ? "bg-red-500"
+                                      : "bg-blue-500"
                               }`}
                             ></div>
                             <div className="flex-1">

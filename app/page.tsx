@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -18,6 +18,7 @@ import {
   ChevronDown,
   LogOut,
   User,
+  Activity,
 } from "lucide-react";
 import {
   Card,
@@ -34,6 +35,118 @@ export default function LandingPage() {
   const [isCalculateDropdownOpen, setIsCalculateDropdownOpen] = useState(false);
   const { isAuthenticated, user, logout } = useAuth();
   const router = useRouter();
+
+  // Carbon footprint animation component
+  const CarbonAnimation = () => {
+    const [dataPoints, setDataPoints] = useState([
+      { id: 1, angle: 0, delay: 0 },
+      { id: 2, angle: 120, delay: 0.5 },
+      { id: 3, angle: 240, delay: 1 },
+      { id: 4, angle: 60, delay: 1.5 },
+      { id: 5, angle: 180, delay: 2 },
+      { id: 6, angle: 300, delay: 2.5 },
+    ]);
+
+    return (
+      <div className="relative w-80 h-80 flex items-center justify-center">
+        {/* Outer ring with energy flows */}
+        <motion.div
+          className="absolute w-72 h-72 border-2 border-green-200 rounded-full"
+          animate={{ rotate: 360 }}
+          transition={{ duration: 30, repeat: Infinity, ease: "linear" }}
+        />
+
+        {/* Inner ring with data points */}
+        <motion.div
+          className="absolute w-56 h-56 border border-green-300 rounded-full"
+          animate={{ rotate: -360 }}
+          transition={{ duration: 20, repeat: Infinity, ease: "linear" }}
+        />
+
+        {/* Central carbon footprint core */}
+        <motion.div
+          className="absolute w-24 h-24 bg-gradient-to-br from-green-400 to-emerald-600 rounded-full shadow-2xl"
+          animate={{
+            scale: [1, 1.1, 1],
+            boxShadow: [
+              "0 0 20px rgba(16, 185, 129, 0.3)",
+              "0 0 40px rgba(16, 185, 129, 0.6)",
+              "0 0 20px rgba(16, 185, 129, 0.3)",
+            ],
+          }}
+          transition={{ duration: 2, repeat: Infinity }}
+        >
+          <div className="w-full h-full flex items-center justify-center">
+            <Activity className="h-8 w-8 text-white" />
+          </div>
+        </motion.div>
+
+        {/* Orbiting data points */}
+        {dataPoints.map((point, index) => (
+          <motion.div
+            key={point.id}
+            className="absolute w-4 h-4 bg-gradient-to-r from-green-500 to-emerald-500 rounded-full shadow-lg"
+            style={{
+              top: "50%",
+              left: "50%",
+              marginTop: "-8px",
+              marginLeft: "-8px",
+            }}
+            animate={{
+              rotate: 360,
+              x: [0, Math.cos((point.angle * Math.PI) / 180) * 120, 0],
+              y: [0, Math.sin((point.angle * Math.PI) / 180) * 120, 0],
+            }}
+            transition={{
+              duration: 15,
+              repeat: Infinity,
+              ease: "linear",
+              delay: point.delay,
+            }}
+          >
+            <div className="w-full h-full bg-white rounded-full opacity-80"></div>
+          </motion.div>
+        ))}
+
+        {/* Floating energy particles */}
+        {[...Array(8)].map((_, i) => (
+          <motion.div
+            key={`particle-${i}`}
+            className="absolute w-2 h-2 bg-green-400 rounded-full opacity-60"
+            animate={{
+              x: [0, Math.random() * 200 - 100],
+              y: [0, Math.random() * 200 - 100],
+              opacity: [0, 1, 0],
+            }}
+            transition={{
+              duration: 3 + Math.random() * 2,
+              repeat: Infinity,
+              delay: Math.random() * 2,
+              ease: "easeInOut",
+            }}
+          />
+        ))}
+
+        {/* Pulse rings */}
+        {[...Array(3)].map((_, i) => (
+          <motion.div
+            key={`ring-${i}`}
+            className="absolute w-32 h-32 border border-green-400 rounded-full opacity-20"
+            animate={{
+              scale: [0.5, 2],
+              opacity: [0.6, 0],
+            }}
+            transition={{
+              duration: 2,
+              repeat: Infinity,
+              delay: i * 0.7,
+              ease: "easeOut",
+            }}
+          />
+        ))}
+      </div>
+    );
+  };
 
   const handleLogin = () => {
     router.push("/login");
@@ -146,172 +259,6 @@ export default function LandingPage() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-green-50 via-emerald-50 to-sky-50">
-      {/* Navigation */}
-      <nav className="bg-white/80 backdrop-blur-md border-b border-green-100 sticky top-0 z-50">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center py-4">
-            <div className="flex items-center">
-              <Leaf className="h-8 w-8 text-green-600 mr-2" />
-              <span className="text-2xl font-bold text-gray-900">
-                EcoMetrics
-              </span>
-            </div>
-            {isAuthenticated && user ? (
-              <div className="flex items-center space-x-4">
-                <span className="text-gray-700">
-                  <motion.div
-                    className="flex items-center space-x-4"
-                    whileHover={{ scale: 1.05 }}
-                  >
-                    <div className="flex items-center text-gray-700">
-                      <User className="h-5 w-5 mr-2 text-green-600" />
-                      <span className="font-medium">{user?.name}</span>
-                    </div>
-                    <Button
-                      onClick={handleLogout}
-                      variant="outline"
-                      size="sm"
-                      className="text-gray-700 border-green-200 hover:bg-green-50"
-                    >
-                      <LogOut className="h-4 w-4 mr-2" />
-                      Logout
-                    </Button>
-                  </motion.div>
-                </span>
-              </div>
-            ) : (
-              <></>
-            )}
-            <div className="hidden md:flex space-x-8">
-              <a
-                href="#about"
-                className="text-gray-700 hover:text-green-600 transition-colors m-auto"
-              >
-                About
-              </a>
-              <a
-                href="#features"
-                className="text-gray-700 hover:text-green-600 transition-colors m-auto"
-              >
-                Features
-              </a>
-              <a
-                href="#how-it-works"
-                className="text-gray-700 hover:text-green-600 transition-colors m-auto"
-              >
-                How It Works
-              </a>
-              <a
-                href="#testimonials"
-                className="text-gray-700 hover:text-green-600 transition-colors m-auto"
-              >
-                Testimonials
-              </a>
-              <div className="relative">
-                {isAuthenticated ? (
-                  <></>
-                ) : (
-                  <motion.button
-                    onClick={handleLogin}
-                    className="text-gray-700 hover:text-green-600 transition-colors flex items-center px-3 py-2 rounded-lg hover:bg-green-50"
-                    whileHover={{ scale: 1.05 }}
-                    whileTap={{ scale: 0.95 }}
-                  >
-                    Login
-                  </motion.button>
-                )}
-                {isAuthenticated && (
-                  <div className="relative">
-                    <motion.button
-                      onClick={() =>
-                        setIsCalculateDropdownOpen(!isCalculateDropdownOpen)
-                      }
-                      className="text-gray-700 hover:text-green-600 transition-colors flex items-center px-3 py-2 rounded-lg hover:bg-green-50"
-                      whileHover={{ scale: 1.05 }}
-                      whileTap={{ scale: 0.95 }}
-                    >
-                      Calculate
-                      <motion.div
-                        animate={{ rotate: isCalculateDropdownOpen ? 180 : 0 }}
-                        transition={{ duration: 0.2 }}
-                      >
-                        <ChevronDown className="ml-1 h-4 w-4" />
-                      </motion.div>
-                    </motion.button>
-                    <AnimatePresence>
-                      {isCalculateDropdownOpen && (
-                        <motion.div
-                          initial={{ opacity: 0, y: -10, scale: 0.95 }}
-                          animate={{ opacity: 1, y: 0, scale: 1 }}
-                          exit={{ opacity: 0, y: -10, scale: 0.95 }}
-                          transition={{ duration: 0.2 }}
-                          className="absolute top-full mt-2 bg-white/95 backdrop-blur-md border border-green-200 rounded-xl shadow-xl z-50 min-w-[200px] overflow-hidden"
-                        >
-                          <motion.a
-                            href="/real-time-carbon-tracking"
-                            className="block px-4 py-3 text-gray-700 hover:bg-green-50 hover:text-green-700 transition-colors"
-                            onClick={() => setIsCalculateDropdownOpen(false)}
-                            whileHover={{ x: 4 }}
-                            transition={{ duration: 0.1 }}
-                          >
-                            Real-Time Carbon Tracking
-                          </motion.a>
-                          <motion.a
-                            href="/automated-reports"
-                            className="block px-4 py-3 text-gray-700 hover:bg-green-50 hover:text-green-700 transition-colors"
-                            onClick={() => setIsCalculateDropdownOpen(false)}
-                            whileHover={{ x: 4 }}
-                            transition={{ duration: 0.1 }}
-                          >
-                            Automated Reports
-                          </motion.a>
-                          <motion.a
-                            href="/custom-dashboards"
-                            className="block px-4 py-3 text-gray-700 hover:bg-green-50 hover:text-green-700 transition-colors"
-                            onClick={() => setIsCalculateDropdownOpen(false)}
-                            whileHover={{ x: 4 }}
-                            transition={{ duration: 0.1 }}
-                          >
-                            Custom Dashboards
-                          </motion.a>
-                          <motion.a
-                            href="/emission-source-breakdown"
-                            className="block px-4 py-3 text-gray-700 hover:bg-green-50 hover:text-green-700 transition-colors"
-                            onClick={() => setIsCalculateDropdownOpen(false)}
-                            whileHover={{ x: 4 }}
-                            transition={{ duration: 0.1 }}
-                          >
-                            Emission Source Breakdown
-                          </motion.a>
-                          <motion.a
-                            href="/cloud-integration"
-                            className="block px-4 py-3 text-gray-700 hover:bg-green-50 hover:text-green-700 transition-colors"
-                            onClick={() => setIsCalculateDropdownOpen(false)}
-                            whileHover={{ x: 4 }}
-                            transition={{ duration: 0.1 }}
-                          >
-                            Cloud Integration
-                          </motion.a>
-                          <motion.a
-                            href="/team-collaboration"
-                            className="block px-4 py-3 text-gray-700 hover:bg-green-50 hover:text-green-700 transition-colors"
-                            onClick={() => setIsCalculateDropdownOpen(false)}
-                            whileHover={{ x: 4 }}
-                            transition={{ duration: 0.1 }}
-                          >
-                            Team Collaboration
-                          </motion.a>
-                        </motion.div>
-                      )}
-                    </AnimatePresence>
-                  </div>
-                )}
-              </div>
-            </div>
-          </div>
-        </div>
-      </nav>
-
       {/* Hero Section */}
       <section className="relative overflow-hidden py-20 lg:py-32">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -371,20 +318,9 @@ export default function LandingPage() {
               className="relative"
             >
               <div className="relative w-full h-96 bg-gradient-to-br from-green-100 to-emerald-100 rounded-3xl overflow-hidden shadow-2xl">
-                <motion.div
-                  animate={{
-                    rotate: [0, 360],
-                    scale: [1, 1.1, 1],
-                  }}
-                  transition={{
-                    duration: 20,
-                    repeat: Infinity,
-                    ease: "linear",
-                  }}
-                  className="absolute inset-0 flex items-center justify-center"
-                >
-                  <Globe className="h-64 w-64 text-green-300" />
-                </motion.div>
+                <div className="absolute inset-0 flex items-center justify-center">
+                  <CarbonAnimation />
+                </div>
 
                 {/* Floating elements */}
                 <motion.div

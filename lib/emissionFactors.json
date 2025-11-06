@@ -1,0 +1,22 @@
+{
+  "electricity": {
+    "category": "electricity",
+    "unit": "kWh",
+    "factor": 0.4
+  },
+  "fuel": {
+    "category": "fuel",
+    "unit": "liters",
+    "factor": 2.3
+  },
+  "waste": {
+    "category": "waste",
+    "unit": "kg",
+    "factor": 0.1
+  },
+  "water": {
+    "category": "water",
+    "unit": "liters",
+    "factor": 0.0003
+  }
+}

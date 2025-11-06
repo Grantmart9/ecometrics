@@ -47,8 +47,10 @@ import {
   Settings,
   Filter,
   RefreshCw,
+  ChevronDown,
 } from "lucide-react";
 import { generateAutomatedReportsSummary } from "@/lib/reportGenerator";
+import { useAuth } from "@/lib/auth-context";
 
 // Mock data for automated reports
 const reportHistory = [
@@ -170,6 +172,9 @@ export default function AutomatedReportsPage() {
   const [isGeneratingReport, setIsGeneratingReport] = useState(false);
   const [isScheduleDialogOpen, setIsScheduleDialogOpen] = useState(false);
   const [isRecipientsDialogOpen, setIsRecipientsDialogOpen] = useState(false);
+  const [isCalculateDropdownOpen, setIsCalculateDropdownOpen] = useState(false);
+
+  const { user } = useAuth();
 
   const fadeIn = {
     initial: { opacity: 0, y: 60 },
@@ -240,42 +245,44 @@ export default function AutomatedReportsPage() {
     }
   };
 
+  const calculateMenuItems = [
+    {
+      href: "/real-time-carbon-tracking",
+      label: "Real-Time Carbon Tracking",
+      description: "Live emissions monitoring",
+    },
+    {
+      href: "/automated-reports",
+      label: "Automated Reports",
+      description: "Generate comprehensive reports",
+    },
+    {
+      href: "/custom-dashboards",
+      label: "Custom Dashboards",
+      description: "Personalized dashboard views",
+    },
+    {
+      href: "/emission-source-breakdown",
+      label: "Emission Source Breakdown",
+      description: "Detailed source analysis",
+    },
+    {
+      href: "/cloud-integration",
+      label: "Cloud Integration",
+      description: "Connect with cloud providers",
+    },
+    {
+      href: "/team-collaboration",
+      label: "Team Collaboration",
+      description: "Collaborate with your team",
+    },
+  ];
+
   return (
     <div
       id="automated-reports-dashboard"
       className="min-h-screen bg-gradient-to-br from-green-50 via-emerald-50 to-sky-50"
     >
-      {/* Navigation */}
-      <nav className="bg-white/80 backdrop-blur-md border-b border-green-100 sticky top-0 z-50">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center py-4">
-            <div className="flex items-center">
-              <Link href="/">
-                <ArrowLeft className="h-6 w-6 text-gray-600 mr-4 hover:text-green-600 transition-colors" />
-              </Link>
-              <Leaf className="h-8 w-8 text-green-600 mr-2" />
-              <span className="text-2xl font-bold text-gray-900">
-                EcoMetrics
-              </span>
-            </div>
-            <div className="hidden md:flex space-x-8">
-              <Link
-                href="/"
-                className="text-gray-700 hover:text-green-600 transition-colors"
-              >
-                Home
-              </Link>
-              <Link
-                href="/#features"
-                className="text-gray-700 hover:text-green-600 transition-colors"
-              >
-                Features
-              </Link>
-            </div>
-          </div>
-        </div>
-      </nav>
-
       {/* Dashboard Header */}
       <section className="py-8 bg-white/50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">

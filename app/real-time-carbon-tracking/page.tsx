@@ -81,7 +81,10 @@ import {
   TrendingDown,
   AlertTriangle,
   CheckCircle,
+  ChevronDown,
+  User,
 } from "lucide-react";
+import { useAuth } from "@/lib/auth-context";
 
 // Mock data for real-time tracking - Enhanced for demo
 const realtimeData = [
@@ -141,8 +144,9 @@ const alerts = [
 export default function RealTimeCarbonTrackingPage() {
   const [currentEmissions, setCurrentEmissions] = useState(245.8);
   const [selectedTimeRange, setSelectedTimeRange] = useState("24h");
-  const [isLive, setIsLive] = useState(true);
   const [isGeneratingReport, setIsGeneratingReport] = useState(false);
+  const [isCalculateDropdownOpen, setIsCalculateDropdownOpen] = useState(false);
+  const { isAuthenticated, user, logout } = useAuth();
 
   // Import the report generator functions
   const {
@@ -154,10 +158,8 @@ export default function RealTimeCarbonTrackingPage() {
   const { Download, Image: ImageIcon } = require("lucide-react");
   const { Button } = require("@/components/ui/button");
 
-  // Simulate real-time updates
+  // Simulate real-time updates (always active)
   useEffect(() => {
-    if (!isLive) return;
-
     const interval = setInterval(() => {
       setCurrentEmissions((prev) => {
         const change = (Math.random() - 0.5) * 20;
@@ -166,7 +168,7 @@ export default function RealTimeCarbonTrackingPage() {
     }, 3000);
 
     return () => clearInterval(interval);
-  }, [isLive]);
+  }, []);
 
   const fadeIn = {
     initial: { opacity: 0, y: 60 },
@@ -223,37 +225,6 @@ export default function RealTimeCarbonTrackingPage() {
       id="real-time-dashboard"
       className="min-h-screen bg-gradient-to-br from-green-50 via-emerald-50 to-sky-50"
     >
-      {/* Navigation */}
-      <nav className="bg-white/80 backdrop-blur-md border-b border-green-100 sticky top-0 z-50">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center py-4">
-            <div className="flex items-center">
-              <Link href="/">
-                <ArrowLeft className="h-6 w-6 text-gray-600 mr-4 hover:text-green-600 transition-colors" />
-              </Link>
-              <Leaf className="h-8 w-8 text-green-600 mr-2" />
-              <span className="text-2xl font-bold text-gray-900">
-                EcoMetrics
-              </span>
-            </div>
-            <div className="hidden md:flex space-x-8">
-              <Link
-                href="/"
-                className="text-gray-700 hover:text-green-600 transition-colors"
-              >
-                Home
-              </Link>
-              <Link
-                href="/#features"
-                className="text-gray-700 hover:text-green-600 transition-colors"
-              >
-                Features
-              </Link>
-            </div>
-          </div>
-        </div>
-      </nav>
-
       {/* Dashboard Header */}
       <section className="py-8 bg-white/50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -278,22 +249,9 @@ export default function RealTimeCarbonTrackingPage() {
               </div>
               <div className="flex items-center space-x-4 mt-4 lg:mt-0">
                 <div className="flex items-center space-x-2">
-                  <div
-                    className={`w-3 h-3 rounded-full ${
-                      isLive ? "bg-green-500 animate-pulse" : "bg-gray-400"
-                    }`}
-                  ></div>
-                  <span className="text-sm text-gray-600">
-                    {isLive ? "Live" : "Paused"}
-                  </span>
+                  <div className="w-3 h-3 rounded-full bg-green-500 animate-pulse"></div>
+                  <span className="text-sm text-gray-600">Live</span>
                 </div>
-                <Button
-                  onClick={() => setIsLive(!isLive)}
-                  variant={isLive ? "destructive" : "default"}
-                  size="sm"
-                >
-                  {isLive ? "Pause" : "Resume"}
-                </Button>
               </div>
             </motion.div>
           </motion.div>
@@ -562,8 +520,8 @@ export default function RealTimeCarbonTrackingPage() {
                         alert.type === "warning"
                           ? "bg-yellow-50 border-yellow-400"
                           : alert.type === "success"
-                          ? "bg-green-50 border-green-400"
-                          : "bg-blue-50 border-blue-400"
+                            ? "bg-green-50 border-green-400"
+                            : "bg-blue-50 border-blue-400"
                       }`}
                     >
                       <div className="flex items-start space-x-3">
@@ -638,8 +596,8 @@ export default function RealTimeCarbonTrackingPage() {
                         value === "temperature"
                           ? "Temperature"
                           : value === "humidity"
-                          ? "Humidity"
-                          : value
+                            ? "Humidity"
+                            : value
                       }
                     />
                     <Line

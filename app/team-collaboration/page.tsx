@@ -55,7 +55,9 @@ import {
   BarChart3,
   Target,
   Download,
+  ChevronDown,
 } from "lucide-react";
+import { useAuth } from "@/lib/auth-context";
 
 // Mock data for team collaboration
 const teamMembers = [
@@ -302,6 +304,8 @@ export default function TeamCollaborationPage() {
   const [selectedTab, setSelectedTab] = useState(0);
   const [inviteEmail, setInviteEmail] = useState("");
   const [showInviteModal, setShowInviteModal] = useState(false);
+  const [isCalculateDropdownOpen, setIsCalculateDropdownOpen] = useState(false);
+  const { user } = useAuth();
 
   const fadeIn = {
     initial: { opacity: 0, y: 60 },
@@ -324,41 +328,43 @@ export default function TeamCollaborationPage() {
     (dashboard) => dashboard.status === "active"
   ).length;
 
+  const calculateMenuItems = [
+    {
+      label: "Real-Time Carbon Tracking",
+      href: "/real-time-carbon-tracking",
+      description: "Live emissions monitoring",
+    },
+    {
+      label: "Automated Reports",
+      href: "/automated-reports",
+      description: "Generate comprehensive reports",
+    },
+    {
+      label: "Custom Dashboards",
+      href: "/custom-dashboards",
+      description: "Personalized dashboard views",
+    },
+    {
+      label: "Emission Source Breakdown",
+      href: "/emission-source-breakdown",
+      description: "Detailed source analysis",
+    },
+    {
+      label: "Cloud Integration",
+      href: "/cloud-integration",
+      description: "Connect with cloud providers",
+    },
+    {
+      label: "Team Collaboration",
+      href: "/team-collaboration",
+      description: "Collaborate with your team",
+    },
+  ];
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-green-50 via-emerald-50 to-sky-50">
-      {/* Navigation */}
-      <nav className="bg-white/80 backdrop-blur-md border-b border-green-100 sticky top-0 z-50">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center py-4">
-            <div className="flex items-center">
-              <Link href="/">
-                <ArrowLeft className="h-6 w-6 text-gray-600 mr-4 hover:text-green-600 transition-colors" />
-              </Link>
-              <Leaf className="h-8 w-8 text-green-600 mr-2" />
-              <span className="text-2xl font-bold text-gray-900">
-                EcoMetrics
-              </span>
-            </div>
-            <div className="hidden md:flex space-x-8">
-              <Link
-                href="/"
-                className="text-gray-700 hover:text-green-600 transition-colors"
-              >
-                Home
-              </Link>
-              <Link
-                href="/#features"
-                className="text-gray-700 hover:text-green-600 transition-colors"
-              >
-                Features
-              </Link>
-            </div>
-          </div>
-        </div>
-      </nav>
-
       {/* Dashboard Header */}
-      <section className="py-8 bg-white/50">
+      <section className="py-8 bg-gradient-to-r from-purple-600 via-purple-700 to-purple-800">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <motion.div
             initial="initial"
@@ -548,8 +554,8 @@ export default function TeamCollaborationPage() {
                                   member.status === "active"
                                     ? "bg-green-500"
                                     : member.status === "pending"
-                                    ? "bg-yellow-500"
-                                    : "bg-gray-400"
+                                      ? "bg-yellow-500"
+                                      : "bg-gray-400"
                                 }`}
                               ></div>
                             </div>

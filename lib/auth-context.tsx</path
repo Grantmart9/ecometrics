@@ -1,0 +1,196 @@
+"use client";
+
+import React, {
+  createContext,
+  useContext,
+  useState,
+  useEffect,
+  ReactNode,
+} from "react";
+import { crudService } from "./crudService";
+import type { User } from "@/types/database";
+
+interface AuthContextType {
+  isAuthenticated: boolean;
+  user: User | null;
+  session: { access_token: string } | null;
+  login: (email: string, password: string) => Promise<{ error?: string }>;
+  register: (
+    email: string,
+    password: string,
+    name: string,
+    company?: string
+  ) => Promise<{ error?: string }>;
+  logout: () => Promise<void>;
+  loading: boolean;
+}
+
+const AuthContext = createContext<AuthContextType | undefined>(undefined);
+
+export function AuthProvider({ children }: { children: ReactNode }) {
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [user, setUser] = useState<User | null>(null);
+  const [session, setSession] = useState<{ access_token: string } | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    // Check for existing token on mount
+    const checkAuthStatus = async () => {
+      try {
+        const token = localStorage.getItem("auth_token");
+        if (token) {
+          // Validate token by trying to get user info
+          const userData = await crudService.getCurrentUser();
+          if (userData && !userData.error) {
+            setUser(userData as User);
+            setIsAuthenticated(true);
+            setSession({ access_token: token });
+          } else {
+            // Token is invalid, remove it
+            localStorage.removeItem("auth_token");
+          }
+        }
+      } catch (error) {
+        console.error("Error checking auth status:", error);
+        // Remove invalid token
+        localStorage.removeItem("auth_token");
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    checkAuthStatus();
+  }, []);
+
+  const login = async (email: string, password: string) => {
+    try {
+      setLoading(true);
+
+      // Create login request
+      const loginRequest = {
+        username: email,
+        password: password,
+      };
+
+      // Call the login endpoint through CRUD service
+      const result = await crudService.create("auth/login", loginRequest);
+
+      if (result && !result.error) {
+        // Store token
+        localStorage.setItem("auth_token", result.token);
+
+        // Set user data
+        const userData: User = {
+          id: result.id,
+          name: result.name || email.split("@")[0],
+          email: result.email || email,
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
+        };
+
+        setUser(userData);
+        setIsAuthenticated(true);
+        setSession({ access_token: result.token });
+
+        return { error: undefined };
+      } else {
+        return { error: result?.error || "Login failed" };
+      }
+    } catch (error) {
+      console.error("Login error:", error);
+      return { error: "Login failed. Please try again." };
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const register = async (
+    email: string,
+    password: string,
+    name: string,
+    company?: string
+  ) => {
+    try {
+      setLoading(true);
+
+      // Create registration request
+      const registerRequest = {
+        username: email,
+        password: password,
+        name: name,
+        company: company || "",
+      };
+
+      // Call the registration endpoint through CRUD service
+      const result = await crudService.create("auth/register", registerRequest);
+
+      if (result && !result.error) {
+        // Store token
+        localStorage.setItem("auth_token", result.token);
+
+        // Set user data
+        const userData: User = {
+          id: result.id,
+          name: result.name || name,
+          email: result.email || email,
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
+        };
+
+        setUser(userData);
+        setIsAuthenticated(true);
+        setSession({ access_token: result.token });
+
+        return { error: undefined };
+      } else {
+        return { error: result?.error || "Registration failed" };
+      }
+    } catch (error) {
+      console.error("Registration error:", error);
+      return { error: "Registration failed. Please try again." };
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const logout = async () => {
+    try {
+      setLoading(true);
+
+      // Call logout endpoint
+      await crudService.logout();
+
+      // Clear local storage
+      localStorage.removeItem("auth_token");
+
+      // Clear state
+      setUser(null);
+      setIsAuthenticated(false);
+      setSession(null);
+    } catch (error) {
+      console.error("Logout error:", error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const value = {
+    isAuthenticated,
+    user,
+    session,
+    login,
+    register,
+    logout,
+    loading,
+  };
+
+  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
+}
+
+export function useAuth() {
+  const context = useContext(AuthContext);
+  if (context === undefined) {
+    throw new Error("useAuth must be used within an AuthProvider");
+  }
+  return context;
+}
