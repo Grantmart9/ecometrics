@@ -11,14 +11,14 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useEmissions } from "@/lib/emissionsContext";
 import { dummyEmissionResult } from "@/lib/dummyData";
 import {
-  Dashboard as DashboardIcon,
-  LocalGasStation as LocalGasStationIcon,
-  DirectionsCar as DirectionsCarIcon,
-  Cloud as CloudIcon,
-  Settings as SettingsIcon,
-  WaterDrop as WaterDropIcon,
-  SolarPower as SolarPowerIcon,
-  ElectricBolt as ElectricBoltIcon,
+  Dashboard,
+  LocalGasStation,
+  DirectionsCar,
+  Cloud,
+  Settings,
+  WaterDrop,
+  SolarPower,
+  ElectricBolt,
 } from "@mui/icons-material";
 import {
   PieChart,
@@ -31,7 +31,7 @@ import {
 
 export const dynamic = "force-dynamic";
 
-export default function Dashboard() {
+export default function DashboardPage() {
   console.log("Dashboard component rendering");
   console.log("Dashboard loaded, checking for navigation...");
   const { result } = useEmissions();
@@ -96,56 +96,56 @@ export default function Dashboard() {
             value="overview"
             className="flex flex-col items-center gap-1"
           >
-            <DashboardIcon className="h-4 w-4" />
+            <Dashboard className="h-4 w-4" />
             Overview
           </TabsTrigger>
           <TabsTrigger
             value="stationary-fuel"
             className="flex flex-col items-center gap-1"
           >
-            <LocalGasStationIcon className="h-4 w-4" />
+            <LocalGasStation className="h-4 w-4" />
             Stationary Fuel
           </TabsTrigger>
           <TabsTrigger
             value="mobile-fuel"
             className="flex flex-col items-center gap-1"
           >
-            <DirectionsCarIcon className="h-4 w-4" />
+            <DirectionsCar className="h-4 w-4" />
             Mobile Fuel
           </TabsTrigger>
           <TabsTrigger
             value="fugitive-gas"
             className="flex flex-col items-center gap-1"
           >
-            <CloudIcon className="h-4 w-4" />
+            <Cloud className="h-4 w-4" />
             Fugitive Gas
           </TabsTrigger>
           <TabsTrigger
             value="process"
             className="flex flex-col items-center gap-1"
           >
-            <SettingsIcon className="h-4 w-4" />
+            <Settings className="h-4 w-4" />
             Process
           </TabsTrigger>
           <TabsTrigger
             value="waste-water"
             className="flex flex-col items-center gap-1"
           >
-            <WaterDropIcon className="h-4 w-4" />
+            <WaterDrop className="h-4 w-4" />
             Waste Water
           </TabsTrigger>
           <TabsTrigger
             value="renewable-electricity"
             className="flex flex-col items-center gap-1"
           >
-            <SolarPowerIcon className="h-4 w-4" />
+            <SolarPower className="h-4 w-4" />
             Renewable Electricity
           </TabsTrigger>
           <TabsTrigger
             value="electricity"
             className="flex flex-col items-center gap-1"
           >
-            <ElectricBoltIcon className="h-4 w-4" />
+            <ElectricBolt className="h-4 w-4" />
             Electricity
           </TabsTrigger>
         </TabsList>
