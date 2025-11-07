@@ -10,14 +10,16 @@ import {
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useEmissions } from "@/lib/emissionsContext";
 import { dummyEmissionResult } from "@/lib/dummyData";
-import DashboardIcon from "@mui/icons-material/Dashboard";
-import LocalGasStationIcon from "@mui/icons-material/LocalGasStation";
-import DirectionsCarIcon from "@mui/icons-material/DirectionsCar";
-import CloudIcon from "@mui/icons-material/Cloud";
-import SettingsIcon from "@mui/icons-material/Settings";
-import WaterDropIcon from "@mui/icons-material/WaterDrop";
-import SolarPowerIcon from "@mui/icons-material/SolarPower";
-import ElectricBoltIcon from "@mui/icons-material/ElectricBolt";
+import {
+  Dashboard as DashboardIcon,
+  LocalGasStation as LocalGasStationIcon,
+  DirectionsCar as DirectionsCarIcon,
+  Cloud as CloudIcon,
+  Settings as SettingsIcon,
+  WaterDrop as WaterDropIcon,
+  SolarPower as SolarPowerIcon,
+  ElectricBolt as ElectricBoltIcon,
+} from "@mui/icons-material";
 import {
   PieChart,
   Pie,
@@ -176,7 +178,6 @@ export default function Dashboard() {
                       cx="50%"
                       cy="50%"
                       labelLine={false}
-                      
                       outerRadius={80}
                       fill="#8884d8"
                       dataKey="value"
@@ -208,7 +209,6 @@ export default function Dashboard() {
                       cx="50%"
                       cy="50%"
                       labelLine={false}
-                      
                       outerRadius={80}
                       fill="#8884d8"
                       dataKey="value"
@@ -369,7 +369,6 @@ export default function Dashboard() {
                       cx="50%"
                       cy="50%"
                       labelLine={false}
-                      
                       outerRadius={80}
                       fill="#8884d8"
                       dataKey="value"
@@ -416,7 +415,6 @@ export default function Dashboard() {
                       cx="50%"
                       cy="50%"
                       labelLine={false}
-                      
                       outerRadius={80}
                       fill="#8884d8"
                       dataKey="value"
@@ -465,7 +463,6 @@ export default function Dashboard() {
                       cx="50%"
                       cy="50%"
                       labelLine={false}
-                      
                       outerRadius={80}
                       fill="#8884d8"
                       dataKey="value"
@@ -512,7 +509,6 @@ export default function Dashboard() {
                       cx="50%"
                       cy="50%"
                       labelLine={false}
-                      
                       outerRadius={80}
                       fill="#8884d8"
                       dataKey="value"
@@ -561,7 +557,6 @@ export default function Dashboard() {
                       cx="50%"
                       cy="50%"
                       labelLine={false}
-                      
                       outerRadius={80}
                       fill="#8884d8"
                       dataKey="value"

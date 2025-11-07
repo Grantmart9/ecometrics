@@ -93,6 +93,185 @@ class CrudService {
     }
   }
 
+  // Mock responses for development environment
+  private getMockResponse(endpoint: string, data: any, operation: string): any {
+    // Handle emissions-input specific mock data
+    if (endpoint === "emissions-input") {
+      return this.getEmissionsInputMockResponse(data, operation);
+    }
+
+    // Handle other endpoint mock responses
+    return this.getGenericMockResponse(endpoint, data, operation);
+  }
+
+  private getEmissionsInputMockResponse(data: any, operation: string): any {
+    const mockData = [
+      {
+        id: "1",
+        userId: "1",
+        companyId: "1",
+        activityType: data.activityType || "Stationary Fuels",
+        costCentre: data.costCentre || "FIN",
+        startDate: data.startDate || "2025-05-01",
+        endDate: data.endDate || "2025-05-31",
+        consumptionType: data.consumptionType || "Coal Industrial",
+        consumption: data.consumption || 100,
+        monetaryValue: data.monetaryValue || 500,
+        notes: data.notes || "Sample entry",
+        documents: data.documents || [],
+        status: data.status || "pending",
+        emissions: data.emissions || 231,
+        unit: "kg",
+        costUom: "USD",
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      },
+      {
+        id: "2",
+        userId: "1",
+        companyId: "1",
+        activityType: "Mobile Fuels",
+        costCentre: "OPS",
+        startDate: "2025-05-20",
+        endDate: "2025-05-20",
+        consumptionType: "Diesel",
+        consumption: 200,
+        monetaryValue: 800,
+        notes: "Vehicle fleet data",
+        documents: [],
+        status: "approved",
+        emissions: 536,
+        unit: "kg",
+        costUom: "USD",
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      },
+      {
+        id: "3",
+        userId: "1",
+        companyId: "1",
+        activityType: "Process",
+        costCentre: "PROD",
+        startDate: "2025-05-25",
+        endDate: "2025-05-25",
+        consumptionType: "Manufacturing",
+        consumption: 150,
+        monetaryValue: 300,
+        notes: "Industrial process data",
+        documents: [],
+        status: "rejected",
+        emissions: 277.5,
+        unit: "kg",
+        costUom: "USD",
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      },
+    ];
+
+    return {
+      Status: 200,
+      Data: mockData,
+    };
+  }
+
+  private getGenericMockResponse(
+    endpoint: string,
+    data: any,
+    operation: string
+  ): any {
+    const identifier = data.email || data.username || "user@example.com";
+    const isEmail = data.email && data.email.includes("@");
+    const displayName =
+      data.name ||
+      (isEmail ? data.email.split("@")[0] : data.username || "User");
+
+    const mockResponses: { [key: string]: any } = {
+      users: {
+        Status: 200,
+        Data: [
+          {
+            Id: "1",
+            Email: identifier,
+            Name: displayName,
+            Surname: "Mock",
+            Identity: "USER",
+            Status: 0,
+          },
+        ],
+      },
+      companies: {
+        Status: 200,
+        Data: [
+          {
+            Id: "1",
+            Name: data.name,
+            Email: identifier,
+            Surname: "Mock",
+            Identity: "COMPANY",
+            Status: 0,
+          },
+        ],
+      },
+      emissions: {
+        Status: 200,
+        Data: [
+          {
+            Id: "1",
+            UserId: "1",
+            Year: new Date().getFullYear(),
+            TotalEmissions: 1000,
+            Scope1: 300,
+            Scope2: 400,
+            Scope3: 300,
+            CreatedAt: new Date().toISOString(),
+          },
+        ],
+      },
+      "auth/login": {
+        Status: 200,
+        Data: [
+          {
+            success: true,
+            token: "mock_jwt_token",
+            user: {
+              id: "1",
+              email: identifier,
+              name: displayName,
+            },
+          },
+        ],
+      },
+      "auth/signup": {
+        Status: 200,
+        Data: [
+          {
+            success: true,
+            token: "mock_jwt_token",
+            user: {
+              id: "1",
+              email: identifier,
+              name: displayName,
+            },
+          },
+        ],
+      },
+    };
+
+    return mockResponses[endpoint] || { Status: 200, Data: [data] };
+  }
+
+  private async handleUnauthorized(): Promise<void> {
+    // Simple token refresh - in real implementation, this would call the refresh endpoint
+    const storedToken = localStorage.getItem("auth_token");
+    if (storedToken) {
+      this.authToken = storedToken;
+    }
+  }
+
+  private generateRequestId(): string {
+    return `req_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+  }
+
   private async handleLocalStorageRequest<T>(
     endpoint: string,
     data: any,
@@ -219,165 +398,7 @@ class CrudService {
     }
   }
 
-  private async handleUnauthorized(): Promise<void> {
-    // Simple token refresh - in real implementation, this would call the refresh endpoint
-    const storedToken = localStorage.getItem("auth_token");
-    if (storedToken) {
-      this.authToken = storedToken;
-    }
-  }
-
-  private generateRequestId(): string {
-    return `req_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
-  }
-
-  private getMockResponse(endpoint: string, data: any, operation: string): any {
-    // Return appropriate mock data based on the endpoint and operation
-    const identifier = data.email || data.username || "user@example.com";
-    const isEmail = data.email && data.email.includes("@");
-    const displayName =
-      data.name ||
-      (isEmail ? data.email.split("@")[0] : data.username || "User");
-
-    const mockResponses: { [key: string]: any } = {
-      users: {
-        Status: 200,
-        Data: [
-          {
-            Id: "1",
-            Email: identifier,
-            Name: displayName,
-            Surname: "Mock",
-            Identity: "USER",
-            Status: 0,
-          },
-        ],
-      },
-      companies: {
-        Status: 200,
-        Data: [
-          {
-            Id: "1",
-            Name: data.name,
-            Email: identifier,
-            Surname: "Mock",
-            Identity: "COMPANY",
-            Status: 0,
-          },
-        ],
-      },
-      emissions: {
-        Status: 200,
-        Data: [
-          {
-            Id: "1",
-            UserId: "1",
-            Year: new Date().getFullYear(),
-            TotalEmissions: 1000,
-            Scope1: 300,
-            Scope2: 400,
-            Scope3: 300,
-            CreatedAt: new Date().toISOString(),
-          },
-        ],
-      },
-      "auth/login": {
-        Status: 200,
-        Data: [
-          {
-            success: true,
-            token: "mock_jwt_token",
-            user: {
-              id: "1",
-              email: identifier,
-              name: displayName,
-            },
-          },
-        ],
-      },
-      "auth/signup": {
-        Status: 200,
-        Data: [
-          {
-            success: true,
-            token: "mock_jwt_token",
-            user: {
-              id: "1",
-              email: identifier,
-              name: displayName,
-            },
-          },
-        ],
-      },
-      "emissions-input": {
-        Status: 200,
-        Data: [
-          {
-            id: "1",
-            userId: "1",
-            companyId: "1",
-            activityType: data.activityType || "Stationary Fuels",
-            costCentre: data.costCentre || "FIN",
-            startDate: data.startDate || "2025-05-01",
-            endDate: data.endDate || "2025-05-31",
-            consumptionType: data.consumptionType || "Coal Industrial",
-            consumption: data.consumption || 100,
-            monetaryValue: data.monetaryValue || 500,
-            notes: data.notes || "Sample entry",
-            documents: data.documents || [],
-            status: data.status || "pending",
-            emissions: data.emissions || 231,
-            unit: "kg",
-            costUom: "USD",
-            createdAt: new Date().toISOString(),
-            updatedAt: new Date().toISOString(),
-          },
-          {
-            id: "2",
-            userId: "1",
-            companyId: "1",
-            activityType: "Mobile Fuels",
-            costCentre: "OPS",
-            startDate: "2025-05-20",
-            endDate: "2025-05-20",
-            consumptionType: "Diesel",
-            consumption: 200,
-            monetaryValue: 800,
-            notes: "Vehicle fleet data",
-            documents: [],
-            status: "approved",
-            emissions: 536,
-            unit: "kg",
-            costUom: "USD",
-            createdAt: new Date().toISOString(),
-            updatedAt: new Date().toISOString(),
-          },
-          {
-            id: "3",
-            userId: "1",
-            companyId: "1",
-            activityType: "Process",
-            costCentre: "PROD",
-            startDate: "2025-05-25",
-            endDate: "2025-05-25",
-            consumptionType: "Manufacturing",
-            consumption: 150,
-            monetaryValue: 300,
-            notes: "Industrial process data",
-            documents: [],
-            status: "rejected",
-            emissions: 277.5,
-            unit: "kg",
-            costUom: "USD",
-            createdAt: new Date().toISOString(),
-            updatedAt: new Date().toISOString(),
-          },
-        ],
-      },
-    };
-
-    return mockResponses[endpoint] || { Status: 200, Data: [data] };
-  }
+  // Import method exists above
 
   // CRUD operations
   async create<T>(resource: string, data: any): Promise<T> {

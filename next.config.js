@@ -1,11 +1,13 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-    // For server deployment (EC2) - no output: 'export'
-    trailingSlash: true,
-    images: {
-        unoptimized: true,
-        domains: ['images.unsplash.com', 'via.placeholder.com'],
+    experimental: {
+        appDir: true,
     },
-}
+    images: {
+        domains: ["images.unsplash.com", "via.placeholder.com"],
+        unoptimized: true, // Add this for static export
+    },
+    output: 'export',  // Add this line for static export
+};
 
-module.exports = nextConfig
+module.exports = nextConfig;

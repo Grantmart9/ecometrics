@@ -20,10 +20,12 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import AddCircleIcon from "@mui/icons-material/AddCircle";
-import UploadFileIcon from "@mui/icons-material/UploadFile";
-import HistoryIcon from "@mui/icons-material/History";
-import TrackChangesIcon from "@mui/icons-material/TrackChanges";
+import {
+  AddCircle,
+  UploadFile,
+  History,
+  TrackChanges,
+} from "@mui/icons-material";
 import { InputData, CreateInputDataRequest } from "@/types/inputData";
 
 export default function Input() {
@@ -154,6 +156,25 @@ export default function Input() {
       row.activity.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
+  const calculateEmissions = (
+    activityType: string,
+    consumption: number,
+    consumptionType: string
+  ): number => {
+    // Simplified emission calculations based on activity type
+    const emissionFactors: { [key: string]: number } = {
+      "Stationary Fuels": 2.31, // kg CO2e per unit
+      "Mobile Fuels": 2.68,
+      "Fugitive Gas": 0.25,
+      Process: 1.85,
+      "Waste Water": 0.45,
+      "Renewable Electricity": 0.02,
+    };
+
+    const factor = emissionFactors[activityType] || 1.0;
+    return Math.round(consumption * factor * 100) / 100;
+  };
+
   const handleFormSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
@@ -186,18 +207,64 @@ export default function Input() {
         notes: formData.notes,
       };
 
-      const response = await fetch("/api/emissions-input", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(payload),
-      });
+      // Try API first, fallback to localStorage for static export
+      try {
+        const response = await fetch("/api/emissions-input", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify(payload),
+        });
 
-      const result = await response.json();
+        const result = await response.json();
 
-      if (response.ok) {
-        alert("Input data created successfully!");
+        if (response.ok) {
+          alert("Input data created successfully!");
+          // Reset form
+          setFormData({
+            activityType: "",
+            costCentre: "",
+            startDate: "",
+            endDate: "",
+            consumptionType: "",
+            consumption: "",
+            monetaryValue: "",
+            notes: "",
+          });
+          // Refresh the input data list
+          fetchInputData();
+        } else {
+          throw new Error("API call failed");
+        }
+      } catch (apiError) {
+        // API not available (static export), use localStorage
+        console.log("Using localStorage for static export");
+
+        const existingData = JSON.parse(
+          localStorage.getItem("ecometrics_emissions-input") || "[]"
+        );
+        const newItem = {
+          id: Date.now().toString(),
+          userId: "1",
+          companyId: "1",
+          ...payload,
+          emissions: calculateEmissions(
+            payload.activityType,
+            payload.consumption,
+            payload.consumptionType
+          ),
+          status: "pending" as const,
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
+        };
+        existingData.push(newItem);
+        localStorage.setItem(
+          "ecometrics_emissions-input",
+          JSON.stringify(existingData)
+        );
+
+        alert("Input data saved successfully!");
         // Reset form
         setFormData({
           activityType: "",
@@ -211,12 +278,10 @@ export default function Input() {
         });
         // Refresh the input data list
         fetchInputData();
-      } else {
-        alert(`Error: ${result.error}`);
       }
     } catch (error) {
       console.error("Submit error:", error);
-      alert("Network error. Please try again.");
+      alert("Error: Please try again.");
     } finally {
       setLoading(false);
     }
@@ -224,16 +289,26 @@ export default function Input() {
 
   const fetchInputData = async () => {
     try {
-      const response = await fetch("/api/emissions-input");
-      const result = await response.json();
+      // Try API first, fallback to localStorage for static export
+      try {
+        const response = await fetch("/api/emissions-input");
+        const result = await response.json();
 
-      if (response.ok && result) {
-        // Ensure we always have an array, even if result.Data is undefined
-        const data = Array.isArray(result.Data) ? result.Data : [];
-        setInputData(data);
-      } else {
-        console.warn("API returned non-OK response:", response.status);
-        setInputData([]);
+        if (response.ok && result) {
+          // Ensure we always have an array, even if result.Data is undefined
+          const data = Array.isArray(result.Data) ? result.Data : [];
+          setInputData(data);
+        } else {
+          throw new Error("API call failed");
+        }
+      } catch (apiError) {
+        // API not available (static export), use localStorage
+        console.log("Using localStorage for data fetch in static export");
+
+        const localData = JSON.parse(
+          localStorage.getItem("ecometrics_emissions-input") || "[]"
+        );
+        setInputData(Array.isArray(localData) ? localData : []);
       }
     } catch (error) {
       console.error("Fetch error:", error);
@@ -296,28 +371,28 @@ export default function Input() {
                 value="enter-data"
                 className="flex flex-col items-center gap-1"
               >
-                <AddCircleIcon className="h-4 w-4" />
+                <AddCircle className="h-4 w-4" />
                 Enter Data
               </TabsTrigger>
               <TabsTrigger
                 value="upload-file"
                 className="flex flex-col items-center gap-1"
               >
-                <UploadFileIcon className="h-4 w-4" />
+                <UploadFile className="h-4 w-4" />
                 Upload File
               </TabsTrigger>
               <TabsTrigger
                 value="input-history"
                 className="flex flex-col items-center gap-1"
               >
-                <HistoryIcon className="h-4 w-4" />
+                <History className="h-4 w-4" />
                 Input History
               </TabsTrigger>
               <TabsTrigger
                 value="trace-source"
                 className="flex flex-col items-center gap-1"
               >
-                <TrackChangesIcon className="h-4 w-4" />
+                <TrackChanges className="h-4 w-4" />
                 Trace Source
               </TabsTrigger>
             </TabsList>
@@ -462,11 +537,12 @@ export default function Input() {
                       <FormInput
                         id="documents"
                         type="file"
+                        disabled={true} // Disabled for static export
                         onChange={handleFileUpload}
                         accept=".pdf,.csv,.xlsx,.xls,.json"
                       />
                       <p className="text-sm text-muted-foreground">
-                        Supported: PDF, CSV, Excel, JSON (max 10MB)
+                        File upload available in dynamic mode only
                       </p>
                     </div>
                     <div className="flex justify-end space-x-2">
