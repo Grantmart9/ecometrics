@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
   Card,
   CardContent,
@@ -24,9 +24,33 @@ import AddCircleIcon from "@mui/icons-material/AddCircle";
 import UploadFileIcon from "@mui/icons-material/UploadFile";
 import HistoryIcon from "@mui/icons-material/History";
 import TrackChangesIcon from "@mui/icons-material/TrackChanges";
+import { InputData, CreateInputDataRequest } from "@/types/inputData";
 
 export default function Input() {
   const [searchTerm, setSearchTerm] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [inputData, setInputData] = useState<InputData[]>([]);
+  const [selectedTab, setSelectedTab] = useState("enter-data");
+  const [filters, setFilters] = useState({
+    startDate: "",
+    endDate: "",
+    activityType: "",
+    status: "",
+  });
+
+  // Load input data when component mounts or tab changes
+  useEffect(() => {
+    if (selectedTab === "input-history" || selectedTab === "trace-source") {
+      fetchInputData();
+    }
+  }, [selectedTab]);
+
+  // Initialize with empty data to prevent undefined errors
+  useEffect(() => {
+    if (!inputData || inputData.length === 0) {
+      setInputData([]);
+    }
+  }, []);
 
   const mockData = [
     {
@@ -73,7 +97,50 @@ export default function Input() {
     },
   ];
 
-  const filteredData = mockData.filter(
+  // Form state
+  const [formData, setFormData] = useState({
+    activityType: "",
+    costCentre: "",
+    startDate: "",
+    endDate: "",
+    consumptionType: "",
+    consumption: "",
+    monetaryValue: "",
+    notes: "",
+  });
+
+  // Transform InputData for table display
+  const transformedData = inputData.map((item) => {
+    // Safely parse the createdAt date
+    let editDate = "N/A";
+    if (item.createdAt) {
+      try {
+        const date = new Date(item.createdAt);
+        if (!isNaN(date.getTime())) {
+          editDate = date.toISOString().split("T")[0];
+        }
+      } catch (error) {
+        console.warn("Invalid date format:", item.createdAt);
+      }
+    }
+
+    return {
+      name: `Entry ${item.id}`,
+      editDate,
+      dataCapturer: `User ${item.userId}`,
+      activityType: item.activityType || "Unknown",
+      docs: item.documents?.length || 0,
+      status: item.status || "pending",
+      userName: `User ${item.userId}`,
+      value: (item.consumption || 0).toString(),
+      emissions: `${item.emissions || 0} kg CO2e`,
+      costUom: "USD",
+      type: item.activityType ? item.activityType.split(" ")[0] : "Unknown",
+      activity: item.consumptionType || "Unknown",
+    };
+  });
+
+  const filteredData = transformedData.filter(
     (row) =>
       row.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
       row.dataCapturer.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -87,6 +154,126 @@ export default function Input() {
       row.activity.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
+  const handleFormSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setLoading(true);
+
+    try {
+      // Validate required fields
+      if (
+        !formData.activityType ||
+        !formData.costCentre ||
+        !formData.startDate ||
+        !formData.endDate ||
+        !formData.consumptionType ||
+        !formData.consumption
+      ) {
+        alert("Please fill in all required fields");
+        setLoading(false);
+        return;
+      }
+
+      const payload: CreateInputDataRequest = {
+        activityType: formData.activityType,
+        costCentre: formData.costCentre,
+        startDate: formData.startDate,
+        endDate: formData.endDate,
+        consumptionType: formData.consumptionType,
+        consumption: parseFloat(formData.consumption),
+        monetaryValue: formData.monetaryValue
+          ? parseFloat(formData.monetaryValue)
+          : undefined,
+        notes: formData.notes,
+      };
+
+      const response = await fetch("/api/emissions-input", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(payload),
+      });
+
+      const result = await response.json();
+
+      if (response.ok) {
+        alert("Input data created successfully!");
+        // Reset form
+        setFormData({
+          activityType: "",
+          costCentre: "",
+          startDate: "",
+          endDate: "",
+          consumptionType: "",
+          consumption: "",
+          monetaryValue: "",
+          notes: "",
+        });
+        // Refresh the input data list
+        fetchInputData();
+      } else {
+        alert(`Error: ${result.error}`);
+      }
+    } catch (error) {
+      console.error("Submit error:", error);
+      alert("Network error. Please try again.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const fetchInputData = async () => {
+    try {
+      const response = await fetch("/api/emissions-input");
+      const result = await response.json();
+
+      if (response.ok && result) {
+        // Ensure we always have an array, even if result.Data is undefined
+        const data = Array.isArray(result.Data) ? result.Data : [];
+        setInputData(data);
+      } else {
+        console.warn("API returned non-OK response:", response.status);
+        setInputData([]);
+      }
+    } catch (error) {
+      console.error("Fetch error:", error);
+      setInputData([]); // Set empty array on error
+    }
+  };
+
+  const handleInputChange = (field: string, value: string) => {
+    setFormData((prev) => ({
+      ...prev,
+      [field]: value,
+    }));
+  };
+
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    try {
+      const formData = new FormData();
+      formData.append("file", file);
+
+      const response = await fetch("/api/emissions-input/upload", {
+        method: "POST",
+        body: formData,
+      });
+
+      const result = await response.json();
+
+      if (response.ok) {
+        alert(`File uploaded successfully: ${result.data.fileName}`);
+      } else {
+        alert(`Upload error: ${result.error}`);
+      }
+    } catch (error) {
+      console.error("Upload error:", error);
+      alert("Upload failed. Please try again.");
+    }
+  };
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-green-50 via-emerald-50 to-sky-50 p-4 sm:p-6 lg:p-8">
       <div className="max-w-7xl mx-auto">
@@ -99,7 +286,11 @@ export default function Input() {
           </p>
         </div>
         <div className="space-y-6">
-          <Tabs defaultValue="enter-data" className="w-full">
+          <Tabs
+            value={selectedTab}
+            onValueChange={setSelectedTab}
+            className="w-full"
+          >
             <TabsList className="grid w-full grid-cols-4 mb-6">
               <TabsTrigger
                 value="enter-data"
@@ -140,16 +331,21 @@ export default function Input() {
                   </CardDescription>
                 </CardHeader>
                 <CardContent>
-                  <form className="space-y-4">
+                  <form onSubmit={handleFormSubmit} className="space-y-4">
                     <div className="grid grid-cols-2 gap-4">
                       <div>
                         <Label htmlFor="activity-type">
-                          Step 1: Select Activity Type
+                          Step 1: Select Activity Type *
                         </Label>
                         <FormInput
                           id="activity-type"
                           placeholder="Select activity type..."
                           list="activity-types"
+                          value={formData.activityType}
+                          onChange={(e) =>
+                            handleInputChange("activityType", e.target.value)
+                          }
+                          required
                         />
                         <datalist id="activity-types">
                           <option value="Stationary Fuels" />
@@ -161,43 +357,75 @@ export default function Input() {
                         </datalist>
                       </div>
                       <div>
-                        <Label htmlFor="cost-centre">Step 3: Cost Centre</Label>
-                        <FormInput id="cost-centre" placeholder="e.g., FIN" />
+                        <Label htmlFor="cost-centre">
+                          Step 3: Cost Centre *
+                        </Label>
+                        <FormInput
+                          id="cost-centre"
+                          placeholder="e.g., FIN"
+                          value={formData.costCentre}
+                          onChange={(e) =>
+                            handleInputChange("costCentre", e.target.value)
+                          }
+                          required
+                        />
                       </div>
                     </div>
                     <div className="grid grid-cols-2 gap-4">
                       <div>
-                        <Label htmlFor="start-date">Step 2: Start Date</Label>
+                        <Label htmlFor="start-date">Step 2: Start Date *</Label>
                         <FormInput
                           id="start-date"
                           type="date"
-                          defaultValue="2025-05-01"
+                          value={formData.startDate}
+                          onChange={(e) =>
+                            handleInputChange("startDate", e.target.value)
+                          }
+                          required
                         />
                       </div>
                       <div>
-                        <Label htmlFor="end-date">End Date</Label>
+                        <Label htmlFor="end-date">End Date *</Label>
                         <FormInput
                           id="end-date"
                           type="date"
-                          defaultValue="2025-05-31"
+                          value={formData.endDate}
+                          onChange={(e) =>
+                            handleInputChange("endDate", e.target.value)
+                          }
+                          required
                         />
                       </div>
                     </div>
                     <div className="grid grid-cols-2 gap-4">
                       <div>
                         <Label htmlFor="consumption-type">
-                          Step 4: Consumption Type
+                          Step 4: Consumption Type *
                         </Label>
                         <FormInput
                           id="consumption-type"
                           placeholder="e.g., Coal Industrial"
+                          value={formData.consumptionType}
+                          onChange={(e) =>
+                            handleInputChange("consumptionType", e.target.value)
+                          }
+                          required
                         />
                       </div>
                       <div>
-                        <Label htmlFor="consumption">Step 5: Consumption</Label>
+                        <Label htmlFor="consumption">
+                          Step 5: Consumption *
+                        </Label>
                         <FormInput
                           id="consumption"
                           placeholder="Enter consumption value"
+                          type="number"
+                          step="0.01"
+                          value={formData.consumption}
+                          onChange={(e) =>
+                            handleInputChange("consumption", e.target.value)
+                          }
+                          required
                         />
                       </div>
                     </div>
@@ -209,25 +437,49 @@ export default function Input() {
                         <FormInput
                           id="monetary-value"
                           placeholder="Enter monetary value"
+                          type="number"
+                          step="0.01"
+                          value={formData.monetaryValue}
+                          onChange={(e) =>
+                            handleInputChange("monetaryValue", e.target.value)
+                          }
                         />
                       </div>
                       <div>
                         <Label htmlFor="notes">Step 7: Notes</Label>
-                        <FormInput id="notes" placeholder="Additional notes" />
+                        <FormInput
+                          id="notes"
+                          placeholder="Additional notes"
+                          value={formData.notes}
+                          onChange={(e) =>
+                            handleInputChange("notes", e.target.value)
+                          }
+                        />
                       </div>
                     </div>
                     <div>
                       <Label htmlFor="documents">Step 8: Documents</Label>
-                      <FormInput id="documents" type="file" />
+                      <FormInput
+                        id="documents"
+                        type="file"
+                        onChange={handleFileUpload}
+                        accept=".pdf,.csv,.xlsx,.xls,.json"
+                      />
                       <p className="text-sm text-muted-foreground">
-                        No documents selected.
+                        Supported: PDF, CSV, Excel, JSON (max 10MB)
                       </p>
                     </div>
                     <div className="flex justify-end space-x-2">
                       <Button type="button" variant="outline">
                         Actions
                       </Button>
-                      <Button type="submit">Submit</Button>
+                      <Button
+                        type="submit"
+                        disabled={loading}
+                        className="bg-green-600 hover:bg-green-700"
+                      >
+                        {loading ? "Submitting..." : "Submit"}
+                      </Button>
                     </div>
                   </form>
                 </CardContent>

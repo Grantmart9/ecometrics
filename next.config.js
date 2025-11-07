@@ -1,6 +1,6 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-    output: 'export',
+    // For server deployment (EC2) - no output: 'export'
     trailingSlash: true,
     images: {
         unoptimized: true,
