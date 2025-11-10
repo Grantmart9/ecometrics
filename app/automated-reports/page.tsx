@@ -248,7 +248,7 @@ export default function AutomatedReportsPage() {
   const calculateMenuItems = [
     {
       href: "/real-time-carbon-tracking",
-      label: "Real-Time Carbon Tracking",
+      label: "Carbon Emissions Tracking",
       description: "Live emissions monitoring",
     },
     {

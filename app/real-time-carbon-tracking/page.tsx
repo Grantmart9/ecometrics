@@ -240,7 +240,7 @@ export default function RealTimeCarbonTrackingPage() {
             >
               <div>
                 <h1 className="text-4xl font-bold text-gray-900 mb-2">
-                  Real-Time Carbon Tracking
+                  Carbon Emissions Tracking
                 </h1>
                 <p className="text-lg text-gray-600">
                   Monitor your emissions with live data and interactive
@@ -264,27 +264,27 @@ export default function RealTimeCarbonTrackingPage() {
             className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8"
           >
             <motion.div variants={fadeIn}>
-              <Card className="bg-gradient-to-br from-green-500 to-emerald-600 text-white border-0">
+              <Card className="bg-gradient-to-br from-green-500 to-emerald-600 text-white border-0 rounded-lg">
                 <Flex alignItems="start">
                   <div className="truncate">
-                    <Text className="text-green-100">Current Emissions</Text>
+                    <Text className="text-white">Current Emissions</Text>
                     <Metric className="text-white">
                       {currentEmissions.toFixed(1)} tCO₂e
                     </Metric>
                   </div>
-                  <Activity className="h-8 w-8 text-green-200" />
+                  <Activity className="h-8 w-8 text-white" />
                 </Flex>
               </Card>
             </motion.div>
 
             <motion.div variants={fadeIn}>
-              <Card className="bg-gradient-to-br from-blue-500 to-indigo-600 text-white border-0">
+              <Card className="bg-gradient-to-br from-green-500 to-emerald-600 text-white border-0 rounded-lg">
                 <Flex alignItems="start">
                   <div className="truncate">
-                    <Text className="text-blue-100">Daily Target</Text>
+                    <Text className="text-white">Daily Target</Text>
                     <Metric className="text-white">320 tCO₂e</Metric>
                   </div>
-                  <TrendingDown className="h-8 w-8 text-blue-200" />
+                  <TrendingDown className="h-8 w-8 text-white" />
                 </Flex>
                 <BadgeDelta
                   deltaType={getDeltaType(currentEmissions, 320)}
@@ -296,13 +296,13 @@ export default function RealTimeCarbonTrackingPage() {
             </motion.div>
 
             <motion.div variants={fadeIn}>
-              <Card className="bg-gradient-to-br from-purple-500 to-pink-600 text-white border-0">
+              <Card className="bg-gradient-to-br from-green-500 to-emerald-600 text-white border-0 rounded-lg">
                 <Flex alignItems="start">
                   <div className="truncate">
-                    <Text className="text-purple-100">Week Progress</Text>
+                    <Text className="text-white">Week Progress</Text>
                     <Metric className="text-white">73%</Metric>
                   </div>
-                  <BarChart3 className="h-8 w-8 text-purple-200" />
+                  <BarChart3 className="h-8 w-8 text-white" />
                 </Flex>
                 <BadgeDelta deltaType="moderateIncrease" className="mt-2">
                   +5% from last week
@@ -311,13 +311,13 @@ export default function RealTimeCarbonTrackingPage() {
             </motion.div>
 
             <motion.div variants={fadeIn}>
-              <Card className="bg-gradient-to-br from-orange-500 to-red-600 text-white border-0">
+              <Card className="bg-gradient-to-br from-green-500 to-emerald-600 text-white border-0 rounded-lg">
                 <Flex alignItems="start">
                   <div className="truncate">
-                    <Text className="text-orange-100">Cost Impact</Text>
+                    <Text className="text-white">Cost Impact</Text>
                     <Metric className="text-white">R23,070</Metric>
                   </div>
-                  <Zap className="h-8 w-8 text-orange-200" />
+                  <Zap className="h-8 w-8 text-white" />
                 </Flex>
                 <BadgeDelta deltaType="moderateDecrease" className="mt-2">
                   -12% cost reduction
@@ -357,7 +357,7 @@ export default function RealTimeCarbonTrackingPage() {
           >
             {/* Real-time Emissions Chart */}
             <Card className="col-span-2">
-              <Title>Real-Time Emissions Tracking</Title>
+              <Title>Carbon Emissions Tracking</Title>
               <Text>Live carbon emissions over time</Text>
               <div className="h-80 mt-4">
                 <ResponsiveContainer width="100%" height="100%">

@@ -161,7 +161,7 @@ export const generateCarbonTrackingReport = (data: any) => {
     ],
   };
 
-  return generatePDFReport(reportData, "Real-Time Carbon Tracking Report");
+  return generatePDFReport(reportData, "Carbon Emissions Tracking Report");
 };
 
 // Generate emission source breakdown report

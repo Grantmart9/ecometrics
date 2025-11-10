@@ -4,6 +4,7 @@ import { Inter } from "next/font/google";
 import { AuthProvider } from "@/lib/auth-context";
 import { EmissionsProvider } from "@/lib/emissionsContext";
 import { Nav } from "@/components/nav";
+import { ChatWidget } from "@/components/chat-widget";
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -25,6 +26,7 @@ export default function RootLayout({
           <EmissionsProvider>
             <Nav />
             <div>{children}</div>
+            <ChatWidget />
           </EmissionsProvider>
         </AuthProvider>
       </body>

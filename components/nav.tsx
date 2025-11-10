@@ -9,10 +9,10 @@ import { useAuth } from "@/lib/auth-context";
 import { Leaf, ChevronDown, LogOut, User } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
-const carboncalcNavItems = [{ href: "/input", label: "Input" }];
+const carboncalcNavItems = [{ href: "/input", label: "Upload Data" }];
 
 const ecometricsNavItems = [
-  { href: "/real-time-carbon-tracking", label: "Real-Time Tracking" },
+  { href: "/real-time-carbon-tracking", label: "Carbon Emissions Tracking" },
   { href: "/automated-reports", label: "Automated Reports" },
   { href: "/custom-dashboards", label: "Custom Dashboards" },
   { href: "/emission-source-breakdown", label: "Emission Breakdown" },
@@ -20,19 +20,26 @@ const ecometricsNavItems = [
   { href: "/team-collaboration", label: "Team Collaboration" },
 ];
 
+const accountNavItems = [
+  { href: "/settings", label: "Settings" },
+  { href: "/help", label: "Help" },
+];
+
 const mainNavItems = [
   { href: "#about", label: "About" },
   { href: "#features", label: "Features" },
   { href: "#how-it-works", label: "How It Works" },
   { href: "#testimonials", label: "Testimonials" },
-  { href: "/settings", label: "Settings" },
-  { href: "/help", label: "Help" },
 ];
 
 export function Nav() {
   const pathname = usePathname();
   const { isAuthenticated, user, logout } = useAuth();
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+
+  // Debug logging for routing
+  console.log("Nav component - pathname:", pathname);
+  console.log("Nav component - isAuthenticated:", isAuthenticated);
 
   const handleLogout = () => {
     logout();
@@ -95,7 +102,7 @@ export function Nav() {
                           <div className="p-2">
                             {/* CarbonCalc Items */}
                             <div className="px-3 py-2 text-xs font-semibold text-gray-500 uppercase tracking-wider">
-                              CarbonCalc Features
+                              Data
                             </div>
                             {carboncalcNavItems.map((item) => (
                               <Link
@@ -115,9 +122,29 @@ export function Nav() {
 
                             {/* EcoMetrics Items */}
                             <div className="px-3 py-2 text-xs font-semibold text-gray-500 uppercase tracking-wider mt-2 border-t border-green-100 pt-2">
-                              EcoMetrics Features
+                              Reporting & Analytics
                             </div>
                             {ecometricsNavItems.map((item) => (
+                              <Link
+                                key={item.href}
+                                href={item.href}
+                                className={cn(
+                                  "flex items-center px-3 py-2 text-sm transition-colors rounded-md",
+                                  pathname === item.href
+                                    ? "bg-green-100 text-green-700 font-medium"
+                                    : "text-gray-700 hover:bg-green-50 hover:text-green-700"
+                                )}
+                                onClick={() => setIsDropdownOpen(false)}
+                              >
+                                {item.label}
+                              </Link>
+                            ))}
+
+                            {/* Account Items */}
+                            <div className="px-3 py-2 text-xs font-semibold text-gray-500 uppercase tracking-wider mt-2 border-t border-green-100 pt-2">
+                              Account
+                            </div>
+                            {accountNavItems.map((item) => (
                               <Link
                                 key={item.href}
                                 href={item.href}
@@ -182,7 +209,7 @@ export function Nav() {
                         <div className="p-2">
                           {/* CarbonCalc Items */}
                           <div className="px-3 py-2 text-xs font-semibold text-gray-500 uppercase tracking-wider">
-                            CarbonCalc Features
+                            Data
                           </div>
                           {carboncalcNavItems.map((item) => (
                             <Link
@@ -202,9 +229,29 @@ export function Nav() {
 
                           {/* EcoMetrics Items */}
                           <div className="px-3 py-2 text-xs font-semibold text-gray-500 uppercase tracking-wider mt-2 border-t border-green-100 pt-2">
-                            EcoMetrics Features
+                            Reporting & Analytics
                           </div>
                           {ecometricsNavItems.map((item) => (
+                            <Link
+                              key={item.href}
+                              href={item.href}
+                              className={cn(
+                                "flex items-center px-3 py-2 text-sm transition-colors rounded-md",
+                                pathname === item.href
+                                  ? "bg-green-100 text-green-700 font-medium"
+                                  : "text-gray-700 hover:bg-green-50 hover:text-green-700"
+                              )}
+                              onClick={() => setIsDropdownOpen(false)}
+                            >
+                              {item.label}
+                            </Link>
+                          ))}
+
+                          {/* Account Items */}
+                          <div className="px-3 py-2 text-xs font-semibold text-gray-500 uppercase tracking-wider mt-2 border-t border-green-100 pt-2">
+                            Account
+                          </div>
+                          {accountNavItems.map((item) => (
                             <Link
                               key={item.href}
                               href={item.href}

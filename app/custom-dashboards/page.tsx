@@ -858,17 +858,6 @@ export default function CustomDashboardsPage() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-green-50 via-emerald-50 to-sky-50">
-      {/* Back button */}
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-6">
-        <Link
-          href="/"
-          className="inline-flex items-center text-gray-600 hover:text-green-600 transition-colors"
-        >
-          <ChevronLeft className="h-4 w-4 mr-1" />
-          Back to Home
-        </Link>
-      </div>
-
       {/* Dashboard Header */}
       <section className="py-8 bg-white/50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">

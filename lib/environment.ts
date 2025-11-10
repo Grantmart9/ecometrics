@@ -12,9 +12,9 @@ export const environment: EnvironmentConfig = {
   apiUrl:
     process.env.NODE_ENV === "production"
       ? process.env.NEXT_PUBLIC_API_URL || "/api"
-      : "http://localhost:3003/api",
+      : process.env.NEXT_PUBLIC_API_URL || "https://wecare.temo.co.za/api",
   isDevelopment: process.env.NODE_ENV === "development",
-  skipRealApiCalls: true, // Skip real API calls for development to avoid 404s
+  skipRealApiCalls: false, // Always use real API calls
   isStaticExport: false, // Will be set dynamically by CRUD service
   appName: "EcoMetrics",
   version: "1.0.0",

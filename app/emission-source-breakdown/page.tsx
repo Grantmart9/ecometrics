@@ -314,7 +314,7 @@ export default function EmissionSourceBreakdownPage() {
   const calculateMenuItems = [
     {
       href: "/real-time-carbon-tracking",
-      label: "Real-Time Carbon Tracking",
+      label: "Carbon Emissions Tracking",
       description: "Live emissions monitoring",
     },
     {
@@ -454,7 +454,7 @@ export default function EmissionSourceBreakdownPage() {
               <div className="flex items-center space-x-4 mt-4 lg:mt-0">
                 <Button
                   size="lg"
-                  className="bg-green-600 hover:bg-green-700 text-white"
+                  className="bg-green-600 hover:bg-green-700 text-white rounded-lg"
                   onClick={handleExportData}
                   disabled={isGeneratingReport}
                 >
@@ -473,13 +473,13 @@ export default function EmissionSourceBreakdownPage() {
             className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8"
           >
             <motion.div variants={fadeIn}>
-              <Card className="bg-gradient-to-br from-red-500 to-red-600 text-white border-0">
+              <Card className="bg-gradient-to-br from-green-500 to-emerald-600 text-white border-0 rounded-lg">
                 <Flex alignItems="start">
                   <div className="truncate">
-                    <Text className="text-red-100">Scope 1 Emissions</Text>
+                    <Text className="text-white">Scope 1 Emissions</Text>
                     <Metric className="text-white">1,110 tCO₂e</Metric>
                   </div>
-                  <Factory className="h-8 w-8 text-red-200" />
+                  <Factory className="h-8 w-8 text-blue-100" />
                 </Flex>
                 <BadgeDelta
                   deltaType="moderateDecrease"
@@ -491,13 +491,13 @@ export default function EmissionSourceBreakdownPage() {
             </motion.div>
 
             <motion.div variants={fadeIn}>
-              <Card className="bg-gradient-to-br from-amber-500 to-orange-600 text-white border-0">
+              <Card className="bg-gradient-to-br from-green-500 to-emerald-600 text-white border-0 rounded-lg">
                 <Flex alignItems="start">
                   <div className="truncate">
-                    <Text className="text-amber-100">Scope 2 Emissions</Text>
+                    <Text className="text-white">Scope 2 Emissions</Text>
                     <Metric className="text-white">700 tCO₂e</Metric>
                   </div>
-                  <Zap className="h-8 w-8 text-amber-200" />
+                  <Zap className="h-8 w-8 text-blue-100" />
                 </Flex>
                 <BadgeDelta
                   deltaType="moderateDecrease"
@@ -509,13 +509,13 @@ export default function EmissionSourceBreakdownPage() {
             </motion.div>
 
             <motion.div variants={fadeIn}>
-              <Card className="bg-gradient-to-br from-blue-500 to-indigo-600 text-white border-0">
+              <Card className="bg-gradient-to-br from-green-500 to-emerald-600 text-white border-0 rounded-lg">
                 <Flex alignItems="start">
                   <div className="truncate">
-                    <Text className="text-blue-100">Scope 3 Emissions</Text>
+                    <Text className="text-white">Scope 3 Emissions</Text>
                     <Metric className="text-white">820 tCO₂e</Metric>
                   </div>
-                  <Truck className="h-8 w-8 text-blue-200" />
+                  <Truck className="h-8 w-8 text-blue-100" />
                 </Flex>
                 <BadgeDelta
                   deltaType="moderateDecrease"
@@ -527,13 +527,13 @@ export default function EmissionSourceBreakdownPage() {
             </motion.div>
 
             <motion.div variants={fadeIn}>
-              <Card className="bg-gradient-to-br from-green-500 to-emerald-600 text-white border-0">
+              <Card className="bg-gradient-to-br from-green-500 to-emerald-600 text-white border-0 rounded-lg">
                 <Flex alignItems="start">
                   <div className="truncate">
-                    <Text className="text-green-100">Total Emissions</Text>
+                    <Text className="text-white">Total Emissions</Text>
                     <Metric className="text-white">2,630 tCO₂e</Metric>
                   </div>
-                  <Target className="h-8 w-8 text-green-200" />
+                  <Target className="h-8 w-8 text-blue-100" />
                 </Flex>
                 <BadgeDelta
                   deltaType="moderateDecrease"
@@ -1138,7 +1138,7 @@ export default function EmissionSourceBreakdownPage() {
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
             <Button
               size="lg"
-              className="bg-green-600 hover:bg-green-700 text-white px-8 py-4"
+              className="bg-green-600 hover:bg-green-700 text-white px-8 py-4 rounded-lg"
               onClick={handleGenerateReport}
               disabled={isGeneratingReport}
             >

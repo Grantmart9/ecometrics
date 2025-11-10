@@ -22,7 +22,7 @@ A modern, responsive web application built with Next.js 15, TypeScript, Tailwind
 
 ### EcoMetrics Advanced Features
 
-- **Real-Time Carbon Tracking** - Live monitoring and alerts
+- **Carbon Emissions Tracking** - Live monitoring and alerts
 - **Automated Reports** - Scheduled reporting with custom recipients
 - **Custom Dashboards** - Personalized analytics and visualizations
 - **Emission Source Breakdown** - Detailed analysis by source type
@@ -63,7 +63,7 @@ A modern, responsive web application built with Next.js 15, TypeScript, Tailwind
 
 ### EcoMetrics Features
 
-- **Real-Time Carbon Tracking** (`/real-time-carbon-tracking`) - Live monitoring
+- **Carbon Emissions Tracking** (`/real-time-carbon-tracking`) - Live monitoring
 - **Automated Reports** (`/automated-reports`) - Scheduled reporting
 - **Custom Dashboards** (`/custom-dashboards`) - Personalized analytics
 - **Emission Source Breakdown** (`/emission-source-breakdown`) - Detailed analysis

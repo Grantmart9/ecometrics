@@ -85,11 +85,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const isEmail = emailRegex.test(identifier);
 
       // Call the login method through CRUD service with proper data object
-      const result = await crudServiceInstance.login({
-        email: identifier, // Send as email field for backend compatibility
-        password,
-        identifier_type: isEmail ? "email" : "username", // Custom field for backend
-      });
+      // Based on server error, try different data structures
+      const loginData = isEmail
+        ? { email: identifier, password }
+        : { username: identifier, password };
+
+      console.log("Attempting login with data structure:", loginData);
+      const result = await crudServiceInstance.login(loginData);
 
       if (result && result.Status === 200) {
         const userRecord = result.Data?.[0];

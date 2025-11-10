@@ -1,0 +1,28 @@
+"use client";
+
+import dynamic from "next/dynamic";
+import { motion } from "framer-motion";
+
+// Dynamically import the 3D components to avoid SSR issues
+const ThreeBackgroundCanvas = dynamic(
+  () => {
+    return import("@/components/three-bg");
+  },
+  {
+    ssr: false,
+    loading: () => (
+      <div className="fixed inset-0 -z-10">
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ duration: 1.5 }}
+          className="w-full h-full bg-gradient-to-br from-green-50 via-emerald-50 to-sky-50"
+        />
+      </div>
+    ),
+  }
+);
+
+export default function ThreeBackgroundWrapper() {
+  return <ThreeBackgroundCanvas />;
+}

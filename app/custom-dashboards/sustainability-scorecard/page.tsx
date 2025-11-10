@@ -61,7 +61,7 @@ const sustainabilityData = {
 
 const calculateMenuItems = [
   {
-    label: "Real-Time Carbon Tracking",
+    label: "Carbon Emissions Tracking",
     description: "Monitor emissions with live data",
     href: "/real-time-carbon-tracking",
   },

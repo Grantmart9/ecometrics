@@ -69,7 +69,7 @@ ectricity
 │   │   ├── Emissions
 │   │   ├── Input
 │   └── EcoMetrics Features:
-│       ├── Real-Time Carbon Tracking
+│       ├── Carbon Emissions Tracking
 │       ├── Automated Reports
 │       ├── Custom Dashboards
 │       ├── Emission Source Breakdown

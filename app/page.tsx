@@ -1,7 +1,8 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, Suspense } from "react";
 import { motion, AnimatePresence } from "framer-motion";
+import dynamic from "next/dynamic";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { SignupModal } from "@/components/signup-modal";
@@ -36,117 +37,18 @@ export default function LandingPage() {
   const { isAuthenticated, user, logout } = useAuth();
   const router = useRouter();
 
-  // Carbon footprint animation component
-  const CarbonAnimation = () => {
-    const [dataPoints, setDataPoints] = useState([
-      { id: 1, angle: 0, delay: 0 },
-      { id: 2, angle: 120, delay: 0.5 },
-      { id: 3, angle: 240, delay: 1 },
-      { id: 4, angle: 60, delay: 1.5 },
-      { id: 5, angle: 180, delay: 2 },
-      { id: 6, angle: 300, delay: 2.5 },
-    ]);
-
-    return (
-      <div className="relative w-80 h-80 flex items-center justify-center">
-        {/* Outer ring with energy flows */}
-        <motion.div
-          className="absolute w-72 h-72 border-2 border-green-200 rounded-full"
-          animate={{ rotate: 360 }}
-          transition={{ duration: 30, repeat: Infinity, ease: "linear" }}
-        />
-
-        {/* Inner ring with data points */}
-        <motion.div
-          className="absolute w-56 h-56 border border-green-300 rounded-full"
-          animate={{ rotate: -360 }}
-          transition={{ duration: 20, repeat: Infinity, ease: "linear" }}
-        />
-
-        {/* Central carbon footprint core */}
-        <motion.div
-          className="absolute w-24 h-24 bg-gradient-to-br from-green-400 to-emerald-600 rounded-full shadow-2xl"
-          animate={{
-            scale: [1, 1.1, 1],
-            boxShadow: [
-              "0 0 20px rgba(16, 185, 129, 0.3)",
-              "0 0 40px rgba(16, 185, 129, 0.6)",
-              "0 0 20px rgba(16, 185, 129, 0.3)",
-            ],
-          }}
-          transition={{ duration: 2, repeat: Infinity }}
-        >
-          <div className="w-full h-full flex items-center justify-center">
-            <Activity className="h-8 w-8 text-white" />
-          </div>
-        </motion.div>
-
-        {/* Orbiting data points */}
-        {dataPoints.map((point, index) => (
-          <motion.div
-            key={point.id}
-            className="absolute w-4 h-4 bg-gradient-to-r from-green-500 to-emerald-500 rounded-full shadow-lg"
-            style={{
-              top: "50%",
-              left: "50%",
-              marginTop: "-8px",
-              marginLeft: "-8px",
-            }}
-            animate={{
-              rotate: 360,
-              x: [0, Math.cos((point.angle * Math.PI) / 180) * 120, 0],
-              y: [0, Math.sin((point.angle * Math.PI) / 180) * 120, 0],
-            }}
-            transition={{
-              duration: 15,
-              repeat: Infinity,
-              ease: "linear",
-              delay: point.delay,
-            }}
-          >
-            <div className="w-full h-full bg-white rounded-full opacity-80"></div>
-          </motion.div>
-        ))}
-
-        {/* Floating energy particles */}
-        {[...Array(8)].map((_, i) => (
-          <motion.div
-            key={`particle-${i}`}
-            className="absolute w-2 h-2 bg-green-400 rounded-full opacity-60"
-            animate={{
-              x: [0, Math.random() * 200 - 100],
-              y: [0, Math.random() * 200 - 100],
-              opacity: [0, 1, 0],
-            }}
-            transition={{
-              duration: 3 + Math.random() * 2,
-              repeat: Infinity,
-              delay: Math.random() * 2,
-              ease: "easeInOut",
-            }}
-          />
-        ))}
-
-        {/* Pulse rings */}
-        {[...Array(3)].map((_, i) => (
-          <motion.div
-            key={`ring-${i}`}
-            className="absolute w-32 h-32 border border-green-400 rounded-full opacity-20"
-            animate={{
-              scale: [0.5, 2],
-              opacity: [0.6, 0],
-            }}
-            transition={{
-              duration: 2,
-              repeat: Infinity,
-              delay: i * 0.7,
-              ease: "easeOut",
-            }}
-          />
-        ))}
-      </div>
-    );
-  };
+  // Carbon footprint animation component using Three.js
+  const CarbonAnimation = dynamic(
+    () => import("@/components/CarbonAnimation"),
+    {
+      ssr: false,
+      loading: () => (
+        <div className="relative w-80 h-80 flex items-center justify-center">
+          <div className="w-24 h-24 bg-gradient-to-br from-green-400 to-emerald-600 rounded-full animate-pulse"></div>
+        </div>
+      ),
+    }
+  );
 
   const handleLogin = () => {
     router.push("/login");
@@ -173,7 +75,7 @@ export default function LandingPage() {
   const features = [
     {
       icon: <TrendingUp className="h-8 w-8 text-green-600" />,
-      title: "Real-Time Carbon Tracking",
+      title: "Carbon Emissions Tracking",
       description:
         "Monitor your emissions in real-time with our advanced tracking system.",
     },

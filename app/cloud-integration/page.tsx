@@ -24,6 +24,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import Link from "next/link";
+import ThreeBackground from "@/components/three-bg";
 import {
   Cloud,
   Database,
@@ -261,20 +262,11 @@ export default function CloudIntegrationPage() {
     integrationsData.length;
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-green-50 via-emerald-50 to-sky-50">
-      {/* Back button */}
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-6">
-        <Link
-          href="/"
-          className="inline-flex items-center text-gray-600 hover:text-green-600 transition-colors"
-        >
-          <ArrowLeft className="h-4 w-4 mr-1" />
-          Back to Home
-        </Link>
-      </div>
+    <div className="relative min-h-screen bg-gradient-to-br from-green-50 via-emerald-50 to-sky-50">
+      <ThreeBackground />
 
       {/* Dashboard Header */}
-      <section className="py-8 bg-gradient-to-r from-purple-600 via-purple-700 to-purple-800">
+      <section className="py-8 bg-gradient-to-r from-green-600 via-green-700 to-emerald-800">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <motion.div
             initial="initial"
@@ -287,10 +279,10 @@ export default function CloudIntegrationPage() {
               className="flex flex-col lg:flex-row lg:items-center lg:justify-between"
             >
               <div>
-                <h1 className="text-4xl font-bold text-gray-900 mb-2">
+                <h1 className="text-4xl font-bold text-blue-50 mb-2">
                   Cloud Integration
                 </h1>
-                <p className="text-lg text-gray-600">
+                <p className="text-lg text-blue-50">
                   Connect your existing systems for seamless data
                   synchronization
                 </p>
