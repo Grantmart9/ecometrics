@@ -680,7 +680,7 @@ export default function Input() {
             className="mb-8"
           >
             <h1 className="text-4xl font-bold text-gray-900 mb-2">
-              Inputs Management
+              Input Management
             </h1>
             <p className="text-lg text-gray-600">
               Enter, upload, and track your emissions data
