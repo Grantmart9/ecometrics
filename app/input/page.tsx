@@ -28,9 +28,16 @@ import {
   TrackChanges,
   CheckCircle,
 } from "@mui/icons-material";
-import { InputData, CreateInputDataRequest } from "@/types/inputData";
+import {
+  InputData,
+  CreateInputDataRequest,
+  UpdateInputDataRequest,
+} from "@/types/inputData";
 import AnimatedFormField from "@/components/animated-form-field";
 import AnimatedSubmitButton from "@/components/animated-submit-button";
+import { crudService } from "@/lib/crudService";
+import { useAuth } from "@/lib/auth-context";
+import { environment } from "@/lib/environment";
 
 // Dynamic import for 3D background
 const ThreeBackground = dynamic(() => import("@/components/three-bg"), {
@@ -43,11 +50,13 @@ const ThreeBackground = dynamic(() => import("@/components/three-bg"), {
 });
 
 export default function Input() {
+  const { session } = useAuth();
   const [searchTerm, setSearchTerm] = useState("");
   const [loading, setLoading] = useState(false);
   const [submitSuccess, setSubmitSuccess] = useState(false);
   const [inputData, setInputData] = useState<InputData[]>([]);
   const [selectedTab, setSelectedTab] = useState("enter-data");
+  const [editingId, setEditingId] = useState<string | null>(null);
   const [validation, setValidation] = useState({
     activityType: { isValid: false, message: "" },
     costCentre: { isValid: false, message: "" },
@@ -56,6 +65,16 @@ export default function Input() {
     consumptionType: { isValid: false, message: "" },
     consumption: { isValid: false, message: "" },
   });
+
+  // Set auth token when session changes
+  useEffect(() => {
+    if (session?.access_token) {
+      console.log("DEBUG: Setting auth token in crudService");
+      crudService.setAuthToken(session.access_token);
+    } else {
+      console.log("DEBUG: No access_token in session");
+    }
+  }, [session]);
 
   // Load input data when component mounts or tab changes
   useEffect(() => {
@@ -309,98 +328,55 @@ export default function Input() {
         notes: formData.notes,
       };
 
-      // Try API first, fallback to localStorage for static export
-      try {
-        const response = await fetch("/api/emissions-input", {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify(payload),
-        });
-
-        const result = await response.json();
-
-        if (response.ok) {
-          setSubmitSuccess(true);
-          setTimeout(() => setSubmitSuccess(false), 3000);
-          // Reset form
-          setFormData({
-            activityType: "",
-            costCentre: "",
-            startDate: "",
-            endDate: "",
-            consumptionType: "",
-            consumption: "",
-            monetaryValue: "",
-            notes: "",
-            documents: [],
-          });
-          setValidation({
-            activityType: { isValid: false, message: "" },
-            costCentre: { isValid: false, message: "" },
-            startDate: { isValid: false, message: "" },
-            endDate: { isValid: false, message: "" },
-            consumptionType: { isValid: false, message: "" },
-            consumption: { isValid: false, message: "" },
-          });
-          // Refresh the input data list
-          fetchInputData();
-        } else {
-          throw new Error("API call failed");
-        }
-      } catch (apiError) {
-        // API not available (static export), use localStorage
-        console.log("Using localStorage for static export");
-
-        const existingData = JSON.parse(
-          localStorage.getItem("ecometrics_emissions-input") || "[]"
-        );
-        const newItem = {
-          id: Date.now().toString(),
-          userId: "1",
-          companyId: "1",
+      if (editingId) {
+        // Update existing record
+        const updatePayload: UpdateInputDataRequest = {
+          id: editingId,
           ...payload,
-          emissions: calculateEmissions(
-            payload.activityType,
-            payload.consumption,
-            payload.consumptionType
-          ),
-          status: "pending" as const,
-          createdAt: new Date().toISOString(),
-          updatedAt: new Date().toISOString(),
         };
-        existingData.push(newItem);
-        localStorage.setItem(
-          "ecometrics_emissions-input",
-          JSON.stringify(existingData)
+        console.log(
+          "DEBUG: About to call crudService.update for emissions-input",
+          editingId,
+          updatePayload
         );
-
-        setSubmitSuccess(true);
-        setTimeout(() => setSubmitSuccess(false), 3000);
-        // Reset form
-        setFormData({
-          activityType: "",
-          costCentre: "",
-          startDate: "",
-          endDate: "",
-          consumptionType: "",
-          consumption: "",
-          monetaryValue: "",
-          notes: "",
-          documents: [],
-        });
-        setValidation({
-          activityType: { isValid: false, message: "" },
-          costCentre: { isValid: false, message: "" },
-          startDate: { isValid: false, message: "" },
-          endDate: { isValid: false, message: "" },
-          consumptionType: { isValid: false, message: "" },
-          consumption: { isValid: false, message: "" },
-        });
-        // Refresh the input data list
-        fetchInputData();
+        await crudService.update("emissions-input", editingId, updatePayload);
+        console.log("DEBUG: crudService.update successful");
+      } else {
+        // Create new record
+        console.log(
+          "DEBUG: About to call crudService.create for emissions-input",
+          payload
+        );
+        await crudService.create("emissions-input", payload);
+        console.log("DEBUG: crudService.create successful");
       }
+
+      setSubmitSuccess(true);
+      setTimeout(() => setSubmitSuccess(false), 3000);
+
+      // Reset form
+      setFormData({
+        activityType: "",
+        costCentre: "",
+        startDate: "",
+        endDate: "",
+        consumptionType: "",
+        consumption: "",
+        monetaryValue: "",
+        notes: "",
+        documents: [],
+      });
+      setValidation({
+        activityType: { isValid: false, message: "" },
+        costCentre: { isValid: false, message: "" },
+        startDate: { isValid: false, message: "" },
+        endDate: { isValid: false, message: "" },
+        consumptionType: { isValid: false, message: "" },
+        consumption: { isValid: false, message: "" },
+      });
+      setEditingId(null);
+      // Refresh the input data list
+      fetchInputData();
     } catch (error) {
       console.error("Submit error:", error);
       alert("Error: Please try again.");
@@ -410,30 +386,14 @@ export default function Input() {
   };
 
   const fetchInputData = async () => {
+    console.log("DEBUG: fetchInputData called");
     try {
-      // Try API first, fallback to localStorage for static export
-      try {
-        const response = await fetch("/api/emissions-input");
-        const result = await response.json();
-
-        if (response.ok && result) {
-          // Ensure we always have an array, even if result.Data is undefined
-          const data = Array.isArray(result.Data) ? result.Data : [];
-          setInputData(data);
-        } else {
-          throw new Error("API call failed");
-        }
-      } catch (apiError) {
-        // API not available (static export), use localStorage
-        console.log("Using localStorage for data fetch in static export");
-
-        const localData = JSON.parse(
-          localStorage.getItem("ecometrics_emissions-input") || "[]"
-        );
-        setInputData(Array.isArray(localData) ? localData : []);
-      }
+      console.log("DEBUG: About to call crudService.list for emissions-input");
+      const data = await crudService.list<InputData>("emissions-input");
+      console.log("DEBUG: crudService.list successful, data:", data);
+      setInputData(data);
     } catch (error) {
-      console.error("Fetch error:", error);
+      console.error("DEBUG: Fetch error:", error);
       setInputData([]); // Set empty array on error
     }
   };
@@ -475,10 +435,16 @@ export default function Input() {
         uploadFormData.append("file", file);
 
         try {
-          const response = await fetch("/api/emissions-input/upload", {
-            method: "POST",
-            body: uploadFormData,
-          });
+          const response = await fetch(
+            `${environment.apiUrl}/emissions-input/upload`,
+            {
+              method: "POST",
+              headers: {
+                Authorization: `Bearer ${session?.access_token}`,
+              },
+              body: uploadFormData,
+            }
+          );
 
           const result = await response.json();
 
@@ -572,6 +538,39 @@ export default function Input() {
     setUploadFiles((prev) => [...prev, ...validFiles]);
   };
 
+  const handleEdit = (item: InputData) => {
+    setFormData({
+      activityType: item.activityType,
+      costCentre: item.costCentre,
+      startDate: item.startDate,
+      endDate: item.endDate,
+      consumptionType: item.consumptionType,
+      consumption: item.consumption.toString(),
+      monetaryValue: item.monetaryValue?.toString() || "",
+      notes: item.notes || "",
+      documents: item.documents || [],
+    });
+    setEditingId(item.id);
+    setSelectedTab("enter-data");
+  };
+
+  const handleDelete = async (id: string) => {
+    if (confirm("Are you sure you want to delete this input?")) {
+      console.log(
+        "DEBUG: About to call crudService.delete for emissions-input",
+        id
+      );
+      try {
+        await crudService.delete("emissions-input", id);
+        console.log("DEBUG: crudService.delete successful");
+        fetchInputData(); // Refresh the list
+      } catch (error) {
+        console.error("DEBUG: Delete error:", error);
+        alert("Error deleting input");
+      }
+    }
+  };
+
   const handleUploadSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (uploadFiles.length === 0 || !uploadType) return;
@@ -587,10 +586,16 @@ export default function Input() {
           uploadFormData.append("file", file);
 
           try {
-            const response = await fetch("/api/emissions-input/upload", {
-              method: "POST",
-              body: uploadFormData,
-            });
+            const response = await fetch(
+              `${environment.apiUrl}/emissions-input/upload`,
+              {
+                method: "POST",
+                headers: {
+                  Authorization: `Bearer ${session?.access_token}`,
+                },
+                body: uploadFormData,
+              }
+            );
 
             const result = await response.json();
 
@@ -738,9 +743,13 @@ export default function Input() {
                   >
                     <Card className="backdrop-blur-md bg-white/20 border border-white/30 shadow-xl">
                       <CardHeader className="bg-gradient-to-r from-emerald-500/80 to-emerald-600/80 text-white rounded-t-lg p-3 backdrop-blur-sm">
-                        <CardTitle>Enter Data</CardTitle>
+                        <CardTitle>
+                          {editingId ? "Edit Data" : "Enter Data"}
+                        </CardTitle>
                         <CardDescription className="text-emerald-100">
-                          Manually enter your emissions data here.
+                          {editingId
+                            ? "Update your emissions data here."
+                            : "Manually enter your emissions data here."}
                         </CardDescription>
                       </CardHeader>
                       <CardContent className="backdrop-blur-sm">
@@ -914,16 +923,46 @@ export default function Input() {
                           </div>
 
                           <div className="flex justify-end space-x-3 pt-6">
-                            <motion.div
-                              whileHover={{ scale: 1.05 }}
-                              whileTap={{ scale: 0.95 }}
-                            >
-                              <FormInput
+                            {editingId && (
+                              <AnimatedSubmitButton
                                 type="button"
-                                value="Actions"
-                                className="backdrop-blur-md bg-white/20 border-white/30 text-gray-700 hover:bg-white/30"
-                              />
-                            </motion.div>
+                                variant="outline"
+                                className="backdrop-blur-md bg-white/20 border-white/30"
+                                onClick={() => {
+                                  setEditingId(null);
+                                  setFormData({
+                                    activityType: "",
+                                    costCentre: "",
+                                    startDate: "",
+                                    endDate: "",
+                                    consumptionType: "",
+                                    consumption: "",
+                                    monetaryValue: "",
+                                    notes: "",
+                                    documents: [],
+                                  });
+                                  setValidation({
+                                    activityType: {
+                                      isValid: false,
+                                      message: "",
+                                    },
+                                    costCentre: { isValid: false, message: "" },
+                                    startDate: { isValid: false, message: "" },
+                                    endDate: { isValid: false, message: "" },
+                                    consumptionType: {
+                                      isValid: false,
+                                      message: "",
+                                    },
+                                    consumption: {
+                                      isValid: false,
+                                      message: "",
+                                    },
+                                  });
+                                }}
+                              >
+                                Cancel
+                              </AnimatedSubmitButton>
+                            )}
                             <AnimatedSubmitButton
                               type="submit"
                               disabled={loading}
@@ -931,7 +970,7 @@ export default function Input() {
                               success={submitSuccess}
                               onClick={() => {}}
                             >
-                              Submit
+                              {editingId ? "Update" : "Submit"}
                             </AnimatedSubmitButton>
                           </div>
                         </form>
@@ -1155,7 +1194,7 @@ export default function Input() {
                                   <TableHead>Activity Type</TableHead>
                                   <TableHead>Docs</TableHead>
                                   <TableHead>Status</TableHead>
-                                  <TableHead>Action</TableHead>
+                                  <TableHead>Actions</TableHead>
                                 </TableRow>
                               </TableHeader>
                               <TableBody>
@@ -1188,13 +1227,39 @@ export default function Input() {
                                       </span>
                                     </TableCell>
                                     <TableCell>
-                                      <AnimatedSubmitButton
-                                        type="button"
-                                        variant="outline"
-                                        className="backdrop-blur-sm bg-white/20 border-white/30"
-                                      >
-                                        Edit
-                                      </AnimatedSubmitButton>
+                                      <div className="flex space-x-2">
+                                        <AnimatedSubmitButton
+                                          type="button"
+                                          variant="outline"
+                                          className="backdrop-blur-sm bg-white/20 border-white/30"
+                                          onClick={() => {
+                                            const itemId = row.name.replace(
+                                              "Entry ",
+                                              ""
+                                            );
+                                            const item = inputData.find(
+                                              (i) => i.id === itemId
+                                            );
+                                            if (item) handleEdit(item);
+                                          }}
+                                        >
+                                          Edit
+                                        </AnimatedSubmitButton>
+                                        <AnimatedSubmitButton
+                                          type="button"
+                                          variant="outline"
+                                          className="backdrop-blur-sm bg-red-500/20 border-red-300 text-red-700 hover:bg-red-500/30"
+                                          onClick={() => {
+                                            const itemId = row.name.replace(
+                                              "Entry ",
+                                              ""
+                                            );
+                                            handleDelete(itemId);
+                                          }}
+                                        >
+                                          Delete
+                                        </AnimatedSubmitButton>
+                                      </div>
                                     </TableCell>
                                   </motion.tr>
                                 ))}
