@@ -12,7 +12,7 @@ export const environment: EnvironmentConfig = {
   apiUrl:
     process.env.NODE_ENV === "production"
       ? process.env.NEXT_PUBLIC_API_URL || "/api"
-      : process.env.NEXT_PUBLIC_API_URL || "https://wecare.temo.co.za/api",
+      : process.env.NEXT_PUBLIC_API_URL || "https://api.temo.co.za/advice/dev",
   isDevelopment: process.env.NODE_ENV === "development",
   skipRealApiCalls: false, // Always use real API calls
   isStaticExport: false, // Will be set dynamically by CRUD service

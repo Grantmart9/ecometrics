@@ -66,10 +66,16 @@ export default function Input() {
     consumption: { isValid: false, message: "" },
   });
 
+  // Cookie-based authentication - no token setting needed
+  // Cookies are automatically sent with requests
+  useEffect(() => {
+    console.log("DEBUG: Input page mounted with session:", session);
+  }, [session]);
   // Set auth token when session changes
   useEffect(() => {
     if (session?.access_token) {
       console.log("DEBUG: Setting auth token in crudService");
+
       crudService.setAuthToken(session.access_token);
     } else {
       console.log("DEBUG: No access_token in session");

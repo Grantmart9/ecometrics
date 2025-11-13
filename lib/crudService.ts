@@ -3,8 +3,7 @@ import { environment } from "./environment";
 
 class CrudService {
   private baseUrl: string;
-  private authToken: string | null = null;
-  private crudEndpoint = "/crud/crud";
+  private crudEndpoint = "/advice/dev/crud/crud";
   private isStaticExport: boolean;
 
   constructor() {
@@ -43,20 +42,29 @@ class CrudService {
 
     const fullUrl = this.baseUrl + this.crudEndpoint;
     console.log("Making CRUD request to:", fullUrl, "with request:", request);
-    console.log("Request headers:", {
-      "Content-Type": "application/json",
-      ...(this.authToken && { Authorization: `Bearer ${this.authToken}` }),
-    });
+    console.log(
+      "Request headers: Content-Type: application/json, Credentials: include"
+    );
     console.log("Origin:", window.location.origin);
     console.log("About to call fetch...");
+
+    // Log cookies being sent
+    console.log("🍪 ALL COOKIES:", document.cookie);
+    console.log(
+      "🍪 Cookies for .temo.co.za:",
+      document.cookie
+        .split(";")
+        .filter((c) => c.includes("_advice") || c.includes("XSRF"))
+        .map((c) => c.trim())
+    );
 
     try {
       const response = await fetch(fullUrl, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          ...(this.authToken && { Authorization: `Bearer ${this.authToken}` }),
         },
+        credentials: "include", // Include cookies for authentication
         body: JSON.stringify(request),
       });
 
@@ -84,11 +92,10 @@ class CrudService {
       };
       console.log("CORS headers in response:", corsHeaders);
 
-      // Handle unauthorized - try to refresh token
-      if (response.status === 401 && this.authToken) {
-        await this.handleUnauthorized();
-        // Retry the request with new token
-        return this.makeRequest(endpoint, data, operation, requestId);
+      // Handle unauthorized - redirect to login
+      if (response.status === 401) {
+        console.error("Unauthorized - user may need to login");
+        throw new Error("Authentication required. Please login again.");
       }
 
       if (!response.ok) {
@@ -120,51 +127,23 @@ class CrudService {
   /**
    * CALLS THE CRUD API ENDPOINT
    * @param crud - CRUD REQUEST OBJECT
-   * @param token - AUTHENTICATION TOKEN
    * @returns PROMISE WITH CRUD RESPONSE
    */
-  async callCrud(crud: any, token: string): Promise<any> {
+  async callCrud(crud: any): Promise<any> {
     try {
       const response = await fetch(this.baseUrl + this.crudEndpoint, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
         },
+        credentials: "include", // Include cookies for authentication
         body: JSON.stringify(crud),
       });
 
       // HANDLE 401 UNAUTHORISED - TOKEN EXPIRED OR INVALID
       if (response.status === 401) {
-        const newToken = await this.handleUnauthorized();
-
-        // RETRY THE REQUEST WITH NEW TOKEN
-        const retryResponse = await fetch(this.baseUrl + this.crudEndpoint, {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${newToken}`,
-          },
-          body: JSON.stringify(crud),
-        });
-
-        if (!retryResponse.ok) {
-          // Parse error response if possible
-          let errorMessage = `HTTP ERROR. STATUS: ${retryResponse.status}`;
-          try {
-            const errorData = await retryResponse.json();
-            if (errorData.Message) {
-              errorMessage = errorData.Message;
-            }
-          } catch (parseError) {
-            console.warn("Could not parse error response:", parseError);
-          }
-
-          throw new Error(errorMessage);
-        }
-
-        const retryData = await retryResponse.json();
-        return retryData;
+        console.error("Unauthorized in callCrud - user may need to login");
+        throw new Error("Authentication required. Please login again.");
       }
 
       if (!response.ok) {
@@ -206,21 +185,9 @@ class CrudService {
     }
   }
 
-  private async handleUnauthorized(): Promise<string> {
-    // Simple token refresh - in real implementation, this would call the refresh endpoint
-    const storedToken = localStorage.getItem("auth_token");
-    if (storedToken) {
-      this.authToken = storedToken;
-      return storedToken;
-    }
-    throw new Error("No token available for refresh");
-  }
-
   private generateRequestId(): string {
     return `req_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
   }
-
-  // Import method exists above
 
   // CRUD operations
   async create<T>(resource: string, data: any): Promise<T> {
@@ -262,13 +229,17 @@ class CrudService {
     );
   }
 
-  // Authentication methods
+  // Authentication methods (deprecated - now using cookies)
   setAuthToken(token: string): void {
-    this.authToken = token;
+    console.warn(
+      "setAuthToken is deprecated - using cookie-based authentication"
+    );
   }
 
   clearAuthToken(): void {
-    this.authToken = null;
+    console.warn(
+      "clearAuthToken is deprecated - cookies are managed automatically"
+    );
   }
 
   // Environment-specific API calls
@@ -291,14 +262,31 @@ class CrudService {
         headers: {
           "Content-Type": "application/json",
         },
+        credentials: "include", // Include credentials to receive cookies
         body: JSON.stringify(data),
       });
 
       console.log("Login response status:", response.status);
       console.log("Login response ok:", response.ok);
 
+      // Log response headers to see Set-Cookie
+      console.log(
+        "Login response headers:",
+        Object.fromEntries(response.headers.entries())
+      );
+
+      // Log Set-Cookie headers specifically (may not be visible in browser)
+      const setCookieHeaders = response.headers.get("set-cookie");
+      console.log("🍪 SET-COOKIE HEADER:", setCookieHeaders);
+
+      // Check cookies immediately after response
+      console.log("🍪 COOKIES BEFORE LOGIN RESPONSE PARSE:", document.cookie);
+
       const result = await response.json();
       console.log("Login response data:", result);
+
+      // Check cookies after response is parsed
+      console.log("🍪 COOKIES AFTER LOGIN RESPONSE PARSE:", document.cookie);
 
       // Check if the server returned a 500 error with null reference exception
       if (
@@ -319,6 +307,12 @@ class CrudService {
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
       }
+
+      // Cookies are automatically set by the browser via Set-Cookie header
+      // No need to store tokens in localStorage
+      console.log(
+        "Login successful - session cookie should be set automatically"
+      );
 
       return result;
     } catch (error) {
