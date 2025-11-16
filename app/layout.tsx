@@ -9,9 +9,12 @@ import { ChatWidget } from "@/components/chat-widget";
 const inter = Inter({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
-  title: "EcoMetrics - Measure. Reduce. Sustain.",
+  title: "Ecometrics",
   description:
     "EcoMetrics empowers businesses to track and reduce their carbon footprint with intelligent analytics.",
+  icons: {
+    icon: "/favicon.svg",
+  },
 };
 
 export default function RootLayout({
