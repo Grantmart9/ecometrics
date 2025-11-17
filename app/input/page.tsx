@@ -321,17 +321,15 @@ export default function Input() {
     setSubmitSuccess(false);
 
     try {
-      const payload: CreateInputDataRequest = {
+      const payload = {
         activityType: formData.activityType,
         costCentre: formData.costCentre,
         startDate: formData.startDate,
         endDate: formData.endDate,
         consumptionType: formData.consumptionType,
-        consumption: parseFloat(formData.consumption),
-        monetaryValue: formData.monetaryValue
-          ? parseFloat(formData.monetaryValue)
-          : undefined,
-        notes: formData.notes,
+        consumption: formData.consumption, // Send as string
+        monetaryValue: formData.monetaryValue || undefined,
+        notes: formData.notes || undefined,
       };
 
       if (editingId) {

@@ -5,6 +5,7 @@ class CrudService {
   private baseUrl: string;
   private crudEndpoint = "/advice/dev/crud/crud";
   private isStaticExport: boolean;
+  private token: string | null = null;
 
   constructor() {
     this.baseUrl = environment.apiUrl;
@@ -41,7 +42,8 @@ class CrudService {
     };
 
     const fullUrl = this.baseUrl + this.crudEndpoint;
-    console.log("Making CRUD request to:", fullUrl, "with request:", request);
+    console.log("Making CRUD request to:", fullUrl);
+    console.log("Full request payload:", JSON.stringify(request, null, 2));
     console.log(
       "Request headers: Content-Type: application/json, Credentials: include"
     );
@@ -58,13 +60,24 @@ class CrudService {
         .map((c) => c.trim())
     );
 
+    const headers: { [key: string]: string } = {
+      "Content-Type": "application/json",
+    };
+
+    if (this.token && this.token !== "cookie-based") {
+      headers["Authorization"] = `Bearer ${this.token}`;
+      console.log("Including Authorization header in request");
+    } else {
+      console.log(
+        "Using cookie-based authentication (no Authorization header)"
+      );
+    }
+
     try {
       const response = await fetch(fullUrl, {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        credentials: "include", // Include cookies for authentication
+        headers,
+        credentials: "include", // Include cookies for authentication as fallback
         body: JSON.stringify(request),
       });
 
@@ -229,10 +242,12 @@ class CrudService {
     );
   }
 
-  // Authentication methods (deprecated - now using cookies)
+  // Authentication methods
   setAuthToken(token: string): void {
-    console.warn(
-      "setAuthToken is deprecated - using cookie-based authentication"
+    this.token = token;
+    console.log(
+      "Auth token set for Authorization header:",
+      token ? "present" : "null"
     );
   }
 
@@ -285,6 +300,25 @@ class CrudService {
       const result = await response.json();
       console.log("Login response data:", result);
 
+      // Extract token from response headers or body
+      const authHeader = response.headers.get("Authorization");
+      const xAuthToken = response.headers.get("X-Auth-Token");
+      const xToken = response.headers.get("X-Token");
+
+      console.log("Response headers for token extraction:");
+      console.log("- Authorization:", authHeader);
+      console.log("- X-Auth-Token:", xAuthToken);
+      console.log("- X-Token:", xToken);
+
+      const token = authHeader
+        ? authHeader.replace("Bearer ", "")
+        : xAuthToken || xToken || result.token || result.access_token;
+
+      console.log(
+        "Extracted token:",
+        token ? `present (${token.substring(0, 10)}...)` : "not found"
+      );
+
       // Check cookies after response is parsed
       console.log("🍪 COOKIES AFTER LOGIN RESPONSE PARSE:", document.cookie);
 
@@ -309,12 +343,12 @@ class CrudService {
       }
 
       // Cookies are automatically set by the browser via Set-Cookie header
-      // No need to store tokens in localStorage
+      // Also return token if available for Authorization header
       console.log(
         "Login successful - session cookie should be set automatically"
       );
 
-      return result;
+      return { ...result, token };
     } catch (error) {
       console.error("Login request failed:", error);
       throw error;

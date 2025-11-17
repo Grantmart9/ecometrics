@@ -116,8 +116,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
         setUser(userData);
         setIsAuthenticated(true);
-        // For cookie-based auth, session is managed by cookies
-        setSession({ access_token: "cookie-based" } as Session);
+        // Use token if available, otherwise cookie-based
+        setSession({ access_token: result.token || "cookie-based" } as Session);
 
         return { error: undefined };
       } else {

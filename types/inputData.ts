@@ -27,8 +27,8 @@ export interface CreateInputDataRequest {
   startDate: string;
   endDate: string;
   consumptionType: string;
-  consumption: number;
-  monetaryValue?: number;
+  consumption: string;
+  monetaryValue?: string;
   notes?: string;
   documents?: string[];
 }
@@ -37,6 +37,8 @@ export interface UpdateInputDataRequest
   extends Partial<CreateInputDataRequest> {
   id: string;
   status?: "pending" | "approved" | "rejected";
+  consumption?: string;
+  monetaryValue?: string;
 }
 
 export interface InputDataListResponse {
