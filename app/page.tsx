@@ -37,6 +37,79 @@ export default function LandingPage() {
   const { isAuthenticated, user, logout } = useAuth();
   const router = useRouter();
 
+  // Mock articles data for ABSA South Africa
+  const mockArticles = [
+    {
+      Header_1: "ABSA Launches Green Banking Initiative",
+      Title_1:
+        "ABSA introduces comprehensive green banking solutions to support South Africa's transition to a sustainable economy.",
+      Image_1:
+        "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=800&h=400&fit=crop",
+      Header_2: "New Digital Banking Platform Goes Live",
+      Title_2:
+        "ABSA's latest digital banking platform offers enhanced security and seamless user experience for millions of customers.",
+      Image_2:
+        "https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=800&h=400&fit=crop",
+      Header_3: "ABSA Reports Strong Q4 Financial Results",
+      Title_3:
+        "Record profits driven by digital transformation and strategic investments in key sectors of the South African economy.",
+      Image_3:
+        "https://images.unsplash.com/photo-1569163139394-de44cb8938ba?w=800&h=400&fit=crop",
+      Header_4: "Empowering SMEs Across South Africa",
+      Title_4:
+        "ABSA's SME support programs help small businesses thrive with tailored financial solutions and expert guidance.",
+      Image_4:
+        "https://images.unsplash.com/photo-1551288049-bebda4e38f71?w=800&h=400&fit=crop",
+      Header_5: "ABSA Stock Performance and Market Outlook",
+      Title_5:
+        "Analysis of ABSA's stock performance and expert insights on market trends affecting South African banking sector.",
+      Image_5:
+        "https://images.unsplash.com/photo-1518709268805-4e9042af2176?w=800&h=400&fit=crop",
+      Header_6: "Community Development Projects Update",
+      Title_6:
+        "ABSA's latest community initiatives focus on education, entrepreneurship, and sustainable development in underserved areas.",
+      Image_6:
+        "https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=800&h=400&fit=crop",
+      Header_7: "ABSA Wins Banking Innovation Award",
+      Title_7:
+        "Recognized for groundbreaking fintech solutions that are transforming the South African banking landscape.",
+      Image_7:
+        "https://images.unsplash.com/photo-1552664730-d307ca884978?w=800&h=400&fit=crop",
+      Header_8: "New Branch Openings Across Provinces",
+      Title_8:
+        "ABSA expands its footprint with modern banking facilities in key economic hubs across South Africa.",
+      Image_8:
+        "https://images.unsplash.com/photo-1486406146926-c627a92ad1ab?w=800&h=400&fit=crop",
+      Header_9: "Youth Employment Initiative Success",
+      Title_9:
+        "ABSA's graduate program achieves record placement rates, contributing to South Africa's skills development.",
+      Image_9:
+        "https://images.unsplash.com/photo-1522202176988-66273c2fd55f?w=800&h=400&fit=crop",
+      Header_10: "ABSA's ESG Report Highlights Achievements",
+      Title_10:
+        "Comprehensive Environmental, Social, and Governance report showcases ABSA's commitment to sustainable banking.",
+      Image_10:
+        "https://images.unsplash.com/photo-1554224155-6726b3ff858f?w=800&h=400&fit=crop",
+    },
+  ];
+
+  const articles: any[] = mockArticles;
+
+  const parsedArticles =
+    articles.length > 0
+      ? Object.keys(articles[0])
+          .filter((key) => key.startsWith("Header_"))
+          .map((key) => {
+            const index = key.split("_")[1];
+            return {
+              header: articles[0][`Header_${index}`],
+              title: articles[0][`Title_${index}`],
+              image: articles[0][`Image_${index}`],
+              // Add more fields if available, e.g., content: articles[0][`Content_${index}`]
+            };
+          })
+      : [];
+
   // Carbon footprint animation component using Three.js
   const CarbonAnimation = dynamic(
     () => import("@/components/CarbonAnimation"),
@@ -47,7 +120,7 @@ export default function LandingPage() {
           <div className="w-24 h-24 bg-gradient-to-br from-green-400 to-emerald-600 rounded-full animate-pulse"></div>
         </div>
       ),
-    }
+    },
   );
 
   const handleLogin = () => {
@@ -161,317 +234,392 @@ export default function LandingPage() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-green-50 via-emerald-50 to-sky-50">
-      {/* Hero Section */}
-      <section className="relative overflow-hidden py-20 lg:py-32">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="grid lg:grid-cols-2 gap-12 items-center">
-            <motion.div
-              initial="initial"
-              animate="animate"
-              variants={staggerChildren}
-              className="text-center lg:text-left"
-            >
-              <motion.h1
-                variants={fadeIn}
-                className="text-5xl lg:text-7xl font-extrabold text-gray-900 mb-6"
-              >
-                Measure. Reduce.{" "}
-                <span className="text-transparent bg-clip-text bg-gradient-to-r from-green-600 to-emerald-600">
-                  Sustain.
-                </span>
-              </motion.h1>
-
-              <motion.p
-                variants={fadeIn}
-                className="text-xl text-gray-600 mb-8 max-w-lg mx-auto lg:mx-0"
-              >
-                EcoMetrics empowers businesses to track and reduce their carbon
-                footprint with intelligent analytics.
-              </motion.p>
-
-              <motion.div
-                variants={fadeIn}
-                className="flex flex-col sm:flex-row gap-4 justify-center lg:justify-start"
-              >
-                <Button
-                  size="lg"
-                  className="bg-green-600 hover:bg-green-700 text-white px-8 py-4 text-lg"
-                  onClick={() => setSignupModalOpen(true)}
+      {/* Hero Section or News Header */}
+      {!isAuthenticated ? (
+        <>
+          <section className="relative overflow-hidden py-20 lg:py-32">
+            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+              <div className="grid lg:grid-cols-2 gap-12 items-center">
+                <motion.div
+                  initial="initial"
+                  animate="animate"
+                  variants={staggerChildren}
+                  className="text-center lg:text-left"
                 >
-                  Get Started
-                </Button>
-
-                <Link href="#about">
-                  <Button
-                    variant="outline"
-                    size="lg"
-                    className="border-green-200 text-green-700 hover:bg-green-50 px-8 py-4 text-lg"
+                  <motion.h1
+                    variants={fadeIn}
+                    className="text-5xl lg:text-7xl font-extrabold text-gray-900 mb-6"
                   >
-                    Learn More
-                  </Button>
-                </Link>
-              </motion.div>
-            </motion.div>
+                    Measure. Reduce.{" "}
+                    <span className="text-transparent bg-clip-text bg-gradient-to-r from-green-600 to-emerald-600">
+                      Sustain.
+                    </span>
+                  </motion.h1>
 
-            <motion.div
-              initial={{ opacity: 0, scale: 0.8 }}
-              animate={{ opacity: 1, scale: 1 }}
-              transition={{ duration: 0.8, delay: 0.2 }}
-              className="relative"
-            >
-              <div className="relative w-full h-96 bg-gradient-to-br from-green-100 to-emerald-100 rounded-3xl overflow-hidden shadow-2xl">
-                <div className="absolute inset-0 flex items-center justify-center">
-                  <CarbonAnimation />
-                </div>
+                  <motion.p
+                    variants={fadeIn}
+                    className="text-xl text-gray-600 mb-8 max-w-lg mx-auto lg:mx-0"
+                  >
+                    EcoMetrics empowers businesses to track and reduce their
+                    carbon footprint with intelligent analytics.
+                  </motion.p>
 
-                {/* Floating elements */}
-                <motion.div
-                  animate={{ y: [0, -20, 0] }}
-                  transition={{ duration: 3, repeat: Infinity, delay: 0 }}
-                  className="absolute top-8 left-8 bg-white rounded-xl p-4 shadow-lg"
-                >
-                  <TrendingUp className="h-6 w-6 text-green-600" />
+                  <motion.div
+                    variants={fadeIn}
+                    className="flex flex-col sm:flex-row gap-4 justify-center lg:justify-start"
+                  >
+                    <Button
+                      size="lg"
+                      className="bg-green-600 hover:bg-green-700 text-white px-8 py-4 text-lg"
+                      onClick={() => setSignupModalOpen(true)}
+                    >
+                      Get Started
+                    </Button>
+
+                    <Link href="#about">
+                      <Button
+                        variant="outline"
+                        size="lg"
+                        className="border-green-200 text-green-700 hover:bg-green-50 px-8 py-4 text-lg"
+                      >
+                        Learn More
+                      </Button>
+                    </Link>
+                  </motion.div>
                 </motion.div>
 
                 <motion.div
-                  animate={{ y: [0, -15, 0] }}
-                  transition={{ duration: 3, repeat: Infinity, delay: 1 }}
-                  className="absolute top-16 right-8 bg-white rounded-xl p-4 shadow-lg"
+                  initial={{ opacity: 0, scale: 0.8 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  transition={{ duration: 0.8, delay: 0.2 }}
+                  className="relative"
                 >
-                  <Leaf className="h-6 w-6 text-emerald-600" />
-                </motion.div>
-
-                <motion.div
-                  animate={{ y: [0, -10, 0] }}
-                  transition={{ duration: 3, repeat: Infinity, delay: 2 }}
-                  className="absolute bottom-8 left-16 bg-white rounded-xl p-4 shadow-lg"
-                >
-                  <Database className="h-6 w-6 text-green-600" />
-                </motion.div>
-              </div>
-            </motion.div>
-          </div>
-        </div>
-      </section>
-
-      {/* About Section */}
-      <section id="about" className="py-20 bg-white">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="grid lg:grid-cols-2 gap-12 items-center">
-            <motion.div
-              initial={{ opacity: 0, x: -60 }}
-              whileInView={{ opacity: 1, x: 0 }}
-              transition={{ duration: 0.6 }}
-              viewport={{ once: true }}
-            >
-              <h2 className="text-4xl font-bold text-gray-900 mb-6">
-                About EcoMetrics
-              </h2>
-              <p className="text-lg text-gray-600 mb-6">
-                Our mission is to simplify carbon tracking for businesses
-                through data-driven insights and automation. Whether it's energy
-                consumption, logistics, or production — EcoMetrics makes
-                sustainability measurable.
-              </p>
-              <p className="text-lg text-gray-600">
-                We believe that every business has the power to make a positive
-                environmental impact. Our platform provides the tools and
-                insights needed to turn sustainability goals into measurable
-                results.
-              </p>
-            </motion.div>
-
-            <motion.div
-              initial={{ opacity: 0, x: 60 }}
-              whileInView={{ opacity: 1, x: 0 }}
-              transition={{ duration: 0.6 }}
-              viewport={{ once: true }}
-              className="relative"
-            >
-              <div className="w-full h-96 bg-gradient-to-br from-green-100 to-emerald-100 rounded-3xl overflow-hidden shadow-xl">
-                <img
-                  src="https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=600&h=400&fit=crop"
-                  alt="Sustainability"
-                  className="w-full h-full object-cover"
-                />
-              </div>
-            </motion.div>
-          </div>
-        </div>
-      </section>
-
-      {/* Features Section */}
-      <section id="features" className="py-20 bg-gray-50">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <motion.div
-            initial={{ opacity: 0, y: 40 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.6 }}
-            viewport={{ once: true }}
-            className="text-center mb-16"
-          >
-            <h2 className="text-4xl font-bold text-gray-900 mb-4">
-              Powerful Features for Every Business
-            </h2>
-            <p className="text-xl text-gray-600 max-w-3xl mx-auto">
-              Everything you need to track, analyze, and reduce your carbon
-              footprint
-            </p>
-          </motion.div>
-
-          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
-            {features.map((feature, index) => (
-              <motion.div
-                key={index}
-                initial={{ opacity: 0, y: 40 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.6, delay: index * 0.1 }}
-                viewport={{ once: true }}
-              >
-                <Card className="h-full border-0 shadow-lg hover:shadow-xl transition-shadow">
-                  <CardHeader>
-                    <div className="mb-4">{feature.icon}</div>
-                    <CardTitle className="text-xl">{feature.title}</CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <CardDescription className="text-base">
-                      {feature.description}
-                    </CardDescription>
-                  </CardContent>
-                </Card>
-              </motion.div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* How It Works Section */}
-      <section id="how-it-works" className="py-20 bg-white">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <motion.div
-            initial={{ opacity: 0, y: 40 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.6 }}
-            viewport={{ once: true }}
-            className="text-center mb-16"
-          >
-            <h2 className="text-4xl font-bold text-gray-900 mb-4">
-              How It Works
-            </h2>
-            <p className="text-xl text-gray-600">
-              Get started in three simple steps
-            </p>
-          </motion.div>
-
-          <div className="grid md:grid-cols-3 gap-8">
-            {steps.map((step, index) => (
-              <motion.div
-                key={index}
-                initial={{ opacity: 0, y: 40 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.6, delay: index * 0.2 }}
-                viewport={{ once: true }}
-                className="text-center"
-              >
-                <div className="relative mb-8">
-                  <div className="w-20 h-20 mx-auto bg-green-100 rounded-full flex items-center justify-center">
-                    {step.icon}
-                  </div>
-                  <div className="absolute -top-2 -right-2 w-8 h-8 bg-green-600 text-white rounded-full flex items-center justify-center font-bold">
-                    {index + 1}
-                  </div>
-                </div>
-                <h3 className="text-2xl font-semibold text-gray-900 mb-4">
-                  {step.title}
-                </h3>
-                <p className="text-gray-600 text-lg">{step.description}</p>
-              </motion.div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* Testimonials Section */}
-      <section id="testimonials" className="py-20 bg-gray-50">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <motion.div
-            initial={{ opacity: 0, y: 40 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.6 }}
-            viewport={{ once: true }}
-            className="text-center mb-16"
-          >
-            <h2 className="text-4xl font-bold text-gray-900 mb-4">
-              Trusted by Sustainable Leaders
-            </h2>
-            <p className="text-xl text-gray-600">
-              See what our customers say about EcoMetrics
-            </p>
-          </motion.div>
-
-          <div className="grid md:grid-cols-3 gap-8">
-            {testimonials.map((testimonial, index) => (
-              <motion.div
-                key={index}
-                initial={{ opacity: 0, y: 40 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.6, delay: index * 0.1 }}
-                viewport={{ once: true }}
-              >
-                <Card className="h-full border-0 shadow-lg">
-                  <CardContent className="p-6">
-                    <div className="flex items-center mb-4">
-                      <img
-                        src={testimonial.avatar}
-                        alt={testimonial.name}
-                        className="w-12 h-12 rounded-full object-cover mr-4"
-                      />
-                      <div>
-                        <h4 className="font-semibold text-gray-900">
-                          {testimonial.name}
-                        </h4>
-                        <p className="text-sm text-gray-600">
-                          {testimonial.company}
-                        </p>
-                      </div>
+                  <div className="relative w-full h-96 bg-gradient-to-br from-green-100 to-emerald-100 rounded-3xl overflow-hidden shadow-2xl">
+                    <div className="absolute inset-0 flex items-center justify-center">
+                      <CarbonAnimation />
                     </div>
-                    <p className="text-gray-700 italic">
-                      "{testimonial.message}"
-                    </p>
-                  </CardContent>
-                </Card>
+
+                    {/* Floating elements */}
+                    <motion.div
+                      animate={{ y: [0, -20, 0] }}
+                      transition={{ duration: 3, repeat: Infinity, delay: 0 }}
+                      className="absolute top-8 left-8 bg-white rounded-xl p-4 shadow-lg"
+                    >
+                      <TrendingUp className="h-6 w-6 text-green-600" />
+                    </motion.div>
+
+                    <motion.div
+                      animate={{ y: [0, -15, 0] }}
+                      transition={{ duration: 3, repeat: Infinity, delay: 1 }}
+                      className="absolute top-16 right-8 bg-white rounded-xl p-4 shadow-lg"
+                    >
+                      <Leaf className="h-6 w-6 text-emerald-600" />
+                    </motion.div>
+
+                    <motion.div
+                      animate={{ y: [0, -10, 0] }}
+                      transition={{ duration: 3, repeat: Infinity, delay: 2 }}
+                      className="absolute bottom-8 left-16 bg-white rounded-xl p-4 shadow-lg"
+                    >
+                      <Database className="h-6 w-6 text-green-600" />
+                    </motion.div>
+                  </div>
+                </motion.div>
+              </div>
+            </div>
+          </section>
+
+          {/* Features Section */}
+          <section className="py-20 bg-white">
+            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+              <motion.div
+                initial={{ opacity: 0, y: 40 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.6 }}
+                viewport={{ once: true }}
+                className="text-center mb-16"
+              >
+                <h2 className="text-4xl font-bold text-gray-900 mb-4">
+                  Powerful Features for Sustainability
+                </h2>
+                <p className="text-xl text-gray-600 max-w-3xl mx-auto">
+                  Everything you need to track, analyze, and reduce your carbon
+                  emissions effectively
+                </p>
               </motion.div>
-            ))}
+
+              <motion.div
+                initial={{ opacity: 0, y: 40 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.6, delay: 0.2 }}
+                viewport={{ once: true }}
+                className="grid md:grid-cols-2 lg:grid-cols-3 gap-8"
+              >
+                {features.map((feature, index) => (
+                  <Card
+                    key={index}
+                    className="border-0 shadow-lg hover:shadow-xl transition-shadow"
+                  >
+                    <CardContent className="p-8">
+                      <div className="mb-4">{feature.icon}</div>
+                      <h3 className="text-xl font-bold text-gray-900 mb-3">
+                        {feature.title}
+                      </h3>
+                      <p className="text-gray-600">{feature.description}</p>
+                    </CardContent>
+                  </Card>
+                ))}
+              </motion.div>
+            </div>
+          </section>
+
+          {/* How It Works Section */}
+          <section className="py-20 bg-gradient-to-br from-green-50 to-emerald-50">
+            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+              <motion.div
+                initial={{ opacity: 0, y: 40 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.6 }}
+                viewport={{ once: true }}
+                className="text-center mb-16"
+              >
+                <h2 className="text-4xl font-bold text-gray-900 mb-4">
+                  How It Works
+                </h2>
+                <p className="text-xl text-gray-600 max-w-3xl mx-auto">
+                  Get started with carbon tracking in just three simple steps
+                </p>
+              </motion.div>
+
+              <motion.div
+                initial={{ opacity: 0, y: 40 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.6, delay: 0.2 }}
+                viewport={{ once: true }}
+                className="grid md:grid-cols-3 gap-8"
+              >
+                {steps.map((step, index) => (
+                  <div key={index} className="text-center">
+                    <div className="mb-6 flex justify-center">{step.icon}</div>
+                    <h3 className="text-2xl font-bold text-gray-900 mb-4">
+                      {step.title}
+                    </h3>
+                    <p className="text-gray-600 text-lg">{step.description}</p>
+                  </div>
+                ))}
+              </motion.div>
+            </div>
+          </section>
+
+          {/* Testimonials Section */}
+          <section className="py-20 bg-white">
+            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+              <motion.div
+                initial={{ opacity: 0, y: 40 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.6 }}
+                viewport={{ once: true }}
+                className="text-center mb-16"
+              >
+                <h2 className="text-4xl font-bold text-gray-900 mb-4">
+                  Trusted by Industry Leaders
+                </h2>
+                <p className="text-xl text-gray-600 max-w-3xl mx-auto">
+                  Join thousands of companies already reducing their carbon
+                  footprint
+                </p>
+              </motion.div>
+
+              <motion.div
+                initial={{ opacity: 0, y: 40 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.6, delay: 0.2 }}
+                viewport={{ once: true }}
+                className="grid md:grid-cols-3 gap-8"
+              >
+                {testimonials.map((testimonial, index) => (
+                  <Card key={index} className="border-0 shadow-lg">
+                    <CardContent className="p-8">
+                      <div className="flex items-center mb-4">
+                        <img
+                          src={testimonial.avatar}
+                          alt={testimonial.name}
+                          className="w-12 h-12 rounded-full mr-4"
+                        />
+                        <div>
+                          <h4 className="font-semibold text-gray-900">
+                            {testimonial.name}
+                          </h4>
+                          <p className="text-sm text-gray-600">
+                            {testimonial.company}
+                          </p>
+                        </div>
+                      </div>
+                      <p className="text-gray-600 italic">
+                        "{testimonial.message}"
+                      </p>
+                    </CardContent>
+                  </Card>
+                ))}
+              </motion.div>
+            </div>
+          </section>
+        </>
+      ) : (
+        <></>
+      )}
+
+      {/* Articles Section - Only for authenticated users */}
+      {isAuthenticated && parsedArticles.length > 0 && (
+        <section className="py-20 bg-white">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <motion.div
+              initial={{ opacity: 0, y: 40 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.6 }}
+              viewport={{ once: true }}
+              className="text-center mb-16"
+            >
+              <h2 className="text-4xl font-bold text-gray-900 mb-4">
+                Latest News
+              </h2>
+              <p className="text-xl text-gray-600 max-w-3xl mx-auto">
+                Stay updated with the latest developments and insights from
+                EcoMetrics
+              </p>
+            </motion.div>
+
+            {!isAuthenticated ? (
+              <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
+                {parsedArticles.slice(0, 6).map((article, index) => (
+                  <motion.div
+                    key={index}
+                    initial={{ opacity: 0, y: 40 }}
+                    whileInView={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.6, delay: index * 0.1 }}
+                    viewport={{ once: true }}
+                  >
+                    <Link href={`/article/${index + 1}`} className="block">
+                      <Card className="h-full border-0 shadow-lg hover:shadow-xl transition-shadow cursor-pointer">
+                        <div className="relative h-48 bg-gradient-to-br from-green-100 to-emerald-100 rounded-t-lg overflow-hidden">
+                          <img
+                            src={article.image}
+                            alt={article.header}
+                            className="w-full h-full object-cover"
+                          />
+                        </div>
+                        <CardContent className="p-6">
+                          <h3 className="text-xl font-bold text-gray-900 mb-3">
+                            {article.header}
+                          </h3>
+                          <p className="text-gray-600 text-base">
+                            {article.title}
+                          </p>
+                        </CardContent>
+                      </Card>
+                    </Link>
+                  </motion.div>
+                ))}
+              </div>
+            ) : (
+              <div>
+                {/* Featured Article */}
+                {parsedArticles.slice(0, 1).map((article, index) => (
+                  <motion.div
+                    key={index}
+                    initial={{ opacity: 0, y: 40 }}
+                    whileInView={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.6 }}
+                    viewport={{ once: true }}
+                    className="mb-12"
+                  >
+                    <Link href={`/article/${index + 1}`} className="block">
+                      <Card className="border-0 shadow-lg hover:shadow-xl transition-shadow cursor-pointer">
+                        <div className="relative h-64 md:h-80 bg-gradient-to-br from-green-100 to-emerald-100 rounded-t-lg overflow-hidden">
+                          <img
+                            src={article.image}
+                            alt={article.header}
+                            className="w-full h-full object-cover"
+                          />
+                        </div>
+                        <CardContent className="p-8">
+                          <h3 className="text-3xl font-bold text-gray-900 mb-4">
+                            {article.header}
+                          </h3>
+                          <p className="text-gray-600 text-lg">
+                            {article.title}
+                          </p>
+                        </CardContent>
+                      </Card>
+                    </Link>
+                  </motion.div>
+                ))}
+                {/* Other Articles */}
+                <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
+                  {parsedArticles.slice(1, 6).map((article, index) => (
+                    <motion.div
+                      key={index + 1}
+                      initial={{ opacity: 0, y: 40 }}
+                      whileInView={{ opacity: 1, y: 0 }}
+                      transition={{ duration: 0.6, delay: (index + 1) * 0.1 }}
+                      viewport={{ once: true }}
+                    >
+                      <Link href={`/article/${index + 2}`} className="block">
+                        <Card className="h-full border-0 shadow-lg hover:shadow-xl transition-shadow cursor-pointer">
+                          <div className="relative h-48 bg-gradient-to-br from-green-100 to-emerald-100 rounded-t-lg overflow-hidden">
+                            <img
+                              src={article.image}
+                              alt={article.header}
+                              className="w-full h-full object-cover"
+                            />
+                          </div>
+                          <CardContent className="p-6">
+                            <h3 className="text-xl font-bold text-gray-900 mb-3">
+                              {article.header}
+                            </h3>
+                            <p className="text-gray-600 text-base">
+                              {article.title}
+                            </p>
+                          </CardContent>
+                        </Card>
+                      </Link>
+                    </motion.div>
+                  ))}
+                </div>
+              </div>
+            )}
           </div>
-        </div>
-      </section>
+        </section>
+      )}
 
       {/* CTA Section */}
-      <section className="py-20 bg-gradient-to-r from-green-600 to-emerald-600">
-        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-          <motion.div
-            initial={{ opacity: 0, y: 40 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.6 }}
-            viewport={{ once: true }}
-          >
-            <h2 className="text-4xl lg:text-5xl font-bold text-white mb-6">
-              Ready to measure your impact?
-            </h2>
-            <p className="text-xl text-green-100 mb-8">
-              Join thousands of companies already reducing their carbon
-              footprint with EcoMetrics
-            </p>
-            <Button
-              size="lg"
-              className="bg-white text-green-600 hover:bg-gray-100 px-8 py-4 text-lg"
-              onClick={() => setSignupModalOpen(true)}
+      {!isAuthenticated && (
+        <section className="py-20 bg-gradient-to-r from-green-600 to-emerald-600">
+          <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
+            <motion.div
+              initial={{ opacity: 0, y: 40 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.6 }}
+              viewport={{ once: true }}
             >
-              Sign up free
-            </Button>
-          </motion.div>
-        </div>
-      </section>
+              <h2 className="text-4xl lg:text-5xl font-bold text-white mb-6">
+                Ready to measure your impact?
+              </h2>
+              <p className="text-xl text-green-100 mb-8">
+                Join thousands of companies already reducing their carbon
+                footprint with EcoMetrics
+              </p>
+              <Button
+                size="lg"
+                className="bg-white text-green-600 hover:bg-gray-100 px-8 py-4 text-lg"
+                onClick={() => setSignupModalOpen(true)}
+              >
+                Sign up free
+              </Button>
+            </motion.div>
+          </div>
+        </section>
+      )}
 
       {/* Footer */}
       <footer className="bg-gray-900 text-white py-12">

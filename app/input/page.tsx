@@ -13,6 +13,22 @@ import {
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Input as FormInput } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Button } from "@/components/ui/button";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import {
   Table,
   TableBody,
@@ -27,6 +43,9 @@ import {
   History,
   TrackChanges,
   CheckCircle,
+  Description,
+  Note,
+  AttachFile,
 } from "@mui/icons-material";
 import {
   InputData,
@@ -37,6 +56,7 @@ import AnimatedFormField from "@/components/animated-form-field";
 import AnimatedSubmitButton from "@/components/animated-submit-button";
 import { crudService } from "@/lib/crudService";
 import { useAuth } from "@/lib/auth-context";
+import { useEntityRelationship } from "@/lib/entityRelationshipContext";
 import { environment } from "@/lib/environment";
 
 // Dynamic import for 3D background
@@ -51,19 +71,68 @@ const ThreeBackground = dynamic(() => import("@/components/three-bg"), {
 
 export default function Input() {
   const { session } = useAuth();
+  const { selectedEntityRelationship, selectedEntityId } =
+    useEntityRelationship();
   const [searchTerm, setSearchTerm] = useState("");
   const [loading, setLoading] = useState(false);
   const [submitSuccess, setSubmitSuccess] = useState(false);
-  const [inputData, setInputData] = useState<InputData[]>([]);
+  const [inputData, setInputData] = useState<any[]>([]);
+  const [traceData, setTraceData] = useState<any[]>([]);
+  const [startDateHistory, setStartDateHistory] = useState<string>("");
+  const [endDateHistory, setEndDateHistory] = useState<string>("");
+  const [appliedStartDateHistory, setAppliedStartDateHistory] =
+    useState<string>("");
+  const [appliedEndDateHistory, setAppliedEndDateHistory] =
+    useState<string>("");
+  const [startDateTrace, setStartDateTrace] = useState<string>("");
+  const [endDateTrace, setEndDateTrace] = useState<string>("");
+  const [appliedStartDateTrace, setAppliedStartDateTrace] =
+    useState<string>("");
+  const [appliedEndDateTrace, setAppliedEndDateTrace] = useState<string>("");
   const [selectedTab, setSelectedTab] = useState("enter-data");
   const [editingId, setEditingId] = useState<string | null>(null);
+  const [notesDialogOpen, setNotesDialogOpen] = useState(false);
+  const [documentsDialogOpen, setDocumentsDialogOpen] = useState(false);
+  const [selectedNotes, setSelectedNotes] = useState("");
+  const [selectedDocuments, setSelectedDocuments] = useState<string[]>([]);
+
+  // New state for attachment and notes modals in Enter Data tab
+  const [attachmentModalOpen, setAttachmentModalOpen] = useState(false);
+  const [notesModalOpen, setNotesModalOpen] = useState(false);
+  const [attachmentFiles, setAttachmentFiles] = useState<File[]>([]);
+  const [modalNotes, setModalNotes] = useState<string[]>([]);
+  const [currentNoteInput, setCurrentNoteInput] = useState("");
+
+  // Activity group state
+  const [activityGroups, setActivityGroups] = useState<
+    { id: number; name: string }[]
+  >([]);
+  const [selectedActivityGroup, setSelectedActivityGroup] =
+    useState<string>("");
+  const [isLoadingActivityGroups, setIsLoadingActivityGroups] = useState(false);
+  
+  // Consumption types (activities) state
+  const [consumptionTypes, setConsumptionTypes] = useState<
+    { id: number; name: string }[]
+  >([]);
+  const [selectedConsumptionType, setSelectedConsumptionType] = useState<string>("");
+  const [isLoadingConsumptionTypes, setIsLoadingConsumptionTypes] = useState(false);
+
+  // Cost centres state
+  const [costCentres, setCostCentres] = useState<
+    { id: number; name: string }[]
+  >([]);
+  const [selectedCostCentre, setSelectedCostCentre] = useState<string>("");
+  const [isLoadingCostCentres, setIsLoadingCostCentres] = useState(false);
+
+  // Unit of measurement state
+  const [unitOfMeasurement, setUnitOfMeasurement] = useState<string>("");
+  const [isLoadingUnit, setIsLoadingUnit] = useState(false);
   const [validation, setValidation] = useState({
-    activityType: { isValid: false, message: "" },
     costCentre: { isValid: false, message: "" },
     startDate: { isValid: false, message: "" },
     endDate: { isValid: false, message: "" },
     consumptionType: { isValid: false, message: "" },
-    consumption: { isValid: false, message: "" },
   });
 
   // Cookie-based authentication - no token setting needed
@@ -82,10 +151,246 @@ export default function Input() {
     }
   }, [session]);
 
+  // Fetch activity groups from CRUD API (depends on selected entity relationship from context)
+  useEffect(() => {
+    const fetchActivityGroups = async () => {
+      if (!session?.access_token || !selectedEntityId) return;
+
+      setIsLoadingActivityGroups(true);
+      try {
+        console.log(
+          "📡 Fetching activity groups for entity ID:",
+          selectedEntityId,
+        );
+        const response = await crudService.callCrud({
+          data: JSON.stringify([
+            {
+              RecordSet: "Data",
+              TableName: "get_entitytyperelatemember",
+              Action: "procedure",
+              Fields: {
+                Ent: selectedEntityId,
+                Type: "Activity",
+                Relationship: "uses",
+                RelationshipB: "Member",
+              },
+            },
+          ]),
+          PageNo: "1",
+          NoOfLines: "300",
+          CrudMessage: "@CrudMessage",
+        });
+
+        console.log("📥 Activity groups response:", response);
+
+        if (response?.Data && response.Data[0]?.JsonData) {
+          const jsonData = JSON.parse(response.Data[0].JsonData);
+          const tableData = jsonData.Data?.TableData || [];
+
+          console.log("📊 Activity groups table data:", tableData);
+          console.log(
+            "📊 Activity groups table data length:",
+            tableData.length,
+          );
+
+          // Extract activity groups from the response using activityGroupName
+          // Only include items that have both activityGroupId and activityGroupName
+          const groups = tableData
+            .filter((item: any) => {
+              const hasValidId = item.activityGroupId !== undefined && item.activityGroupId !== null;
+              const hasValidName = item.activityGroupName && typeof item.activityGroupName === "string" && item.activityGroupName.trim() !== "";
+              console.log(`📊 Filtering activity group - ID: ${item.activityGroupId}, Name: ${item.activityGroupName}, Valid: ${hasValidId && hasValidName}`);
+              return hasValidId && hasValidName;
+            })
+            .map((item: any, index: number) => {
+              console.log(`📊 Processing activity group ${index}:`, item);
+              return {
+                id: item.activityGroupId,
+                name: item.activityGroupName,
+              };
+            });
+
+          console.log("✅ Setting activity groups:", groups);
+          setActivityGroups(groups);
+
+          // Extract consumption types (activities) from the response
+          // Activities are nested in the activity array within each activity group
+          const allActivities: { id: number; name: string }[] = [];
+          tableData.forEach((item: any) => {
+            if (item.activity && Array.isArray(item.activity)) {
+              item.activity.forEach((activity: any) => {
+                if (activity.Id !== undefined && activity.Name && typeof activity.Name === "string" && activity.Name.trim() !== "") {
+                  allActivities.push({
+                    id: activity.Id,
+                    name: activity.Name,
+                  });
+                }
+              });
+            }
+          });
+
+          console.log("✅ Setting consumption types (activities):", allActivities);
+          setConsumptionTypes(allActivities);
+        } else {
+          console.warn("⚠️ No activity groups data found in response");
+          setActivityGroups([]);
+        }
+      } catch (error) {
+        console.error("❌ Error fetching activity groups:", error);
+      } finally {
+        setIsLoadingActivityGroups(false);
+      }
+    };
+
+    fetchActivityGroups();
+  }, [session?.access_token, selectedEntityId]);
+
+  // Fetch cost centres from CRUD API
+  useEffect(() => {
+    const fetchCostCentres = async () => {
+      if (!session?.access_token || !selectedEntityId) return;
+
+      setIsLoadingCostCentres(true);
+      try {
+        console.log(
+          "📡 Fetching cost centres for entity ID:",
+          selectedEntityId,
+        );
+        const response = await crudService.callCrud({
+          data: JSON.stringify([
+            {
+              RecordSet: "Address",
+              TableName: "entityrelationship",
+              Action: "readExact",
+              Fields: {
+                Entity: selectedEntityId,
+                Relationship: "59298",
+              },
+            },
+          ]),
+          PageNo: "1",
+          NoOfLines: "300",
+          CrudMessage: "@CrudMessage",
+        });
+
+        console.log("📥 Cost centres response:", response);
+
+        if (response?.Data && response.Data[0]?.JsonData) {
+          const jsonData = JSON.parse(response.Data[0].JsonData);
+          const tableData = jsonData.Address?.TableData || [];
+
+          console.log("📊 Cost centres table data:", tableData);
+
+          // Extract cost centres from the response using entityrelationshipEntityBName
+          const centres = tableData
+            .filter((item: any) => {
+              const hasValidId = item.entityrelationshipId !== undefined && item.entityrelationshipId !== null;
+              const hasValidName = item.entityrelationshipEntityBName && typeof item.entityrelationshipEntityBName === "string" && item.entityrelationshipEntityBName.trim() !== "";
+              console.log(`📊 Filtering cost centre - ID: ${item.entityrelationshipId}, Name: ${item.entityrelationshipEntityBName}, Valid: ${hasValidId && hasValidName}`);
+              return hasValidId && hasValidName;
+            })
+            .map((item: any, index: number) => {
+              console.log(`📊 Processing cost centre ${index}:`, item);
+              return {
+                id: item.entityrelationshipId,
+                name: item.entityrelationshipEntityBName,
+              };
+            });
+
+          console.log("✅ Setting cost centres:", centres);
+          setCostCentres(centres);
+        } else {
+          console.warn("⚠️ No cost centres data found in response");
+          setCostCentres([]);
+        }
+      } catch (error) {
+        console.error("❌ Error fetching cost centres:", error);
+      } finally {
+        setIsLoadingCostCentres(false);
+      }
+    };
+
+    fetchCostCentres();
+  }, [session?.access_token, selectedEntityId]);
+
+  // Fetch unit of measurement when consumption type changes
+  useEffect(() => {
+    const fetchUnitOfMeasurement = async () => {
+      if (!session?.access_token || !selectedConsumptionType) {
+        setUnitOfMeasurement("");
+        return;
+      }
+
+      setIsLoadingUnit(true);
+      try {
+        console.log(
+          "📡 Fetching unit of measurement for consumption type:",
+          selectedConsumptionType,
+        );
+        const response = await crudService.callCrud({
+          data: JSON.stringify([
+            {
+              RecordSet: "Unit",
+              TableName: "additionalinfo",
+              Action: "readExact",
+              Fields: {
+                tableid: "140634234",
+              },
+            },
+          ]),
+          PageNo: "1",
+          NoOfLines: "300",
+          CrudMessage: "@CrudMessage",
+        });
+
+        console.log("📥 Unit of measurement response:", response);
+
+        if (response?.Data && response.Data[0]?.JsonData) {
+          const jsonData = JSON.parse(response.Data[0].JsonData);
+          const tableData = jsonData.Unit?.TableData || [];
+
+          console.log("📊 Unit table data:", tableData);
+
+          // Find the unit with additionalinfoProcess = "diarydetailunit"
+          const unitItem = tableData.find(
+            (item: any) =>
+              item.additionalinfoProcess === "diarydetailunit" &&
+              item.additionalinfoResult &&
+              typeof item.additionalinfoResult === "string" &&
+              item.additionalinfoResult.trim() !== "",
+          );
+
+          if (unitItem) {
+            console.log("✅ Setting unit of measurement:", unitItem.additionalinfoResult);
+            setUnitOfMeasurement(unitItem.additionalinfoResult);
+          } else {
+            console.warn("⚠️ No unit found in response");
+            setUnitOfMeasurement("");
+          }
+        } else {
+          console.warn("⚠️ No unit data found in response");
+          setUnitOfMeasurement("");
+        }
+      } catch (error) {
+        console.error("❌ Error fetching unit of measurement:", error);
+        setUnitOfMeasurement("");
+      } finally {
+        setIsLoadingUnit(false);
+      }
+    };
+
+    fetchUnitOfMeasurement();
+  }, [session?.access_token, selectedConsumptionType]);
+
   // Load input data when component mounts or tab changes
   useEffect(() => {
-    if (selectedTab === "input-history" || selectedTab === "trace-source") {
+    console.log("Tab changed to:", selectedTab);
+    if (selectedTab === "input-history") {
+      console.log("Calling fetchInputData for input-history tab");
       fetchInputData();
+    } else if (selectedTab === "trace-source") {
+      console.log("Calling fetchTraceData for trace-source tab");
+      fetchTraceData();
     }
   }, [selectedTab]);
 
@@ -96,119 +401,109 @@ export default function Input() {
     }
   }, []);
 
-  const mockData = [
-    {
-      name: "Sample Entry 1",
-      editDate: "2023-05-15",
-      dataCapturer: "John Doe",
-      activityType: "Stationary Fuels",
-      docs: 2,
-      status: "approved",
-      userName: "John Doe",
-      value: "100",
-      emissions: "50 kg CO2e",
-      costUom: "USD",
-      type: "Fuel",
-      activity: "Stationary",
-    },
-    {
-      name: "Sample Entry 2",
-      editDate: "2023-05-20",
-      dataCapturer: "Jane Smith",
-      activityType: "Mobile Fuels",
-      docs: 1,
-      status: "Pending",
-      userName: "Jane Smith",
-      value: "200",
-      emissions: "75 kg CO2e",
-      costUom: "USD",
-      type: "Fuel",
-      activity: "Mobile",
-    },
-    {
-      name: "Sample Entry 3",
-      editDate: "2023-05-25",
-      dataCapturer: "Bob Johnson",
-      activityType: "Process",
-      docs: 0,
-      status: "rejected",
-      userName: "Bob Johnson",
-      value: "150",
-      emissions: "60 kg CO2e",
-      costUom: "USD",
-      type: "Process",
-      activity: "Industrial",
-    },
-  ];
-
   // Form state
   const [formData, setFormData] = useState({
-    activityType: "",
     costCentre: "",
     startDate: "",
     endDate: "",
     consumptionType: "",
-    consumption: "",
     monetaryValue: "",
-    notes: "",
-    documents: [] as string[],
+    status: "",
+    activityGroup: "",
   });
 
   // Upload tab state
   const [uploadFiles, setUploadFiles] = useState<File[]>([]);
-  const [uploadType, setUploadType] = useState("");
-  const [uploadNotes, setUploadNotes] = useState("");
   const [isDragging, setIsDragging] = useState(false);
 
-  // Transform InputData for table display
-  const transformedData = inputData.map((item) => {
-    // Safely parse the createdAt date
+  // Transform diary data for table display
+  const transformedData = inputData.map((item: any) => {
+    // Safely parse the diarystartdate
     let editDate = "N/A";
-    if (item.createdAt) {
+    if (item.diarystartdate) {
       try {
-        const date = new Date(item.createdAt);
+        const date = new Date(item.diarystartdate);
         if (!isNaN(date.getTime())) {
           editDate = date.toISOString().split("T")[0];
         }
       } catch (error) {
-        console.warn("Invalid date format:", item.createdAt);
+        console.warn("Invalid date format:", item.diarystartdate);
+      }
+    }
+
+    // Parse documents if available
+    let documents: string[] = [];
+    if (item.diarydocuments) {
+      try {
+        documents = JSON.parse(item.diarydocuments);
+      } catch (error) {
+        console.warn("Invalid documents format:", item.diarydocuments);
       }
     }
 
     return {
-      name: `Entry ${item.id}`,
+      id: item.diaryid,
+      name: item.diaryname || `Entry ${item.diaryid}`,
       editDate,
-      dataCapturer: `User ${item.userId}`,
-      activityType: item.activityType || "Unknown",
-      docs: item.documents?.length || 0,
-      status: item.status || "pending",
-      userName: `User ${item.userId}`,
-      value: (item.consumption || 0).toString(),
-      emissions: `${item.emissions || 0} kg CO2e`,
-      costUom: "USD",
-      type: item.activityType ? item.activityType.split(" ")[0] : "Unknown",
-      activity: item.consumptionType || "Unknown",
+      dataCapturer: item.diaryentityownerName || `User ${item.diaryCreatedBy}`,
+      activityType: item.diarytypeName || "Consumption",
+      docs: documents.length,
+      documents,
+      status: item.diarystatusName || "pending",
+      userName: item.diaryentityownerName || `User ${item.diaryCreatedBy}`,
+      value: "",
+      emissions: "",
+      costUom: "",
+      type: item.diaryentityName || "",
+      activity: item.diaryname || "",
+      notes: item.diarynotes || "",
+      // Store original item for editing
+      originalItem: item,
     };
   });
 
-  const filteredData = transformedData.filter(
-    (row) =>
-      row.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      row.dataCapturer.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      row.activityType.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      row.status.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      row.userName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      row.value.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      row.emissions.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      row.costUom.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      row.type.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      row.activity.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  const filteredData = transformedData
+    .filter((row) => {
+      // Filter by applied date range
+      if (appliedStartDateHistory || appliedEndDateHistory) {
+        const item = inputData.find((i: any) => i.diaryid === row.id);
+        if (!item || !item.diarystartdate) return false;
+
+        const itemDate = new Date(item.diarystartdate);
+        if (isNaN(itemDate.getTime())) return false;
+
+        if (appliedStartDateHistory) {
+          const start = new Date(appliedStartDateHistory);
+          start.setHours(0, 0, 0, 0); // Start of day
+          if (itemDate < start) return false;
+        }
+
+        if (appliedEndDateHistory) {
+          const end = new Date(appliedEndDateHistory);
+          end.setHours(23, 59, 59, 999); // End of day
+          if (itemDate > end) return false;
+        }
+      }
+      return true;
+    })
+    .filter(
+      (row) =>
+        row.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        row.dataCapturer.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        row.activityType.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        row.status.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        row.userName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        row.value.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        row.emissions.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        row.costUom.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        row.type.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        row.activity.toLowerCase().includes(searchTerm.toLowerCase()),
+    );
 
   const calculateEmissions = (
     activityType: string,
     consumption: number,
-    consumptionType: string
+    consumptionType: string,
   ): number => {
     // Simplified emission calculations based on activity type
     const emissionFactors: { [key: string]: number } = {
@@ -301,15 +596,13 @@ export default function Input() {
 
     // Check if all required fields are valid
     const requiredFields = [
-      "activityType",
       "costCentre",
       "startDate",
       "endDate",
       "consumptionType",
-      "consumption",
     ];
     const isFormValid = requiredFields.every(
-      (field) => validation[field as keyof typeof validation]?.isValid
+      (field) => validation[field as keyof typeof validation]?.isValid,
     );
 
     if (!isFormValid) {
@@ -322,14 +615,18 @@ export default function Input() {
 
     try {
       const payload = {
-        activityType: formData.activityType,
         costCentre: formData.costCentre,
         startDate: formData.startDate,
         endDate: formData.endDate,
         consumptionType: formData.consumptionType,
-        consumption: formData.consumption, // Send as string
-        monetaryValue: formData.monetaryValue || undefined,
-        notes: formData.notes || undefined,
+        monetaryValue: formData.monetaryValue
+          ? parseFloat(formData.monetaryValue)
+          : undefined,
+        status: formData.status,
+        entityRelationship: selectedEntityRelationship,
+        activityGroup: selectedActivityGroup,
+        notes: modalNotes.join("\n\n"),
+        attachments: attachmentFiles.map((file) => file.name),
       };
 
       if (editingId) {
@@ -337,11 +634,11 @@ export default function Input() {
         const updatePayload: UpdateInputDataRequest = {
           id: editingId,
           ...payload,
-        };
+        } as any;
         console.log(
           "DEBUG: About to call crudService.update for emissions-input",
           editingId,
-          updatePayload
+          updatePayload,
         );
         await crudService.update("emissions-input", editingId, updatePayload);
         console.log("DEBUG: crudService.update successful");
@@ -349,7 +646,7 @@ export default function Input() {
         // Create new record
         console.log(
           "DEBUG: About to call crudService.create for emissions-input",
-          payload
+          payload,
         );
         await crudService.create("emissions-input", payload);
         console.log("DEBUG: crudService.create successful");
@@ -360,25 +657,28 @@ export default function Input() {
 
       // Reset form
       setFormData({
-        activityType: "",
         costCentre: "",
         startDate: "",
         endDate: "",
         consumptionType: "",
-        consumption: "",
         monetaryValue: "",
-        notes: "",
-        documents: [],
+        status: "",
+        activityGroup: "",
       });
+      setSelectedActivityGroup("");
+      setSelectedConsumptionType("");
+      setSelectedCostCentre("");
+      setUnitOfMeasurement("");
       setValidation({
-        activityType: { isValid: false, message: "" },
         costCentre: { isValid: false, message: "" },
         startDate: { isValid: false, message: "" },
         endDate: { isValid: false, message: "" },
         consumptionType: { isValid: false, message: "" },
-        consumption: { isValid: false, message: "" },
       });
       setEditingId(null);
+      setModalNotes([]);
+      setCurrentNoteInput("");
+      setAttachmentFiles([]);
       // Refresh the input data list
       fetchInputData();
     } catch (error) {
@@ -392,114 +692,172 @@ export default function Input() {
   const fetchInputData = async () => {
     console.log("DEBUG: fetchInputData called");
     try {
-      console.log("DEBUG: About to call crudService.list for emissions-input");
-      const data = await crudService.list<InputData>("emissions-input");
-      console.log("DEBUG: crudService.list successful, data:", data);
-      setInputData(data);
+      console.log(
+        "DEBUG: About to call crudService.callCrud for diary consumption data",
+      );
+      const crudRequest = {
+        data: '[{"RecordSet":"Consumption","TableName":"diary","Action":"readExact","Fields":{"type":"59279"}}]',
+        PageNo: "1",
+        NoOfLines: "300",
+        CrudMessage: "@CrudMessage",
+      };
+      const response = await crudService.callCrud(crudRequest);
+      console.log(
+        "DEBUG: crudService.callCrud successful, response:",
+        response,
+      );
+
+      // Parse the response
+      if (
+        response &&
+        response.Data &&
+        response.Data[0] &&
+        response.Data[0].JsonData
+      ) {
+        const parsedData = JSON.parse(response.Data[0].JsonData);
+        const consumptionData = parsedData.Consumption?.TableData || [];
+        console.log("DEBUG: Parsed consumption data:", consumptionData);
+        setInputData(consumptionData);
+      } else {
+        console.warn("DEBUG: Unexpected response format");
+        setInputData([]);
+      }
     } catch (error) {
       console.error("DEBUG: Fetch error:", error);
       setInputData([]); // Set empty array on error
     }
   };
 
-  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const files = e.target.files;
-    if (!files || files.length === 0) return;
+  const fetchTraceData = async () => {
+    console.log("DEBUG: fetchTraceData called");
+    try {
+      console.log(
+        "DEBUG: About to call crudService.callCrud for diary consumption data (trace source)",
+      );
+      const crudRequest = {
+        data: '[{"RecordSet":"Consumption","TableName":"diary","Action":"readExact","Fields":{"type":"59279"}}]',
+        PageNo: "1",
+        NoOfLines: "300",
+        CrudMessage: "@CrudMessage",
+      };
+      const response = await crudService.callCrud(crudRequest);
+      console.log(
+        "DEBUG: crudService.callCrud successful for trace, response:",
+        response,
+      );
 
-    const validFiles: string[] = [];
-
-    for (let i = 0; i < files.length; i++) {
-      const file = files[i];
-
-      // Validate file type
-      const allowedTypes = [
-        "application/pdf",
-        "text/csv",
-        "application/vnd.ms-excel",
-        "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-        "application/json",
-      ];
-
-      if (!allowedTypes.includes(file.type)) {
-        alert(
-          `Invalid file type: ${file.name}. Please upload PDF, CSV, Excel, or JSON files.`
+      // Parse the response
+      if (
+        response &&
+        response.Data &&
+        response.Data[0] &&
+        response.Data[0].JsonData
+      ) {
+        const parsedData = JSON.parse(response.Data[0].JsonData);
+        const consumptionData = parsedData.Consumption?.TableData || [];
+        console.log(
+          "DEBUG: Parsed consumption data for trace:",
+          consumptionData,
         );
-        continue;
+        setTraceData(consumptionData);
+      } else {
+        console.warn("DEBUG: Unexpected response format for trace");
+        setTraceData([]);
       }
+    } catch (error) {
+      console.error("DEBUG: Trace fetch error:", error);
+      setTraceData([]); // Set empty array on error
+    }
+  };
 
-      // Validate file size (10MB limit)
-      if (file.size > 10 * 1024 * 1024) {
-        alert(`File too large: ${file.name}. Maximum size is 10MB.`);
-        continue;
-      }
+  const handleEdit = (item: any) => {
+    // Populate the Enter Data form with the selected item's data
+    setFormData({
+      costCentre: item.diaryentityName || "",
+      startDate: item.diarystartdate
+        ? new Date(item.diarystartdate).toISOString().split("T")[0]
+        : "",
+      endDate: item.diaryenddate
+        ? new Date(item.diaryenddate).toISOString().split("T")[0]
+        : "",
+      consumptionType: item.diarytypeName || "",
+      monetaryValue: item.diarymonetaryvalue?.toString() || "",
+      status: item.diarystatusName || "",
+      activityGroup: item.activityGroupName || "",
+    });
+    setSelectedActivityGroup(item.activityGroupName || "");
+    setSelectedConsumptionType(item.diarytypeName || "");
+    setSelectedCostCentre(item.diaryentityName || "");
+    setEditingId(item.diaryid);
+    setSelectedTab("enter-data");
+  };
 
+  const handleEditForm = (item: InputData) => {
+    setFormData({
+      costCentre: item.costCentre,
+      startDate: item.startDate,
+      endDate: item.endDate,
+      consumptionType: item.consumptionType,
+      monetaryValue: item.monetaryValue?.toString() || "",
+      status: item.status || "",
+      activityGroup: (item as any).activityGroup || "",
+    });
+    setSelectedActivityGroup((item as any).activityGroup || "");
+    setSelectedConsumptionType(item.consumptionType || "");
+    setSelectedCostCentre(item.costCentre || "");
+    setEditingId(item.id);
+    setSelectedTab("enter-data");
+  };
+
+  const handleDelete = async (id: string) => {
+    if (confirm("Are you sure you want to delete this diary entry?")) {
+      console.log(
+        "DEBUG: About to call crudService.callCrud for deleting diary entry",
+        id,
+      );
       try {
-        // Try API first, fallback to localStorage for static export
-        const uploadFormData = new FormData();
-        uploadFormData.append("file", file);
-
-        try {
-          const response = await fetch(
-            `${environment.apiUrl}/emissions-input/upload`,
-            {
-              method: "POST",
-              headers: {
-                Authorization: `Bearer ${session?.access_token}`,
-              },
-              body: uploadFormData,
-            }
-          );
-
-          const result = await response.json();
-
-          if (response.ok) {
-            validFiles.push(`${file.name} (uploaded)`);
-          } else {
-            throw new Error("API upload failed");
-          }
-        } catch (apiError) {
-          // API not available (static export), use localStorage
-          console.log("Using localStorage for file upload in static export");
-
-          // Convert file to base64 for storage
-          const fileData = await new Promise<string>((resolve) => {
-            const reader = new FileReader();
-            reader.onload = () => resolve(reader.result as string);
-            reader.readAsDataURL(file);
-          });
-
-          // Store file info in localStorage
-          const existingFiles = JSON.parse(
-            localStorage.getItem("ecometrics_uploads") || "[]"
-          );
-          existingFiles.push({
-            name: file.name,
-            type: file.type,
-            size: file.size,
-            data: fileData,
-            uploadedAt: new Date().toISOString(),
-          });
-          localStorage.setItem(
-            "ecometrics_uploads",
-            JSON.stringify(existingFiles)
-          );
-
-          validFiles.push(`${file.name} (stored locally)`);
-        }
+        const crudRequest = {
+          data: `[{"RecordSet":"Consumption","TableName":"diary","Action":"delete","Fields":{"diaryid":"${id}"}}]`,
+          PageNo: "1",
+          NoOfLines: "1",
+          CrudMessage: "@CrudMessage",
+        };
+        await crudService.callCrud(crudRequest);
+        console.log("DEBUG: crudService.callCrud delete successful");
+        fetchInputData(); // Refresh the list
       } catch (error) {
-        console.error("Upload error for file:", file.name, error);
-        alert(`Failed to upload: ${file.name}`);
+        console.error("DEBUG: Delete error:", error);
+        alert("Error deleting diary entry");
       }
     }
+  };
 
-    if (validFiles.length > 0) {
-      // Add to form documents
-      setFormData((prev) => ({
-        ...prev,
-        documents: [...prev.documents, ...validFiles],
-      }));
-      alert(`Files processed successfully:\n${validFiles.join("\n")}`);
-    }
+  const handleDownloadDocument = (documentName: string) => {
+    // For now, show an alert with the document name
+    // In a real implementation, this would download the file from the server
+    alert(
+      `Downloading document: ${documentName}\n\nNote: Document download functionality would be implemented here.`,
+    );
+  };
+
+  const handleViewNotes = (notes: string) => {
+    setSelectedNotes(notes);
+    setNotesDialogOpen(true);
+  };
+
+  const handleViewDocuments = (documents: string[]) => {
+    setSelectedDocuments(documents);
+    setDocumentsDialogOpen(true);
+  };
+
+  const handleFilterHistory = () => {
+    setAppliedStartDateHistory(startDateHistory);
+    setAppliedEndDateHistory(endDateHistory);
+  };
+
+  const handleFilterTrace = () => {
+    setAppliedStartDateTrace(startDateTrace);
+    setAppliedEndDateTrace(endDateTrace);
   };
 
   const handleUploadFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -542,42 +900,9 @@ export default function Input() {
     setUploadFiles((prev) => [...prev, ...validFiles]);
   };
 
-  const handleEdit = (item: InputData) => {
-    setFormData({
-      activityType: item.activityType,
-      costCentre: item.costCentre,
-      startDate: item.startDate,
-      endDate: item.endDate,
-      consumptionType: item.consumptionType,
-      consumption: item.consumption.toString(),
-      monetaryValue: item.monetaryValue?.toString() || "",
-      notes: item.notes || "",
-      documents: item.documents || [],
-    });
-    setEditingId(item.id);
-    setSelectedTab("enter-data");
-  };
-
-  const handleDelete = async (id: string) => {
-    if (confirm("Are you sure you want to delete this input?")) {
-      console.log(
-        "DEBUG: About to call crudService.delete for emissions-input",
-        id
-      );
-      try {
-        await crudService.delete("emissions-input", id);
-        console.log("DEBUG: crudService.delete successful");
-        fetchInputData(); // Refresh the list
-      } catch (error) {
-        console.error("DEBUG: Delete error:", error);
-        alert("Error deleting input");
-      }
-    }
-  };
-
   const handleUploadSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (uploadFiles.length === 0 || !uploadType) return;
+    if (uploadFiles.length === 0) return;
 
     setLoading(true);
     const uploadedFiles: string[] = [];
@@ -585,63 +910,88 @@ export default function Input() {
     try {
       for (const file of uploadFiles) {
         try {
-          // Try API first, fallback to localStorage for static export
-          const uploadFormData = new FormData();
-          uploadFormData.append("file", file);
+          // Read file content
+          const fileContent = await new Promise<string>((resolve, reject) => {
+            const reader = new FileReader();
+            reader.onload = () => resolve(reader.result as string);
+            reader.onerror = reject;
+            reader.readAsText(file);
+          });
 
-          try {
-            const response = await fetch(
-              `${environment.apiUrl}/emissions-input/upload`,
-              {
-                method: "POST",
-                headers: {
-                  Authorization: `Bearer ${session?.access_token}`,
-                },
-                body: uploadFormData,
-              }
-            );
-
-            const result = await response.json();
-
-            if (response.ok) {
-              uploadedFiles.push(`${file.name} (uploaded)`);
-            } else {
-              throw new Error("API upload failed");
+          // Parse CSV/Excel/JSON data (simplified - in real app would need proper parsing)
+          let parsedData: any[] = [];
+          if (file.type === "application/json") {
+            parsedData = JSON.parse(fileContent);
+          } else if (file.type === "text/csv") {
+            // Simple CSV parsing - split by lines and commas
+            const lines = fileContent.split("\n").filter((line) => line.trim());
+            if (lines.length > 1) {
+              const headers = lines[0].split(",").map((h) => h.trim());
+              parsedData = lines.slice(1).map((line) => {
+                const values = line.split(",").map((v) => v.trim());
+                const obj: any = {};
+                headers.forEach((header, i) => {
+                  obj[header] = values[i] || "";
+                });
+                return obj;
+              });
             }
-          } catch (apiError) {
-            // API not available (static export), use localStorage
-            console.log("Using localStorage for file upload in static export");
-
-            // Convert file to base64 for storage
-            const fileData = await new Promise<string>((resolve) => {
-              const reader = new FileReader();
-              reader.onload = () => resolve(reader.result as string);
-              reader.readAsDataURL(file);
-            });
-
-            // Store file info in localStorage
-            const existingFiles = JSON.parse(
-              localStorage.getItem("ecometrics_uploads") || "[]"
-            );
-            existingFiles.push({
-              name: file.name,
-              type: file.type,
-              size: file.size,
-              data: fileData,
-              uploadType,
-              notes: uploadNotes,
-              uploadedAt: new Date().toISOString(),
-            });
-            localStorage.setItem(
-              "ecometrics_uploads",
-              JSON.stringify(existingFiles)
-            );
-
-            uploadedFiles.push(`${file.name} (stored locally)`);
           }
-        } catch (error) {
-          console.error("Upload error for file:", file.name, error);
-          alert(`Failed to upload: ${file.name}`);
+
+          // Format data for the procedure call using ~0~ ~1~ placeholders
+          // The backend expects a specific format where each column gets a ~n~ placeholder
+          console.log("Parsed data:", parsedData);
+
+          const formattedRows = parsedData.map((row) => {
+            const formattedRow: any = {};
+            Object.keys(row).forEach((key, index) => {
+              formattedRow[`~${index}~`] = row[key];
+            });
+            return formattedRow;
+          });
+
+          console.log("Formatted rows:", formattedRows);
+          const inDataString = JSON.stringify(formattedRows);
+          console.log("InData string:", inDataString);
+
+          // Call the upload procedure
+          const result = await crudService.callProcedure("sp_loadcarbon", {
+            InData: inDataString,
+            InEntity: "140634500", // This should probably be dynamic based on user/company
+          });
+
+          console.log("Upload procedure result:", result);
+          uploadedFiles.push(`${file.name} (uploaded)`);
+        } catch (apiError) {
+          console.error("API upload failed for", file.name, apiError);
+
+          // Fallback to localStorage for static export
+          console.log("Using localStorage for file upload in static export");
+
+          // Convert file to base64 for storage
+          const fileData = await new Promise<string>((resolve) => {
+            const reader = new FileReader();
+            reader.onload = () => resolve(reader.result as string);
+            reader.readAsDataURL(file);
+          });
+
+          // Store file info in localStorage
+          const existingFiles = JSON.parse(
+            localStorage.getItem("ecometrics_uploads") || "[]",
+          );
+          existingFiles.push({
+            name: file.name,
+            type: file.type,
+            size: file.size,
+            data: fileData,
+            uploadedAt: new Date().toISOString(),
+          });
+          localStorage.setItem(
+            "ecometrics_uploads",
+            JSON.stringify(existingFiles),
+          );
+
+          uploadedFiles.push(`${file.name} (stored locally)`);
         }
       }
 
@@ -649,8 +999,6 @@ export default function Input() {
         alert(`Upload successful:\n${uploadedFiles.join("\n")}`);
         // Reset form
         setUploadFiles([]);
-        setUploadType("");
-        setUploadNotes("");
       }
     } catch (error) {
       console.error("Upload submit error:", error);
@@ -757,231 +1105,427 @@ export default function Input() {
                         </CardDescription>
                       </CardHeader>
                       <CardContent className="backdrop-blur-sm">
-                        <form onSubmit={handleFormSubmit} className="space-y-6">
-                          <div className="grid grid-cols-2 gap-6">
-                            <AnimatedFormField
-                              id="activity-type"
-                              label="Step 1: Select Activity Type"
-                              type="text"
-                              placeholder="Select activity type..."
-                              value={formData.activityType}
-                              onChange={(e) =>
-                                handleInputChange(
-                                  "activityType",
-                                  e.target.value
-                                )
-                              }
-                              required
-                              validation={validation.activityType}
-                              list="activity-types"
-                            />
-                            <AnimatedFormField
-                              id="cost-centre"
-                              label="Step 3: Cost Centre"
-                              type="text"
-                              placeholder="e.g., FIN"
-                              value={formData.costCentre}
-                              onChange={(e) =>
-                                handleInputChange("costCentre", e.target.value)
-                              }
-                              required
-                              validation={validation.costCentre}
-                            />
-                          </div>
-
-                          <div className="grid grid-cols-2 gap-6">
-                            <AnimatedFormField
-                              id="start-date"
-                              label="Step 2: Start Date"
-                              type="date"
-                              placeholder=""
-                              value={formData.startDate}
-                              onChange={(e) =>
-                                handleInputChange("startDate", e.target.value)
-                              }
-                              required
-                              validation={validation.startDate}
-                            />
-                            <AnimatedFormField
-                              id="end-date"
-                              label="End Date"
-                              type="date"
-                              placeholder=""
-                              value={formData.endDate}
-                              onChange={(e) =>
-                                handleInputChange("endDate", e.target.value)
-                              }
-                              required
-                              validation={validation.endDate}
-                            />
-                          </div>
-
-                          <div className="grid grid-cols-2 gap-6">
-                            <AnimatedFormField
-                              id="consumption-type"
-                              label="Step 4: Consumption Type"
-                              type="text"
-                              placeholder="e.g., Coal Industrial"
-                              value={formData.consumptionType}
-                              onChange={(e) =>
-                                handleInputChange(
-                                  "consumptionType",
-                                  e.target.value
-                                )
-                              }
-                              required
-                              validation={validation.consumptionType}
-                            />
-                            <AnimatedFormField
-                              id="consumption"
-                              label="Step 5: Consumption"
-                              type="number"
-                              placeholder="Enter consumption value"
-                              value={formData.consumption}
-                              onChange={(e) =>
-                                handleInputChange("consumption", e.target.value)
-                              }
-                              required
-                              validation={validation.consumption}
-                              step="0.01"
-                            />
-                          </div>
-
-                          <div className="grid grid-cols-2 gap-6">
-                            <AnimatedFormField
-                              id="monetary-value"
-                              label="Step 6: Monetary Value"
-                              type="number"
-                              placeholder="Enter monetary value"
-                              value={formData.monetaryValue}
-                              onChange={(e) =>
-                                handleInputChange(
-                                  "monetaryValue",
-                                  e.target.value
-                                )
-                              }
-                              step="0.01"
-                            />
-                            <AnimatedFormField
-                              id="notes"
-                              label="Step 7: Notes"
-                              type="text"
-                              placeholder="Additional notes"
-                              value={formData.notes}
-                              onChange={(e) =>
-                                handleInputChange("notes", e.target.value)
-                              }
-                            />
-                          </div>
-
-                          <datalist id="activity-types">
-                            <option value="Stationary Fuels" />
-                            <option value="Mobile Fuels" />
-                            <option value="Fugitive Gas" />
-                            <option value="Process" />
-                            <option value="Waste Water" />
-                            <option value="Renewable Electricity" />
-                          </datalist>
-
-                          <div className="space-y-3">
-                            <Label
-                              htmlFor="documents"
-                              className="text-sm font-medium text-gray-700"
-                            >
-                              Step 8: Documents
-                            </Label>
-                            <FormInput
-                              id="documents"
-                              type="file"
-                              multiple
-                              onChange={handleFileUpload}
-                              accept=".pdf,.csv,.xlsx,.xls,.json"
-                              className="backdrop-blur-sm bg-white/50 border-white/30 focus:bg-white/70 transition-all"
-                            />
-                            {formData.documents.length > 0 && (
-                              <motion.div
-                                initial={{ opacity: 0, height: 0 }}
-                                animate={{ opacity: 1, height: "auto" }}
-                                className="text-sm text-emerald-700 bg-emerald-50/50 p-3 rounded-lg backdrop-blur-sm"
-                              >
-                                <p className="font-medium mb-2">
-                                  Selected files:
-                                </p>
-                                <ul className="list-disc list-inside space-y-1">
-                                  {formData.documents.map((doc, index) => (
-                                    <li
-                                      key={index}
-                                      className="flex items-center gap-2"
+                        <form
+                          onSubmit={handleFormSubmit}
+                          className="space-y-4 max-w-md mx-auto"
+                        >
+                          <div className="flex flex-col gap-4">
+                            {/* Activity Group Selector */}
+                            <div className="w-full">
+                              <div className="flex flex-wrap gap-2">
+                                {isLoadingActivityGroups ? (
+                                  <span className="text-sm text-gray-500">
+                                    Loading activity groups...
+                                  </span>
+                                ) : activityGroups.length === 0 ? (
+                                  <span className="text-sm text-gray-500">
+                                    no data found
+                                  </span>
+                                ) : (
+                                  activityGroups.map((group) => (
+                                    <Button
+                                      key={group.id}
+                                      type="button"
+                                      variant={
+                                        selectedActivityGroup === group.name
+                                          ? "default"
+                                          : "outline"
+                                      }
+                                      size="sm"
+                                      onClick={() => {
+                                        setSelectedActivityGroup(group.name);
+                                        handleInputChange(
+                                          "activityGroup",
+                                          group.name,
+                                        );
+                                      }}
+                                      className={
+                                        selectedActivityGroup === group.name
+                                          ? "bg-emerald-600 hover:bg-emerald-700 text-white"
+                                          : "border-emerald-200 text-emerald-700 hover:bg-emerald-50"
+                                      }
                                     >
-                                      <CheckCircle className="h-3 w-3 text-emerald-600" />
-                                      {doc}
-                                    </li>
-                                  ))}
-                                </ul>
-                              </motion.div>
-                            )}
-                            <p className="text-sm text-gray-600">
-                              Upload supported files: PDF, CSV, Excel, JSON (max
-                              10MB each)
-                            </p>
-                          </div>
-
-                          <div className="flex justify-end space-x-3 pt-6">
-                            {editingId && (
-                              <AnimatedSubmitButton
-                                type="button"
-                                variant="outline"
-                                className="backdrop-blur-md bg-white/20 border-white/30"
-                                onClick={() => {
-                                  setEditingId(null);
-                                  setFormData({
-                                    activityType: "",
-                                    costCentre: "",
-                                    startDate: "",
-                                    endDate: "",
-                                    consumptionType: "",
-                                    consumption: "",
-                                    monetaryValue: "",
-                                    notes: "",
-                                    documents: [],
-                                  });
-                                  setValidation({
-                                    activityType: {
-                                      isValid: false,
-                                      message: "",
-                                    },
-                                    costCentre: { isValid: false, message: "" },
-                                    startDate: { isValid: false, message: "" },
-                                    endDate: { isValid: false, message: "" },
-                                    consumptionType: {
-                                      isValid: false,
-                                      message: "",
-                                    },
-                                    consumption: {
-                                      isValid: false,
-                                      message: "",
-                                    },
-                                  });
+                                      {group.name}
+                                    </Button>
+                                  ))
+                                )}
+                              </div>
+                            </div>
+                            <div className="flex gap-4">
+                              <div className="flex-1">
+                                <AnimatedFormField
+                                  id="start-date"
+                                  label="Start"
+                                  type="date"
+                                  placeholder="Start"
+                                  value={formData.startDate}
+                                  onChange={(e) =>
+                                    handleInputChange(
+                                      "startDate",
+                                      e.target.value,
+                                    )
+                                  }
+                                  required
+                                  validation={validation.startDate}
+                                />
+                              </div>
+                              <div className="flex-1">
+                                <AnimatedFormField
+                                  id="end-date"
+                                  label="End"
+                                  type="date"
+                                  placeholder="End"
+                                  value={formData.endDate}
+                                  onChange={(e) =>
+                                    handleInputChange("endDate", e.target.value)
+                                  }
+                                  required
+                                  validation={validation.endDate}
+                                />
+                              </div>
+                            </div>
+                            <div className="w-full">
+                              <Label htmlFor="cost-centre" className="block text-sm font-medium text-gray-700 mb-1">
+                                Cost Centre
+                              </Label>
+                              <Select
+                                value={selectedCostCentre}
+                                onValueChange={(value) => {
+                                  setSelectedCostCentre(value);
+                                  handleInputChange("costCentre", value);
                                 }}
                               >
-                                Cancel
+                                <SelectTrigger className={validation.costCentre.message ? "border-red-500" : ""}>
+                                  <SelectValue placeholder="Select cost centre" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  {isLoadingCostCentres ? (
+                                    <SelectItem value="loading" disabled>
+                                      Loading...
+                                    </SelectItem>
+                                  ) : costCentres.length === 0 ? (
+                                    <SelectItem value="no-data" disabled>
+                                      No data found
+                                    </SelectItem>
+                                  ) : (
+                                    costCentres.map((centre) => (
+                                      <SelectItem key={centre.id} value={centre.name}>
+                                        {centre.name}
+                                      </SelectItem>
+                                    ))
+                                  )}
+                                </SelectContent>
+                              </Select>
+                              {validation.costCentre.message && (
+                                <p className="text-red-500 text-xs mt-1">
+                                  {validation.costCentre.message}
+                                </p>
+                              )}
+                            </div>
+                            <div className="w-full">
+                              <Label htmlFor="consumption-type" className="block text-sm font-medium text-gray-700 mb-1">
+                                Consumption Type
+                              </Label>
+                              <Select
+                                value={selectedConsumptionType}
+                                onValueChange={(value) => {
+                                  setSelectedConsumptionType(value);
+                                  handleInputChange("consumptionType", value);
+                                }}
+                              >
+                                <SelectTrigger className={validation.consumptionType.message ? "border-red-500" : ""}>
+                                  <SelectValue placeholder="Select consumption type" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  {isLoadingConsumptionTypes ? (
+                                    <SelectItem value="loading" disabled>
+                                      Loading...
+                                    </SelectItem>
+                                  ) : consumptionTypes.length === 0 ? (
+                                    <SelectItem value="no-data" disabled>
+                                      No data found
+                                    </SelectItem>
+                                  ) : (
+                                    consumptionTypes.map((type) => (
+                                      <SelectItem key={type.id} value={type.name}>
+                                        {type.name}
+                                      </SelectItem>
+                                    ))
+                                  )}
+                                </SelectContent>
+                              </Select>
+                              {validation.consumptionType.message && (
+                                <p className="text-red-500 text-xs mt-1">
+                                  {validation.consumptionType.message}
+                                </p>
+                              )}
+                            </div>
+                            <div className="w-full">
+                              <label className="block text-sm font-medium text-gray-700 mb-1">
+                                Value {unitOfMeasurement && <span className="text-gray-500 font-normal">({unitOfMeasurement})</span>}
+                              </label>
+                              <input
+                                id="monetary-value"
+                                type="number"
+                                className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
+                                placeholder="Enter value"
+                                value={formData.monetaryValue}
+                                onChange={(e) =>
+                                  handleInputChange(
+                                    "monetaryValue",
+                                    e.target.value,
+                                  )
+                                }
+                                step="0.01"
+                              />
+                            </div>
+                            <div className="w-full">
+                              <AnimatedFormField
+                                id="status"
+                                label="Status"
+                                type="text"
+                                placeholder="Status"
+                                value={formData.status}
+                                onChange={(e) =>
+                                  handleInputChange("status", e.target.value)
+                                }
+                              />
+                            </div>
+                            <div className="flex gap-2 justify-center">
+                              <Button
+                                type="button"
+                                variant="outline"
+                                size="icon"
+                                onClick={() => setAttachmentModalOpen(true)}
+                                className="backdrop-blur-md bg-white/20 border-white/30 hover:bg-white/30"
+                                title="Add attachments"
+                              >
+                                <AttachFile className="h-4 w-4" />
+                              </Button>
+                              <Button
+                                type="button"
+                                variant="outline"
+                                size="icon"
+                                onClick={() => setNotesModalOpen(true)}
+                                className="backdrop-blur-md bg-white/20 border-white/30 hover:bg-white/30"
+                                title="Add notes"
+                              >
+                                <Note className="h-4 w-4" />
+                              </Button>
+                            </div>
+                            <div className="w-full flex justify-center">
+                              <AnimatedSubmitButton
+                                type="submit"
+                                disabled={loading}
+                                loading={loading}
+                                success={submitSuccess}
+                                onClick={() => {}}
+                              >
+                                {editingId ? "Update" : "Submit"}
                               </AnimatedSubmitButton>
-                            )}
-                            <AnimatedSubmitButton
-                              type="submit"
-                              disabled={loading}
-                              loading={loading}
-                              success={submitSuccess}
-                              onClick={() => {}}
-                            >
-                              {editingId ? "Update" : "Submit"}
-                            </AnimatedSubmitButton>
+                            </div>
                           </div>
                         </form>
                       </CardContent>
                     </Card>
                   </motion.div>
                 </TabsContent>
+
+                {/* Attachment Modal for Enter Data tab */}
+                <Dialog
+                  open={attachmentModalOpen}
+                  onOpenChange={setAttachmentModalOpen}
+                >
+                  <DialogContent className="sm:max-w-md">
+                    <DialogHeader>
+                      <DialogTitle>Add Attachments</DialogTitle>
+                      <DialogDescription>
+                        Select files to attach to this entry
+                      </DialogDescription>
+                    </DialogHeader>
+                    <div className="space-y-4">
+                      <div className="flex items-center justify-center w-full">
+                        <label
+                          htmlFor="attachment-input"
+                          className="flex flex-col items-center justify-center w-full h-32 border-2 border-dashed border-gray-300 rounded-lg cursor-pointer bg-gray-50 hover:bg-gray-100"
+                        >
+                          <div className="flex flex-col items-center justify-center pt-5 pb-6">
+                            <AttachFile className="w-8 h-8 mb-3 text-gray-400" />
+                            <p className="text-sm text-gray-500">
+                              <span className="font-semibold">
+                                Click to upload
+                              </span>{" "}
+                              or drag and drop
+                            </p>
+                            <p className="text-xs text-gray-500">
+                              PDF, CSV, Excel, JSON (MAX. 10MB)
+                            </p>
+                          </div>
+                          <input
+                            id="attachment-input"
+                            type="file"
+                            multiple
+                            accept=".pdf,.csv,.xlsx,.xls,.json"
+                            onChange={(e) => {
+                              const files = Array.from(e.target.files || []);
+                              const validFiles = files.filter((file) => {
+                                const allowedTypes = [
+                                  "application/pdf",
+                                  "text/csv",
+                                  "application/vnd.ms-excel",
+                                  "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                                  "application/json",
+                                ];
+                                return (
+                                  allowedTypes.includes(file.type) &&
+                                  file.size <= 10 * 1024 * 1024
+                                );
+                              });
+                              if (validFiles.length !== files.length) {
+                                alert(
+                                  "Some files were skipped due to invalid type or size (max 10MB)",
+                                );
+                              }
+                              setAttachmentFiles((prev) => [
+                                ...prev,
+                                ...validFiles,
+                              ]);
+                            }}
+                            className="hidden"
+                          />
+                        </label>
+                      </div>
+                      {attachmentFiles.length > 0 && (
+                        <div className="space-y-2 max-h-40 overflow-y-auto">
+                          <p className="text-sm font-medium text-gray-700">
+                            Selected files ({attachmentFiles.length}):
+                          </p>
+                          {attachmentFiles.map((file, index) => (
+                            <div
+                              key={index}
+                              className="flex items-center justify-between p-2 bg-gray-50 rounded"
+                            >
+                              <span className="text-sm text-gray-700 truncate flex-1">
+                                {file.name}
+                              </span>
+                              <Button
+                                type="button"
+                                variant="ghost"
+                                size="sm"
+                                onClick={() =>
+                                  setAttachmentFiles((prev) =>
+                                    prev.filter((_, i) => i !== index),
+                                  )
+                                }
+                                className="text-red-600 hover:text-red-800"
+                              >
+                                Remove
+                              </Button>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                    <DialogFooter>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        onClick={() => setAttachmentModalOpen(false)}
+                      >
+                        Cancel
+                      </Button>
+                      <Button
+                        type="button"
+                        onClick={() => setAttachmentModalOpen(false)}
+                      >
+                        Done
+                      </Button>
+                    </DialogFooter>
+                  </DialogContent>
+                </Dialog>
+
+                {/* Notes Modal for Enter Data tab */}
+                <Dialog open={notesModalOpen} onOpenChange={setNotesModalOpen}>
+                  <DialogContent className="sm:max-w-md">
+                    <DialogHeader>
+                      <DialogTitle>Add Notes</DialogTitle>
+                      <DialogDescription>
+                        Add multiple notes for this entry
+                      </DialogDescription>
+                    </DialogHeader>
+                    <div className="space-y-4">
+                      <div className="flex gap-2">
+                        <textarea
+                          value={currentNoteInput}
+                          onChange={(e) => setCurrentNoteInput(e.target.value)}
+                          placeholder="Enter a note..."
+                          className="flex-1 min-h-[80px] p-3 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 resize-y"
+                        />
+                        <Button
+                          type="button"
+                          onClick={() => {
+                            if (currentNoteInput.trim()) {
+                              setModalNotes((prev) => [
+                                ...prev,
+                                currentNoteInput.trim(),
+                              ]);
+                              setCurrentNoteInput("");
+                            }
+                          }}
+                          disabled={!currentNoteInput.trim()}
+                          className="self-end"
+                        >
+                          Add
+                        </Button>
+                      </div>
+                      {modalNotes.length > 0 && (
+                        <div className="space-y-2 max-h-60 overflow-y-auto">
+                          <p className="text-sm font-medium text-gray-700">
+                            Notes ({modalNotes.length}):
+                          </p>
+                          {modalNotes.map((note, index) => (
+                            <div
+                              key={index}
+                              className="flex items-start justify-between p-3 bg-gray-50 rounded"
+                            >
+                              <p className="text-sm text-gray-700 flex-1 pr-2">
+                                {note}
+                              </p>
+                              <Button
+                                type="button"
+                                variant="ghost"
+                                size="sm"
+                                onClick={() =>
+                                  setModalNotes((prev) =>
+                                    prev.filter((_, i) => i !== index),
+                                  )
+                                }
+                                className="text-red-600 hover:text-red-800 shrink-0"
+                              >
+                                Remove
+                              </Button>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                    <DialogFooter>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        onClick={() => setNotesModalOpen(false)}
+                      >
+                        Cancel
+                      </Button>
+                      <Button
+                        type="button"
+                        onClick={() => setNotesModalOpen(false)}
+                      >
+                        Done
+                      </Button>
+                    </DialogFooter>
+                  </DialogContent>
+                </Dialog>
 
                 <TabsContent value="upload-file" key="upload-file">
                   <motion.div
@@ -1002,33 +1546,6 @@ export default function Input() {
                           onSubmit={handleUploadSubmit}
                           className="space-y-4"
                         >
-                          <AnimatedFormField
-                            id="upload-type"
-                            label="Upload Type"
-                            type="text"
-                            placeholder="Select upload type..."
-                            value={uploadType}
-                            onChange={(e) => setUploadType(e.target.value)}
-                            required
-                            list="upload-types"
-                          />
-                          <datalist id="upload-types">
-                            <option value="Emissions Data" />
-                            <option value="Fuel Consumption" />
-                            <option value="Waste Data" />
-                            <option value="Energy Usage" />
-                            <option value="Other" />
-                          </datalist>
-
-                          <AnimatedFormField
-                            id="upload-notes"
-                            label="Notes"
-                            type="text"
-                            placeholder="Add notes about this upload..."
-                            value={uploadNotes}
-                            onChange={(e) => setUploadNotes(e.target.value)}
-                          />
-
                           <div className="space-y-3">
                             <Label className="text-sm font-medium text-gray-700">
                               Files to Upload
@@ -1123,8 +1640,6 @@ export default function Input() {
                               type="button"
                               onClick={() => {
                                 setUploadFiles([]);
-                                setUploadType("");
-                                setUploadNotes("");
                               }}
                               variant="outline"
                               className="backdrop-blur-md bg-white/20 border-white/30"
@@ -1133,7 +1648,7 @@ export default function Input() {
                             </AnimatedSubmitButton>
                             <AnimatedSubmitButton
                               type="submit"
-                              disabled={uploadFiles.length === 0 || !uploadType}
+                              disabled={uploadFiles.length === 0}
                               loading={loading}
                             >
                               Upload{" "}
@@ -1169,24 +1684,36 @@ export default function Input() {
                               <FormInput
                                 id="start-date-history"
                                 type="date"
+                                value={startDateHistory}
+                                onChange={(e) =>
+                                  setStartDateHistory(e.target.value)
+                                }
                                 className="backdrop-blur-sm bg-white/50 border-white/30"
                               />
                               <FormInput
                                 id="end-date-history"
                                 type="date"
+                                value={endDateHistory}
+                                onChange={(e) =>
+                                  setEndDateHistory(e.target.value)
+                                }
                                 className="backdrop-blur-sm bg-white/50 border-white/30"
                               />
-                              <AnimatedSubmitButton>
+                              <AnimatedSubmitButton
+                                onClick={handleFilterHistory}
+                              >
                                 Filter
                               </AnimatedSubmitButton>
                             </div>
-                            <FormInput
-                              id="search"
-                              placeholder="Search table..."
-                              value={searchTerm}
-                              onChange={(e) => setSearchTerm(e.target.value)}
-                              className="backdrop-blur-sm bg-white/50 border-white/30"
-                            />
+                            <div className="flex space-x-4">
+                              <FormInput
+                                id="search"
+                                placeholder="Search table..."
+                                value={searchTerm}
+                                onChange={(e) => setSearchTerm(e.target.value)}
+                                className="backdrop-blur-sm bg-white/50 border-white/30"
+                              />
+                            </div>
                           </div>
                           <div className="rounded-lg overflow-hidden backdrop-blur-sm">
                             <Table>
@@ -1196,9 +1723,9 @@ export default function Input() {
                                   <TableHead>Edit Date</TableHead>
                                   <TableHead>Data Capturer</TableHead>
                                   <TableHead>Activity Type</TableHead>
-                                  <TableHead>Docs</TableHead>
+                                  <TableHead>Notes</TableHead>
+                                  <TableHead>Documents</TableHead>
                                   <TableHead>Status</TableHead>
-                                  <TableHead>Actions</TableHead>
                                 </TableRow>
                               </TableHeader>
                               <TableBody>
@@ -1216,7 +1743,37 @@ export default function Input() {
                                     <TableCell>{row.editDate}</TableCell>
                                     <TableCell>{row.dataCapturer}</TableCell>
                                     <TableCell>{row.activityType}</TableCell>
-                                    <TableCell>{row.docs}</TableCell>
+                                    <TableCell>
+                                      {row.notes ? (
+                                        <button
+                                          onClick={() =>
+                                            handleViewNotes(row.notes)
+                                          }
+                                          className="text-emerald-600 hover:text-emerald-800"
+                                          title="View notes"
+                                        >
+                                          <Note className="h-5 w-5" />
+                                        </button>
+                                      ) : (
+                                        <span className="text-gray-400">-</span>
+                                      )}
+                                    </TableCell>
+                                    <TableCell>
+                                      {row.documents &&
+                                      row.documents.length > 0 ? (
+                                        <button
+                                          onClick={() =>
+                                            handleViewDocuments(row.documents)
+                                          }
+                                          className="text-emerald-600 hover:text-emerald-800"
+                                          title="View documents"
+                                        >
+                                          <Description className="h-5 w-5" />
+                                        </button>
+                                      ) : (
+                                        <span className="text-gray-400">-</span>
+                                      )}
+                                    </TableCell>
                                     <TableCell>
                                       <span
                                         className={`px-2 py-1 rounded-full text-xs ${
@@ -1230,41 +1787,6 @@ export default function Input() {
                                         {row.status}
                                       </span>
                                     </TableCell>
-                                    <TableCell>
-                                      <div className="flex space-x-2">
-                                        <AnimatedSubmitButton
-                                          type="button"
-                                          variant="outline"
-                                          className="backdrop-blur-sm bg-white/20 border-white/30"
-                                          onClick={() => {
-                                            const itemId = row.name.replace(
-                                              "Entry ",
-                                              ""
-                                            );
-                                            const item = inputData.find(
-                                              (i) => i.id === itemId
-                                            );
-                                            if (item) handleEdit(item);
-                                          }}
-                                        >
-                                          Edit
-                                        </AnimatedSubmitButton>
-                                        <AnimatedSubmitButton
-                                          type="button"
-                                          variant="outline"
-                                          className="backdrop-blur-sm bg-red-500/20 border-red-300 text-red-700 hover:bg-red-500/30"
-                                          onClick={() => {
-                                            const itemId = row.name.replace(
-                                              "Entry ",
-                                              ""
-                                            );
-                                            handleDelete(itemId);
-                                          }}
-                                        >
-                                          Delete
-                                        </AnimatedSubmitButton>
-                                      </div>
-                                    </TableCell>
                                   </motion.tr>
                                 ))}
                               </TableBody>
@@ -1275,6 +1797,113 @@ export default function Input() {
                     </Card>
                   </motion.div>
                 </TabsContent>
+
+                {/* Notes Dialog */}
+                <AnimatePresence>
+                  {notesDialogOpen && (
+                    <motion.div
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: 1 }}
+                      exit={{ opacity: 0 }}
+                      className="fixed inset-0 bg-black/50 flex items-center justify-center z-50"
+                      onClick={() => setNotesDialogOpen(false)}
+                    >
+                      <motion.div
+                        initial={{ scale: 0.95, opacity: 0 }}
+                        animate={{ scale: 1, opacity: 1 }}
+                        exit={{ scale: 0.95, opacity: 0 }}
+                        className="bg-white rounded-lg shadow-xl max-w-lg w-full mx-4"
+                        onClick={(e) => e.stopPropagation()}
+                      >
+                        <div className="bg-gradient-to-r from-emerald-500 to-emerald-600 text-white px-6 py-4 rounded-t-lg flex justify-between items-center">
+                          <h3 className="text-lg font-semibold">Notes</h3>
+                          <button
+                            onClick={() => setNotesDialogOpen(false)}
+                            className="text-white hover:text-emerald-100"
+                          >
+                            ✕
+                          </button>
+                        </div>
+                        <div className="p-6">
+                          <p className="text-gray-700 whitespace-pre-wrap">
+                            {selectedNotes}
+                          </p>
+                        </div>
+                        <div className="px-6 py-4 bg-gray-50 rounded-b-lg flex justify-end">
+                          <AnimatedSubmitButton
+                            onClick={() => setNotesDialogOpen(false)}
+                            className="backdrop-blur-md bg-emerald-500 text-white hover:bg-emerald-600"
+                          >
+                            Close
+                          </AnimatedSubmitButton>
+                        </div>
+                      </motion.div>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+
+                {/* Documents Dialog */}
+                <AnimatePresence>
+                  {documentsDialogOpen && (
+                    <motion.div
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: 1 }}
+                      exit={{ opacity: 0 }}
+                      className="fixed inset-0 bg-black/50 flex items-center justify-center z-50"
+                      onClick={() => setDocumentsDialogOpen(false)}
+                    >
+                      <motion.div
+                        initial={{ scale: 0.95, opacity: 0 }}
+                        animate={{ scale: 1, opacity: 1 }}
+                        exit={{ scale: 0.95, opacity: 0 }}
+                        className="bg-white rounded-lg shadow-xl max-w-lg w-full mx-4"
+                        onClick={(e) => e.stopPropagation()}
+                      >
+                        <div className="bg-gradient-to-r from-emerald-500 to-emerald-600 text-white px-6 py-4 rounded-t-lg flex justify-between items-center">
+                          <h3 className="text-lg font-semibold">Documents</h3>
+                          <button
+                            onClick={() => setDocumentsDialogOpen(false)}
+                            className="text-white hover:text-emerald-100"
+                          >
+                            ✕
+                          </button>
+                        </div>
+                        <div className="p-6">
+                          {selectedDocuments.length > 0 ? (
+                            <ul className="space-y-3">
+                              {selectedDocuments.map((doc, idx) => (
+                                <li
+                                  key={idx}
+                                  className="flex items-center justify-between p-3 bg-gray-50 rounded-lg hover:bg-gray-100"
+                                >
+                                  <span className="text-gray-700">{doc}</span>
+                                  <button
+                                    onClick={() => handleDownloadDocument(doc)}
+                                    className="text-emerald-600 hover:text-emerald-800 text-sm font-medium"
+                                  >
+                                    Download
+                                  </button>
+                                </li>
+                              ))}
+                            </ul>
+                          ) : (
+                            <p className="text-gray-500">
+                              No documents available
+                            </p>
+                          )}
+                        </div>
+                        <div className="px-6 py-4 bg-gray-50 rounded-b-lg flex justify-end">
+                          <AnimatedSubmitButton
+                            onClick={() => setDocumentsDialogOpen(false)}
+                            className="backdrop-blur-md bg-emerald-500 text-white hover:bg-emerald-600"
+                          >
+                            Close
+                          </AnimatedSubmitButton>
+                        </div>
+                      </motion.div>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
 
                 <TabsContent value="trace-source" key="trace-source">
                   <motion.div
@@ -1297,64 +1926,164 @@ export default function Input() {
                               <FormInput
                                 id="start-date-trace"
                                 type="date"
+                                value={startDateTrace}
+                                onChange={(e) =>
+                                  setStartDateTrace(e.target.value)
+                                }
                                 className="backdrop-blur-sm bg-white/50 border-white/30"
                               />
                               <FormInput
                                 id="end-date-trace"
                                 type="date"
+                                value={endDateTrace}
+                                onChange={(e) =>
+                                  setEndDateTrace(e.target.value)
+                                }
                                 className="backdrop-blur-sm bg-white/50 border-white/30"
                               />
-                              <AnimatedSubmitButton>
+                              <AnimatedSubmitButton onClick={handleFilterTrace}>
                                 Filter
                               </AnimatedSubmitButton>
                             </div>
-                            <FormInput
-                              id="search-trace"
-                              placeholder="Search table..."
-                              value={searchTerm}
-                              onChange={(e) => setSearchTerm(e.target.value)}
-                              className="backdrop-blur-sm bg-white/50 border-white/30"
-                            />
+                            <div className="flex space-x-4">
+                              <FormInput
+                                id="search-trace"
+                                placeholder="Search table..."
+                                value={searchTerm}
+                                onChange={(e) => setSearchTerm(e.target.value)}
+                                className="backdrop-blur-sm bg-white/50 border-white/30"
+                              />
+                            </div>
                           </div>
                           <div className="rounded-lg overflow-hidden backdrop-blur-sm">
                             <Table>
                               <TableHeader>
                                 <TableRow className="backdrop-blur-sm bg-white/20">
-                                  <TableHead>Name</TableHead>
-                                  <TableHead>Edit Date</TableHead>
-                                  <TableHead>User Name</TableHead>
-                                  <TableHead>Value</TableHead>
-                                  <TableHead>Emissions</TableHead>
-                                  <TableHead>Cost UOM</TableHead>
-                                  <TableHead>Type</TableHead>
+                                  <TableHead>Activity Group</TableHead>
                                   <TableHead>Activity</TableHead>
+                                  <TableHead>Date Captured</TableHead>
+                                  <TableHead>Capturer Name</TableHead>
+                                  <TableHead>Status</TableHead>
+                                  <TableHead>Quantity</TableHead>
+                                  <TableHead>Amount</TableHead>
+                                  <TableHead>Factor</TableHead>
+                                  <TableHead>Emissions Cost</TableHead>
+                                  <TableHead>UOM</TableHead>
                                 </TableRow>
                               </TableHeader>
                               <TableBody>
-                                {filteredData.map((row, index) => (
-                                  <motion.tr
-                                    key={index}
-                                    initial={{ opacity: 0, y: 20 }}
-                                    animate={{ opacity: 1, y: 0 }}
-                                    transition={{ delay: index * 0.1 }}
-                                    className="backdrop-blur-sm bg-white/10 hover:bg-white/20"
-                                  >
-                                    <TableCell className="font-medium">
-                                      {row.name}
-                                    </TableCell>
-                                    <TableCell>{row.editDate}</TableCell>
-                                    <TableCell>{row.userName}</TableCell>
-                                    <TableCell>{row.value}</TableCell>
-                                    <TableCell>
-                                      <span className="text-emerald-600 font-medium">
-                                        {row.emissions}
-                                      </span>
-                                    </TableCell>
-                                    <TableCell>{row.costUom}</TableCell>
-                                    <TableCell>{row.type}</TableCell>
-                                    <TableCell>{row.activity}</TableCell>
-                                  </motion.tr>
-                                ))}
+                                {traceData
+                                  .filter((item) => {
+                                    // Filter by applied date range
+                                    if (
+                                      appliedStartDateTrace ||
+                                      appliedEndDateTrace
+                                    ) {
+                                      if (!item.diarystartdate) return false;
+
+                                      const itemDate = new Date(
+                                        item.diarystartdate,
+                                      );
+                                      if (isNaN(itemDate.getTime()))
+                                        return false;
+
+                                      if (appliedStartDateTrace) {
+                                        const start = new Date(
+                                          appliedStartDateTrace,
+                                        );
+                                        start.setHours(0, 0, 0, 0); // Start of day
+                                        if (itemDate < start) return false;
+                                      }
+
+                                      if (appliedEndDateTrace) {
+                                        const end = new Date(
+                                          appliedEndDateTrace,
+                                        );
+                                        end.setHours(23, 59, 59, 999); // End of day
+                                        if (itemDate > end) return false;
+                                      }
+                                    }
+                                    return true;
+                                  })
+                                  .filter((item) => {
+                                    // Filter by search term
+                                    if (!searchTerm) return true;
+                                    const term = searchTerm.toLowerCase();
+                                    return (
+                                      (item.diaryentityName || "")
+                                        .toLowerCase()
+                                        .includes(term) ||
+                                      (item.diaryname || "")
+                                        .toLowerCase()
+                                        .includes(term) ||
+                                      (item.diaryentityownerName || "")
+                                        .toLowerCase()
+                                        .includes(term) ||
+                                      (item.diarystatusName || "")
+                                        .toLowerCase()
+                                        .includes(term)
+                                    );
+                                  })
+                                  .map((item: any, index) => {
+                                    // Format date captured
+                                    let dateCaptured = "N/A";
+                                    if (item.diarystartdate) {
+                                      try {
+                                        const date = new Date(
+                                          item.diarystartdate,
+                                        );
+                                        if (!isNaN(date.getTime())) {
+                                          dateCaptured = date
+                                            .toISOString()
+                                            .split("T")[0];
+                                        }
+                                      } catch (error) {
+                                        console.warn(
+                                          "Invalid date format:",
+                                          item.diarystartdate,
+                                        );
+                                      }
+                                    }
+
+                                    return (
+                                      <motion.tr
+                                        key={index}
+                                        initial={{ opacity: 0, y: 20 }}
+                                        animate={{ opacity: 1, y: 0 }}
+                                        transition={{ delay: index * 0.1 }}
+                                        className="backdrop-blur-sm bg-white/10 hover:bg-white/20"
+                                      >
+                                        <TableCell className="font-medium">
+                                          {item.diaryentityName || "N/A"}
+                                        </TableCell>
+                                        <TableCell>
+                                          {item.diaryname || "N/A"}
+                                        </TableCell>
+                                        <TableCell>{dateCaptured}</TableCell>
+                                        <TableCell>
+                                          {item.diaryentityownerName ||
+                                            `User ${item.diaryCreatedBy}` ||
+                                            "N/A"}
+                                        </TableCell>
+                                        <TableCell>
+                                          {item.diarystatusName || "N/A"}
+                                        </TableCell>
+                                        <TableCell>
+                                          {item.diaryvaluejson
+                                            ? JSON.parse(item.diaryvaluejson)
+                                            : "N/A"}
+                                        </TableCell>
+                                        <TableCell>
+                                          {item.diaryvaluejson
+                                            ? JSON.parse(item.diaryvaluejson)
+                                            : "N/A"}
+                                        </TableCell>
+                                        <TableCell>N/A</TableCell>
+                                        <TableCell>N/A</TableCell>
+                                        <TableCell>N/A</TableCell>
+                                      </motion.tr>
+                                    );
+                                  })}
                               </TableBody>
                             </Table>
                           </div>

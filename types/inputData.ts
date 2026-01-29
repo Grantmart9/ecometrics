@@ -19,6 +19,9 @@ export interface InputData {
   emissions?: number; // Calculated CO2e
   unit?: string; // Unit of measurement
   costUom?: string; // Cost unit of measure
+  // Additional fields
+  entityRelationship?: string; // Entity relationship name
+  activityGroup?: string; // Activity group name
 }
 
 export interface CreateInputDataRequest {
@@ -31,6 +34,8 @@ export interface CreateInputDataRequest {
   monetaryValue?: string;
   notes?: string;
   documents?: string[];
+  entityRelationship?: string;
+  activityGroup?: string;
 }
 
 export interface UpdateInputDataRequest
@@ -39,6 +44,8 @@ export interface UpdateInputDataRequest
   status?: "pending" | "approved" | "rejected";
   consumption?: string;
   monetaryValue?: string;
+  entityRelationship?: string;
+  activityGroup?: string;
 }
 
 export interface InputDataListResponse {

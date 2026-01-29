@@ -3,6 +3,7 @@ import type { Metadata } from "next";
 import { Inter } from "next/font/google";
 import { AuthProvider } from "@/lib/auth-context";
 import { EmissionsProvider } from "@/lib/emissionsContext";
+import { EntityRelationshipProvider } from "@/lib/entityRelationshipContext";
 import { Nav } from "@/components/nav";
 import { ChatWidget } from "@/components/chat-widget";
 
@@ -27,9 +28,11 @@ export default function RootLayout({
       <body className={inter.className}>
         <AuthProvider>
           <EmissionsProvider>
-            <Nav />
-            <div>{children}</div>
-            <ChatWidget />
+            <EntityRelationshipProvider>
+              <Nav />
+              <div>{children}</div>
+              <ChatWidget />
+            </EntityRelationshipProvider>
           </EmissionsProvider>
         </AuthProvider>
       </body>

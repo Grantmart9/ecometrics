@@ -17,6 +17,7 @@ export interface CrudResponse<T = any> {
 export interface User {
   id: string;
   email: string;
+  username?: string;
   name: string;
   company?: string;
   createdAt: string;

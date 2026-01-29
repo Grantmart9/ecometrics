@@ -52,6 +52,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
               id: userRecord.Id || "1",
               name: userRecord.Name || userRecord.name || "User",
               email: userRecord.Email || userRecord.email || "",
+              username: userRecord.Username || userRecord.username || "",
               company: userRecord.Company || userRecord.company || "",
               createdAt: userRecord.CreatedAt || new Date().toISOString(),
               updatedAt: userRecord.UpdatedAt || new Date().toISOString(),
@@ -109,6 +110,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           email:
             userRecord?.email ||
             (isEmail ? identifier : userRecord?.email || ""),
+          username: !isEmail ? identifier : userRecord?.username || "",
           company: userRecord?.company || "",
           createdAt: new Date().toISOString(),
           updatedAt: new Date().toISOString(),
@@ -164,6 +166,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         const userData: User = {
           id: userRecord?.id || "1",
           name: userRecord?.name || name,
+          username: userRecord?.username || username || (!isEmail ? identifier : ""),
           email:
             userRecord?.email ||
             (isEmail ? identifier : userRecord?.email || ""),
