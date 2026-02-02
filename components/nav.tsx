@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { cn } from "@/lib/utils";
 import { motion, AnimatePresence } from "framer-motion";
 import { useState, useEffect } from "react";
@@ -35,42 +35,64 @@ const accountNavItems = [
 ];
 
 const mainNavItems = [
-  { href: "#about", label: "About" },
   { href: "#features", label: "Features" },
   { href: "#how-it-works", label: "How It Works" },
   { href: "#testimonials", label: "Testimonials" },
 ];
 
 // Navigation items for authenticated users
-const authenticatedNavItems = [
-  { href: "/", label: "Home" },
-];
+const authenticatedNavItems = [{ href: "/", label: "Home" }];
 
 export function Nav() {
   const pathname = usePathname();
-  const { isAuthenticated, user, logout, session } = useAuth();
-  const { selectedEntityRelationship, setSelectedEntityRelationship } = useEntityRelationship();
+  const router = useRouter();
+  const { isAuthenticated, user, logout, session, loading } = useAuth();
+  const { selectedEntityRelationship, selectedEntityId, setSelectedEntityRelationship } =
+    useEntityRelationship();
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
-  const [companies, setCompanies] = useState<{ id: string; name: string; entityId: string }[]>([]);
+  const [companies, setCompanies] = useState<
+    { id: string; name: string; entityId: string }[]
+  >([]);
   const [selectedCompanyId, setSelectedCompanyId] = useState<string>("");
   const [isLoadingCompanies, setIsLoadingCompanies] = useState(false);
   const [hasVisitedInputPage, setHasVisitedInputPage] = useState(false);
 
   // Track when user visits Input Data page
   useEffect(() => {
-    console.log("🔍 Tracking Input Data page visit:", { pathname, isAuthenticated, hasVisitedInputPage });
-    if ((pathname === "/input" || pathname === "/input/") && isAuthenticated && !hasVisitedInputPage) {
+    console.log("🔍 Tracking Input Data page visit:", {
+      pathname,
+      isAuthenticated,
+      hasVisitedInputPage,
+    });
+    if (
+      (pathname === "/input" || pathname === "/input/") &&
+      isAuthenticated &&
+      !hasVisitedInputPage
+    ) {
       console.log("✅ Setting hasVisitedInputPage to true");
       setHasVisitedInputPage(true);
     }
   }, [pathname, isAuthenticated, hasVisitedInputPage]);
 
-  // Fetch companies from CRUD API only after visiting Input Data page
+  // Set auth token in crudService when session changes
+  useEffect(() => {
+    if (session?.access_token) {
+      console.log("DEBUG: Setting auth token in crudService");
+      crudService.setAuthToken(session.access_token);
+    } else {
+      console.log("DEBUG: No access_token in session");
+    }
+  }, [session]);
+
+  // Fetch companies from CRUD API when user is authenticated
   useEffect(() => {
     const fetchCompanies = async () => {
-      console.log("🔍 Fetch companies called:", { hasVisitedInputPage, hasToken: !!session?.access_token });
-      if (!session?.access_token || !hasVisitedInputPage) {
-        console.log("⏭️ Skipping fetch - conditions not met");
+      console.log("🔍 Fetch companies called:", {
+        isAuthenticated,
+        hasToken: !!session?.access_token,
+      });
+      if (!session?.access_token || !isAuthenticated || loading) {
+        console.log("⏭️ Skipping fetch - conditions not met", { loading, isAuthenticated, hasToken: !!session?.access_token });
         return;
       }
 
@@ -78,18 +100,20 @@ export function Nav() {
       try {
         console.log("📡 Sending CRUD request for companies...");
         const response = await crudService.callCrud({
-          data: JSON.stringify([{
-            RecordSet: "Company",
-            TableName: "entityrelationship",
-            Action: "readExact",
-            Fields: {
-              Entity: "4",
-              Relationship: "58287"
-            }
-          }]),
+          data: JSON.stringify([
+            {
+              RecordSet: "Company",
+              TableName: "entityrelationship",
+              Action: "readExact",
+              Fields: {
+                Entity: "4",
+                Relationship: "58287",
+              },
+            },
+          ]),
           PageNo: "1",
           NoOfLines: "300",
-          CrudMessage: "@CrudMessage"
+          CrudMessage: "@CrudMessage",
         });
 
         console.log("📥 CRUD response:", response);
@@ -97,43 +121,55 @@ export function Nav() {
         if (response?.Data && response.Data[0]?.JsonData) {
           const jsonData = JSON.parse(response.Data[0].JsonData);
           const tableData = jsonData.Company?.TableData || [];
-          
+
           console.log("📊 Table data:", tableData);
           console.log("📊 Table data length:", tableData.length);
-          
+
           // Extract unique companies with their IDs
-          const companiesMap = new Map<string, { id: string; name: string; entityId: string }>();
-          
+          const companiesMap = new Map<
+            string,
+            { id: string; name: string; entityId: string }
+          >();
+
           tableData.forEach((item: any, index: number) => {
             console.log(`📊 Processing item ${index}:`, item);
             const name = item.entityrelationshipEntityBName;
             const entityId = item.entityrelationshipEntityB;
-            
-            console.log(`📊 Item ${index} - Name: ${name}, ID: ${entityId}, Type of ID: ${typeof entityId}`);
-            
-            if (typeof name === "string" && name.trim() !== "" && (typeof entityId === "string" || typeof entityId === "number")) {
+
+            console.log(
+              `📊 Item ${index} - Name: ${name}, ID: ${entityId}, Type of ID: ${typeof entityId}`,
+            );
+
+            if (
+              typeof name === "string" &&
+              name.trim() !== "" &&
+              (typeof entityId === "string" || typeof entityId === "number")
+            ) {
               if (!companiesMap.has(name)) {
                 companiesMap.set(name, {
                   id: `company-${entityId}`,
                   name: name,
-                  entityId: String(entityId)
+                  entityId: String(entityId),
                 });
               }
             }
           });
-          
+
           const uniqueCompanies = Array.from(companiesMap.values());
 
           console.log("✅ Setting companies:", uniqueCompanies);
           console.log("✅ Companies count:", uniqueCompanies.length);
           setCompanies(uniqueCompanies);
-          
+
           // Set default company if available
           if (uniqueCompanies.length > 0) {
             setSelectedCompanyId(uniqueCompanies[0].id);
             localStorage.setItem("selectedCompanyId", uniqueCompanies[0].id);
             // Set default entity relationship in context
-            setSelectedEntityRelationship(uniqueCompanies[0].name, uniqueCompanies[0].entityId);
+            setSelectedEntityRelationship(
+              uniqueCompanies[0].name,
+              uniqueCompanies[0].entityId,
+            );
           }
         }
       } catch (error) {
@@ -144,7 +180,7 @@ export function Nav() {
     };
 
     fetchCompanies();
-  }, [session?.access_token, hasVisitedInputPage]);
+  }, [session?.access_token, isAuthenticated, loading]);
 
   // Load selected company from localStorage on mount
   useEffect(() => {
@@ -158,11 +194,14 @@ export function Nav() {
   const handleCompanyChange = (companyId: string) => {
     setSelectedCompanyId(companyId);
     localStorage.setItem("selectedCompanyId", companyId);
-    
+
     // Update entity relationship context with the selected company name and ID
-    const selectedCompany = companies.find(c => c.id === companyId);
+    const selectedCompany = companies.find((c) => c.id === companyId);
     if (selectedCompany) {
-      setSelectedEntityRelationship(selectedCompany.name, selectedCompany.entityId);
+      setSelectedEntityRelationship(
+        selectedCompany.name,
+        selectedCompany.entityId,
+      );
     }
   };
 
@@ -172,6 +211,7 @@ export function Nav() {
 
   const handleLogout = () => {
     logout();
+    router.push("/");
   };
 
   const isLandingPage = pathname === "/";
@@ -199,16 +239,19 @@ export function Nav() {
                     "text-sm font-medium transition-colors",
                     pathname === "/"
                       ? "text-green-700"
-                      : "text-gray-700 hover:text-green-600"
+                      : "text-gray-700 hover:text-green-600",
                   )}
                 >
                   Home
                 </Link>
 
                 {/* Calculate Dropdown */}
-                <div className="relative">
+                <div
+                  className="relative"
+                  onMouseEnter={() => setIsDropdownOpen(true)}
+                  onMouseLeave={() => setIsDropdownOpen(false)}
+                >
                   <button
-                    onClick={() => setIsDropdownOpen(!isDropdownOpen)}
                     className="flex items-center px-3 py-2 rounded-md text-sm font-medium text-gray-700 hover:text-green-700 hover:bg-green-50 transition-colors"
                   >
                     Calculate
@@ -241,9 +284,8 @@ export function Nav() {
                                 "flex items-center px-3 py-2 text-sm transition-colors rounded-md",
                                 pathname === item.href
                                   ? "bg-green-100 text-green-700 font-medium"
-                                  : "text-gray-700 hover:bg-green-50 hover:text-green-700"
+                                  : "text-gray-700 hover:bg-green-50 hover:text-green-700",
                               )}
-                              onClick={() => setIsDropdownOpen(false)}
                             >
                               {item.label}
                             </Link>
@@ -261,9 +303,8 @@ export function Nav() {
                                 "flex items-center px-3 py-2 text-sm transition-colors rounded-md",
                                 pathname === item.href
                                   ? "bg-green-100 text-green-700 font-medium"
-                                  : "text-gray-700 hover:bg-green-50 hover:text-green-700"
+                                  : "text-gray-700 hover:bg-green-50 hover:text-green-700",
                               )}
-                              onClick={() => setIsDropdownOpen(false)}
                             >
                               {item.label}
                             </Link>
@@ -281,9 +322,8 @@ export function Nav() {
                                 "flex items-center px-3 py-2 text-sm transition-colors rounded-md",
                                 pathname === item.href
                                   ? "bg-green-100 text-green-700 font-medium"
-                                  : "text-gray-700 hover:bg-green-50 hover:text-green-700"
+                                  : "text-gray-700 hover:bg-green-50 hover:text-green-700",
                               )}
-                              onClick={() => setIsDropdownOpen(false)}
                             >
                               {item.label}
                             </Link>
@@ -301,9 +341,17 @@ export function Nav() {
                   <motion.a
                     key={item.href}
                     href={item.href}
-                    className="text-gray-700 hover:text-green-600 transition-colors"
+                    className="text-gray-700 hover:text-green-600 transition-colors cursor-pointer"
                     whileHover={{ scale: 1.05 }}
                     transition={{ duration: 0.2 }}
+                    onClick={(e) => {
+                      e.preventDefault();
+                      const targetId = item.href.replace("#", "");
+                      const targetElement = document.getElementById(targetId);
+                      if (targetElement) {
+                        targetElement.scrollIntoView({ behavior: "smooth" });
+                      }
+                    }}
                   >
                     {item.label}
                   </motion.a>
@@ -316,16 +364,25 @@ export function Nav() {
           {isAuthenticated && user ? (
             <div className="flex items-center space-x-4">
               {/* Company Dropdown - Only show after visiting Input Data page */}
-              {hasVisitedInputPage && (
+              {isAuthenticated && (
                 <>
-                  {console.log("🎨 Rendering company dropdown:", { hasVisitedInputPage, companiesCount: companies.length })}
+                  {console.log("🎨 Rendering company dropdown:", {
+                    isAuthenticated,
+                    companiesCount: companies.length,
+                  })}
                   <Select
                     value={selectedCompanyId}
                     onValueChange={handleCompanyChange}
                     disabled={isLoadingCompanies || companies.length === 0}
                   >
                     <SelectTrigger className="w-[200px] h-9 text-sm border-green-200 focus:ring-green-500">
-                      <SelectValue placeholder={isLoadingCompanies ? "Loading..." : "Select entity relationship"} />
+                      <SelectValue
+                        placeholder={
+                          isLoadingCompanies
+                            ? "Loading..."
+                            : "Select entity relationship"
+                        }
+                      />
                     </SelectTrigger>
                     <SelectContent>
                       {companies.map((company) => (

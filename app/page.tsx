@@ -330,7 +330,7 @@ export default function LandingPage() {
           </section>
 
           {/* Features Section */}
-          <section className="py-20 bg-white">
+          <section id="features" className="py-20 bg-white">
             <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
               <motion.div
                 initial={{ opacity: 0, y: 40 }}
@@ -374,7 +374,7 @@ export default function LandingPage() {
           </section>
 
           {/* How It Works Section */}
-          <section className="py-20 bg-gradient-to-br from-green-50 to-emerald-50">
+          <section id="how-it-works" className="py-20 bg-gradient-to-br from-green-50 to-emerald-50">
             <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
               <motion.div
                 initial={{ opacity: 0, y: 40 }}
@@ -412,7 +412,7 @@ export default function LandingPage() {
           </section>
 
           {/* Testimonials Section */}
-          <section className="py-20 bg-white">
+          <section id="testimonials" className="py-20 bg-white">
             <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
               <motion.div
                 initial={{ opacity: 0, y: 40 }}

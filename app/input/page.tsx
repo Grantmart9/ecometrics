@@ -58,8 +58,7 @@ import { crudService } from "@/lib/crudService";
 import { useAuth } from "@/lib/auth-context";
 import { useEntityRelationship } from "@/lib/entityRelationshipContext";
 import { environment } from "@/lib/environment";
-
-// Dynamic import for 3D background
+import ExcelPreview from "@/components/excel-preview";
 const ThreeBackground = dynamic(() => import("@/components/three-bg"), {
   ssr: false,
   loading: () => (
@@ -96,6 +95,11 @@ export default function Input() {
   const [selectedNotes, setSelectedNotes] = useState("");
   const [selectedDocuments, setSelectedDocuments] = useState<string[]>([]);
 
+  // Pagination state
+  const ITEMS_PER_PAGE = 20;
+  const [currentPageHistory, setCurrentPageHistory] = useState(1);
+  const [currentPageTrace, setCurrentPageTrace] = useState(1);
+
   // New state for attachment and notes modals in Enter Data tab
   const [attachmentModalOpen, setAttachmentModalOpen] = useState(false);
   const [notesModalOpen, setNotesModalOpen] = useState(false);
@@ -105,10 +109,11 @@ export default function Input() {
 
   // Activity group state
   const [activityGroups, setActivityGroups] = useState<
-    { id: number; name: string }[]
+    { id: number; name: string; attachmentId?: number; image?: string }[]
   >([]);
   const [selectedActivityGroup, setSelectedActivityGroup] =
     useState<string>("");
+  const [selectedAttachmentId, setSelectedAttachmentId] = useState<number | undefined>(undefined);
   const [isLoadingActivityGroups, setIsLoadingActivityGroups] = useState(false);
   
   // Consumption types (activities) state
@@ -207,10 +212,70 @@ export default function Input() {
               return {
                 id: item.activityGroupId,
                 name: item.activityGroupName,
+                attachmentId: undefined,
+                image: undefined,
               };
             });
 
           console.log("✅ Setting activity groups:", groups);
+
+          // Fetch all activity group images in one call using all activity group IDs
+          if (groups.length > 0) {
+            const activityGroupIds = groups.map((g: { id: number }) => g.id).join(',');
+            console.log("📡 Fetching images for activity groups:", activityGroupIds);
+
+            try {
+              const imageResponse = await crudService.callCrud({
+                data: JSON.stringify([
+                  {
+                    RecordSet: "ActivityImg",
+                    TableName: "attachment",
+                    Action: "readIn",
+                    Fields: {
+                      RelativeID: `(${activityGroupIds})`,
+                    },
+                  },
+                ]),
+                PageNo: "1",
+                NoOfLines: "300",
+                CrudMessage: "@CrudMessage",
+              });
+
+              console.log("📥 Activity images response:", JSON.stringify(imageResponse, null, 2));
+
+              if (imageResponse?.Data && imageResponse.Data[0]?.JsonData) {
+                const imageJsonData = JSON.parse(imageResponse.Data[0].JsonData);
+                const imageTableData = imageJsonData.ActivityImg?.TableData || [];
+
+                console.log("📊 Activity images table data:", JSON.stringify(imageTableData, null, 2));
+
+                // Create a map of attachmentRelativeID -> image content
+                const imageMap: { [key: number]: { attachmentId: number; image: string } } = {};
+                imageTableData.forEach((item: any) => {
+                  const relativeId = item.attachmentRelativeID;
+                  if (relativeId && item.attachmentcontent) {
+                    imageMap[relativeId] = {
+                      attachmentId: item.attachmentId,
+                      image: item.attachmentcontent,
+                    };
+                    console.log(`📊 Mapped image for activity group ${relativeId}: attachmentId=${item.attachmentId}`);
+                  }
+                });
+
+                // Align images with activity groups using attachmentRelativeID
+                groups.forEach((group: any) => {
+                  if (imageMap[group.id]) {
+                    group.attachmentId = imageMap[group.id].attachmentId;
+                    group.image = imageMap[group.id].image;
+                    console.log(`📊 Aligned image with activity group ${group.name}: attachmentId=${group.attachmentId}`);
+                  }
+                });
+              }
+            } catch (imageError) {
+              console.error("❌ Error fetching activity group images:", imageError);
+            }
+          }
+
           setActivityGroups(groups);
 
           // Extract consumption types (activities) from the response
@@ -401,6 +466,15 @@ export default function Input() {
     }
   }, []);
 
+  // Reset pagination when filters or search term change
+  useEffect(() => {
+    setCurrentPageHistory(1);
+  }, [appliedStartDateHistory, appliedEndDateHistory, searchTerm]);
+
+  useEffect(() => {
+    setCurrentPageTrace(1);
+  }, [appliedStartDateTrace, appliedEndDateTrace, searchTerm]);
+
   // Form state
   const [formData, setFormData] = useState({
     costCentre: "",
@@ -415,6 +489,7 @@ export default function Input() {
   // Upload tab state
   const [uploadFiles, setUploadFiles] = useState<File[]>([]);
   const [isDragging, setIsDragging] = useState(false);
+  const [excelPreviewFile, setExcelPreviewFile] = useState<File | null>(null);
 
   // Transform diary data for table display
   const transformedData = inputData.map((item: any) => {
@@ -878,6 +953,15 @@ export default function Input() {
     }
 
     setUploadFiles((prev) => [...prev, ...validFiles]);
+
+    // Set Excel file for preview
+    const excelFile = validFiles.find(f => 
+      f.type === "application/vnd.ms-excel" || 
+      f.type === "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+    );
+    if (excelFile) {
+      setExcelPreviewFile(excelFile);
+    }
   };
 
   const handleFileDrop = (e: React.DragEvent<HTMLDivElement>) => {
@@ -898,6 +982,15 @@ export default function Input() {
     }
 
     setUploadFiles((prev) => [...prev, ...validFiles]);
+
+    // Set Excel file for preview
+    const excelFile = validFiles.find(f => 
+      f.type === "application/vnd.ms-excel" || 
+      f.type === "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+    );
+    if (excelFile) {
+      setExcelPreviewFile(excelFile);
+    }
   };
 
   const handleUploadSubmit = async (e: React.FormEvent) => {
@@ -999,6 +1092,7 @@ export default function Input() {
         alert(`Upload successful:\n${uploadedFiles.join("\n")}`);
         // Reset form
         setUploadFiles([]);
+                                 setExcelPreviewFile(null);
       }
     } catch (error) {
       console.error("Upload submit error:", error);
@@ -1110,9 +1204,9 @@ export default function Input() {
                           className="space-y-4 max-w-md mx-auto"
                         >
                           <div className="flex flex-col gap-4">
-                            {/* Activity Group Selector */}
+                            {/* Activity Group Widgets */}
                             <div className="w-full">
-                              <div className="flex flex-wrap gap-2">
+                              <div className="flex flex-wrap gap-3">
                                 {isLoadingActivityGroups ? (
                                   <span className="text-sm text-gray-500">
                                     Loading activity groups...
@@ -1122,32 +1216,49 @@ export default function Input() {
                                     no data found
                                   </span>
                                 ) : (
-                                  activityGroups.map((group) => (
-                                    <Button
-                                      key={group.id}
-                                      type="button"
-                                      variant={
-                                        selectedActivityGroup === group.name
-                                          ? "default"
-                                          : "outline"
-                                      }
-                                      size="sm"
-                                      onClick={() => {
-                                        setSelectedActivityGroup(group.name);
-                                        handleInputChange(
-                                          "activityGroup",
-                                          group.name,
-                                        );
-                                      }}
-                                      className={
-                                        selectedActivityGroup === group.name
-                                          ? "bg-emerald-600 hover:bg-emerald-700 text-white"
-                                          : "border-emerald-200 text-emerald-700 hover:bg-emerald-50"
-                                      }
-                                    >
-                                      {group.name}
-                                    </Button>
-                                  ))
+                                  activityGroups.map((group) => {
+                                    const isSelected = selectedActivityGroup === group.name;
+                                    return (
+                                      <div
+                                        key={group.id}
+                                        onClick={() => {
+                                          setSelectedActivityGroup(group.name);
+                                          handleInputChange(
+                                            "activityGroup",
+                                            group.name,
+                                          );
+                                        }}
+                                        className={`
+                                          flex flex-col items-center justify-center
+                                          w-20 h-24 p-1 rounded-lg cursor-pointer
+                                          transition-all duration-200 border-2
+                                          ${isSelected
+                                            ? "border-emerald-600 bg-emerald-50 shadow-md"
+                                            : "border-gray-200 bg-white hover:border-emerald-300 hover:shadow-sm"
+                                          }
+                                        `}
+                                      >
+                                        {/* Image area - always shows image if available */}
+                                        <div className="flex-1 w-full flex items-center justify-center overflow-hidden">
+                                          {group.image ? (
+                                            <img
+                                              src={`data:image/png;base64,${group.image}`}
+                                              alt={`${group.name} diagram`}
+                                              className="w-full h-full object-contain"
+                                            />
+                                          ) : (
+                                            <span className="text-gray-400 text-xs">
+                                              No image
+                                            </span>
+                                          )}
+                                        </div>
+                                        {/* Activity group name below image */}
+                                        <span className="text-xs font-medium text-center line-clamp-1 mt-1">
+                                          {group.name}
+                                        </span>
+                                      </div>
+                                    );
+                                  })
                                 )}
                               </div>
                             </div>
@@ -1538,7 +1649,7 @@ export default function Input() {
                       <CardHeader className="bg-gradient-to-r from-emerald-500/80 to-emerald-600/80 text-white rounded-t-lg p-3 backdrop-blur-sm">
                         <CardTitle>Upload File</CardTitle>
                         <CardDescription className="text-emerald-100">
-                          Upload a file to import emissions data.
+                          Upload an Excel file to import emissions data.
                         </CardDescription>
                       </CardHeader>
                       <CardContent className="backdrop-blur-sm">
@@ -1548,7 +1659,7 @@ export default function Input() {
                         >
                           <div className="space-y-3">
                             <Label className="text-sm font-medium text-gray-700">
-                              Files to Upload
+                              Excel File
                             </Label>
                             <motion.div
                               className={`border-2 border-dashed rounded-lg p-8 text-center transition-all backdrop-blur-sm ${
@@ -1569,49 +1680,27 @@ export default function Input() {
                                 handleFileDrop(e);
                               }}
                             >
-                              {uploadFiles.length > 0 ? (
+                              {excelPreviewFile ? (
                                 <div className="space-y-3">
-                                  <p className="text-sm text-emerald-700 font-medium">
-                                    {uploadFiles.length} file(s) selected:
-                                  </p>
-                                  <ul className="text-sm text-left max-h-32 overflow-y-auto space-y-1">
-                                    {uploadFiles.map((file, index) => (
-                                      <li
-                                        key={index}
-                                        className="flex justify-between items-center bg-white/30 rounded p-2"
-                                      >
-                                        <span className="text-gray-800">
-                                          {file.name}
-                                        </span>
-                                        <span className="text-emerald-600 font-medium">
-                                          (
-                                          {(file.size / 1024 / 1024).toFixed(2)}{" "}
-                                          MB)
-                                        </span>
-                                      </li>
-                                    ))}
-                                  </ul>
-                                  <AnimatedSubmitButton
-                                    type="button"
-                                    onClick={() => setUploadFiles([])}
-                                    variant="outline"
-                                    className="backdrop-blur-md bg-white/20 border-white/30"
-                                  >
-                                    Clear Files
-                                  </AnimatedSubmitButton>
+                                  <div className="flex items-center justify-center gap-3">
+                                    <UploadFile className="h-8 w-8 text-emerald-600" />
+                                    <div className="text-left">
+                                      <p className="text-sm font-medium text-gray-800">{excelPreviewFile.name}</p>
+                                      <p className="text-xs text-gray-500">{(excelPreviewFile.size / 1024 / 1024).toFixed(2)} MB</p>
+                                    </div>
+                                  </div>
+                                  <p className="text-xs text-emerald-600">File loaded - preview below</p>
                                 </div>
                               ) : (
                                 <div>
                                   <UploadFile className="h-12 w-12 mx-auto text-emerald-600 mb-4" />
                                   <p className="text-sm text-gray-700 mb-4 font-medium">
-                                    Drag and drop your files here, or click to
-                                    select
+                                    Drag and drop your Excel file here, or click to select
                                   </p>
                                   <FormInput
                                     id="upload-file-input"
                                     type="file"
-                                    multiple
-                                    accept=".pdf,.csv,.xlsx,.xls,.json"
+                                    accept=".xlsx,.xls"
                                     onChange={handleUploadFileSelect}
                                     className="hidden"
                                   />
@@ -1625,36 +1714,38 @@ export default function Input() {
                                     variant="outline"
                                     className="backdrop-blur-md bg-white/20 border-white/30"
                                   >
-                                    Choose Files
+                                    Choose File
                                   </AnimatedSubmitButton>
                                 </div>
                               )}
                             </motion.div>
                             <p className="text-sm text-gray-600">
-                              Supported: PDF, CSV, Excel, JSON files (max 10MB
-                              each)
+                              Supported: Excel files only (max 10MB)
                             </p>
+
+                            {/* Excel Preview */}
+                            {excelPreviewFile && (
+                              <ExcelPreview file={excelPreviewFile} onClose={() => { setExcelPreviewFile(null); setUploadFiles([]); }} />
+                            )}
                           </div>
                           <div className="flex justify-end space-x-3">
                             <AnimatedSubmitButton
                               type="button"
                               onClick={() => {
                                 setUploadFiles([]);
+                                setExcelPreviewFile(null);
                               }}
                               variant="outline"
                               className="backdrop-blur-md bg-white/20 border-white/30"
                             >
-                              Clear Form
+                              Clear
                             </AnimatedSubmitButton>
                             <AnimatedSubmitButton
                               type="submit"
-                              disabled={uploadFiles.length === 0}
+                              disabled={!excelPreviewFile}
                               loading={loading}
                             >
-                              Upload{" "}
-                              {uploadFiles.length > 0
-                                ? `(${uploadFiles.length})`
-                                : ""}
+                              Submit
                             </AnimatedSubmitButton>
                           </div>
                         </form>
@@ -1672,24 +1763,28 @@ export default function Input() {
                   >
                     <Card className="backdrop-blur-md bg-white/20 border border-white/30 shadow-xl">
                       <CardHeader className="bg-gradient-to-r from-emerald-500/80 to-emerald-600/80 text-white rounded-t-lg p-3 backdrop-blur-sm">
-                        <CardTitle>Reporting Period</CardTitle>
+                        <CardTitle>Input History</CardTitle>
                         <CardDescription className="text-emerald-100">
-                          View and manage your input history.
+                          View and manage your previously entered emissions data.
                         </CardDescription>
                       </CardHeader>
                       <CardContent className="backdrop-blur-sm">
                         <div className="space-y-4">
-                          <div className="flex justify-between items-end">
-                            <div className="flex space-x-4">
+                          {/* Filters */}
+                          <div className="flex flex-wrap gap-3 items-end">
+                            <div className="w-40">
                               <FormInput
                                 id="start-date-history"
                                 type="date"
+                                placeholder="Start Date"
                                 value={startDateHistory}
                                 onChange={(e) =>
                                   setStartDateHistory(e.target.value)
                                 }
                                 className="backdrop-blur-sm bg-white/50 border-white/30"
                               />
+                            </div>
+                            <div className="w-40">
                               <FormInput
                                 id="end-date-history"
                                 type="date"
@@ -1699,98 +1794,196 @@ export default function Input() {
                                 }
                                 className="backdrop-blur-sm bg-white/50 border-white/30"
                               />
-                              <AnimatedSubmitButton
-                                onClick={handleFilterHistory}
-                              >
-                                Filter
-                              </AnimatedSubmitButton>
                             </div>
-                            <div className="flex space-x-4">
-                              <FormInput
-                                id="search"
-                                placeholder="Search table..."
-                                value={searchTerm}
-                                onChange={(e) => setSearchTerm(e.target.value)}
-                                className="backdrop-blur-sm bg-white/50 border-white/30"
-                              />
-                            </div>
+                            <AnimatedSubmitButton
+                              onClick={handleFilterHistory}
+                            >
+                              Filter
+                            </AnimatedSubmitButton>
                           </div>
-                          <div className="rounded-lg overflow-hidden backdrop-blur-sm">
+                          <div className="flex space-x-4">
+                            <FormInput
+                              id="search"
+                              placeholder="Search table..."
+                              value={searchTerm}
+                              onChange={(e) => setSearchTerm(e.target.value)}
+                              className="max-w-xs backdrop-blur-sm bg-white/50 border-white/30"
+                            />
+                          </div>
+
+                          {/* Table */}
+                          <div className="border rounded-lg overflow-hidden">
                             <Table>
                               <TableHeader>
-                                <TableRow className="backdrop-blur-sm bg-white/20">
-                                  <TableHead>Name</TableHead>
-                                  <TableHead>Edit Date</TableHead>
-                                  <TableHead>Data Capturer</TableHead>
-                                  <TableHead>Activity Type</TableHead>
-                                  <TableHead>Notes</TableHead>
-                                  <TableHead>Documents</TableHead>
-                                  <TableHead>Status</TableHead>
+                                <TableRow className="bg-emerald-50/50 backdrop-blur-sm">
+                                  <TableHead className="text-emerald-700 font-semibold">
+                                    Date
+                                  </TableHead>
+                                  <TableHead className="text-emerald-700 font-semibold">
+                                    Activity
+                                  </TableHead>
+                                  <TableHead className="text-emerald-700 font-semibold">
+                                    Value
+                                  </TableHead>
+                                  <TableHead className="text-emerald-700 font-semibold">
+                                    Owner
+                                  </TableHead>
+                                  <TableHead className="text-emerald-700 font-semibold">
+                                    Status
+                                  </TableHead>
+                                  <TableHead className="text-emerald-700 font-semibold">
+                                    Actions
+                                  </TableHead>
                                 </TableRow>
                               </TableHeader>
                               <TableBody>
-                                {filteredData.map((row, index) => (
-                                  <motion.tr
-                                    key={index}
-                                    initial={{ opacity: 0, y: 20 }}
-                                    animate={{ opacity: 1, y: 0 }}
-                                    transition={{ delay: index * 0.1 }}
-                                    className="backdrop-blur-sm bg-white/10 hover:bg-white/20"
-                                  >
-                                    <TableCell className="font-medium">
-                                      {row.name}
+                                {loading ? (
+                                  <TableRow>
+                                    <TableCell
+                                      colSpan={6}
+                                      className="text-center py-8"
+                                    >
+                                      <div className="flex justify-center items-center gap-2">
+                                        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-emerald-600" />
+                                        <span className="text-emerald-600 font-medium">
+                                          Loading...
+                                        </span>
+                                      </div>
                                     </TableCell>
-                                    <TableCell>{row.editDate}</TableCell>
-                                    <TableCell>{row.dataCapturer}</TableCell>
-                                    <TableCell>{row.activityType}</TableCell>
-                                    <TableCell>
-                                      {row.notes ? (
-                                        <button
-                                          onClick={() =>
-                                            handleViewNotes(row.notes)
-                                          }
-                                          className="text-emerald-600 hover:text-emerald-800"
-                                          title="View notes"
-                                        >
-                                          <Note className="h-5 w-5" />
-                                        </button>
-                                      ) : (
-                                        <span className="text-gray-400">-</span>
-                                      )}
+                                  </TableRow>
+                                ) : filteredData.length === 0 ? (
+                                  <TableRow>
+                                    <TableCell
+                                      colSpan={6}
+                                      className="text-center py-8"
+                                    >
+                                      <div className="text-gray-500">
+                                        <History className="h-12 w-12 mx-auto mb-2 opacity-50" />
+                                        <p>No data found</p>
+                                      </div>
                                     </TableCell>
-                                    <TableCell>
-                                      {row.documents &&
-                                      row.documents.length > 0 ? (
-                                        <button
-                                          onClick={() =>
-                                            handleViewDocuments(row.documents)
-                                          }
-                                          className="text-emerald-600 hover:text-emerald-800"
-                                          title="View documents"
-                                        >
-                                          <Description className="h-5 w-5" />
-                                        </button>
-                                      ) : (
-                                        <span className="text-gray-400">-</span>
-                                      )}
-                                    </TableCell>
-                                    <TableCell>
-                                      <span
-                                        className={`px-2 py-1 rounded-full text-xs ${
-                                          row.status === "approved"
-                                            ? "bg-emerald-100 text-emerald-800"
-                                            : row.status === "rejected"
-                                              ? "bg-red-100 text-red-800"
-                                              : "bg-yellow-100 text-yellow-800"
-                                        }`}
+                                  </TableRow>
+                                ) : (
+                                  filteredData
+                                    .slice(
+                                      (currentPageHistory - 1) * ITEMS_PER_PAGE,
+                                      currentPageHistory * ITEMS_PER_PAGE
+                                    )
+                                    .map((item: any, index: number) => (
+                                      <TableRow
+                                        key={index}
+                                        className="hover:bg-emerald-50/30 backdrop-blur-sm"
                                       >
-                                        {row.status}
-                                      </span>
-                                    </TableCell>
-                                  </motion.tr>
-                                ))}
+                                        <TableCell className="text-gray-800">
+                                          {item.editDate || "N/A"}
+                                        </TableCell>
+                                        <TableCell className="text-gray-800">
+                                          {item.diaryname || "N/A"}
+                                        </TableCell>
+                                        <TableCell className="text-gray-800">
+                                          {item.diaryamount
+                                            ? Number(
+                                                item.diaryamount
+                                              ).toLocaleString()
+                                            : "N/A"}
+                                        </TableCell>
+                                        <TableCell className="text-gray-800">
+                                          {item.diaryentityownerName || "N/A"}
+                                        </TableCell>
+                                        <TableCell>
+                                          <span
+                                            className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                                              item.diarystatusName === "Approved"
+                                                ? "bg-green-100 text-green-800"
+                                                : item.diarystatusName ===
+                                                  "Rejected"
+                                                ? "bg-red-100 text-red-800"
+                                                : "bg-yellow-100 text-yellow-800"
+                                            }`}
+                                          >
+                                            {item.diarystatusName || "Pending"}
+                                          </span>
+                                        </TableCell>
+                                        <TableCell>
+                                          <div className="flex space-x-2">
+                                            <Button
+                                              variant="ghost"
+                                              size="sm"
+                                              onClick={() => handleEdit(item)}
+                                              className="text-emerald-600 hover:text-emerald-700 hover:bg-emerald-50"
+                                            >
+                                              Edit
+                                            </Button>
+                                            <Button
+                                              variant="ghost"
+                                              size="sm"
+                                              onClick={() =>
+                                                handleViewNotes(item)
+                                              }
+                                              className="text-blue-600 hover:text-blue-700 hover:bg-blue-50"
+                                            >
+                                              Notes
+                                            </Button>
+                                          </div>
+                                        </TableCell>
+                                      </TableRow>
+                                    ))
+                                )}
                               </TableBody>
                             </Table>
+                          </div>
+
+                          {/* Pagination */}
+                          <div className="flex justify-between items-center">
+                            <span className="text-sm text-gray-600">
+                              Showing{" "}
+                              {Math.min(
+                                (currentPageHistory - 1) * ITEMS_PER_PAGE + 1,
+                                filteredData.length
+                              )}{" "}
+                              to{" "}
+                              {Math.min(
+                                currentPageHistory * ITEMS_PER_PAGE,
+                                filteredData.length
+                              )}{" "}
+                              of {filteredData.length} entries
+                            </span>
+                            <div className="flex space-x-2">
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() =>
+                                  setCurrentPageHistory((prev) =>
+                                    Math.max(prev - 1, 1)
+                                  )
+                                }
+                                disabled={currentPageHistory === 1}
+                                className="border-emerald-200 hover:bg-emerald-50"
+                              >
+                                Previous
+                              </Button>
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() =>
+                                  setCurrentPageHistory((prev) =>
+                                    Math.min(
+                                      prev + 1,
+                                      Math.ceil(
+                                        filteredData.length / ITEMS_PER_PAGE
+                                      )
+                                    )
+                                  )
+                                }
+                                disabled={
+                                  currentPageHistory >=
+                                  Math.ceil(filteredData.length / ITEMS_PER_PAGE)
+                                }
+                                className="border-emerald-200 hover:bg-emerald-50"
+                              >
+                                Next
+                              </Button>
+                            </div>
                           </div>
                         </div>
                       </CardContent>
@@ -1798,112 +1991,6 @@ export default function Input() {
                   </motion.div>
                 </TabsContent>
 
-                {/* Notes Dialog */}
-                <AnimatePresence>
-                  {notesDialogOpen && (
-                    <motion.div
-                      initial={{ opacity: 0 }}
-                      animate={{ opacity: 1 }}
-                      exit={{ opacity: 0 }}
-                      className="fixed inset-0 bg-black/50 flex items-center justify-center z-50"
-                      onClick={() => setNotesDialogOpen(false)}
-                    >
-                      <motion.div
-                        initial={{ scale: 0.95, opacity: 0 }}
-                        animate={{ scale: 1, opacity: 1 }}
-                        exit={{ scale: 0.95, opacity: 0 }}
-                        className="bg-white rounded-lg shadow-xl max-w-lg w-full mx-4"
-                        onClick={(e) => e.stopPropagation()}
-                      >
-                        <div className="bg-gradient-to-r from-emerald-500 to-emerald-600 text-white px-6 py-4 rounded-t-lg flex justify-between items-center">
-                          <h3 className="text-lg font-semibold">Notes</h3>
-                          <button
-                            onClick={() => setNotesDialogOpen(false)}
-                            className="text-white hover:text-emerald-100"
-                          >
-                            ✕
-                          </button>
-                        </div>
-                        <div className="p-6">
-                          <p className="text-gray-700 whitespace-pre-wrap">
-                            {selectedNotes}
-                          </p>
-                        </div>
-                        <div className="px-6 py-4 bg-gray-50 rounded-b-lg flex justify-end">
-                          <AnimatedSubmitButton
-                            onClick={() => setNotesDialogOpen(false)}
-                            className="backdrop-blur-md bg-emerald-500 text-white hover:bg-emerald-600"
-                          >
-                            Close
-                          </AnimatedSubmitButton>
-                        </div>
-                      </motion.div>
-                    </motion.div>
-                  )}
-                </AnimatePresence>
-
-                {/* Documents Dialog */}
-                <AnimatePresence>
-                  {documentsDialogOpen && (
-                    <motion.div
-                      initial={{ opacity: 0 }}
-                      animate={{ opacity: 1 }}
-                      exit={{ opacity: 0 }}
-                      className="fixed inset-0 bg-black/50 flex items-center justify-center z-50"
-                      onClick={() => setDocumentsDialogOpen(false)}
-                    >
-                      <motion.div
-                        initial={{ scale: 0.95, opacity: 0 }}
-                        animate={{ scale: 1, opacity: 1 }}
-                        exit={{ scale: 0.95, opacity: 0 }}
-                        className="bg-white rounded-lg shadow-xl max-w-lg w-full mx-4"
-                        onClick={(e) => e.stopPropagation()}
-                      >
-                        <div className="bg-gradient-to-r from-emerald-500 to-emerald-600 text-white px-6 py-4 rounded-t-lg flex justify-between items-center">
-                          <h3 className="text-lg font-semibold">Documents</h3>
-                          <button
-                            onClick={() => setDocumentsDialogOpen(false)}
-                            className="text-white hover:text-emerald-100"
-                          >
-                            ✕
-                          </button>
-                        </div>
-                        <div className="p-6">
-                          {selectedDocuments.length > 0 ? (
-                            <ul className="space-y-3">
-                              {selectedDocuments.map((doc, idx) => (
-                                <li
-                                  key={idx}
-                                  className="flex items-center justify-between p-3 bg-gray-50 rounded-lg hover:bg-gray-100"
-                                >
-                                  <span className="text-gray-700">{doc}</span>
-                                  <button
-                                    onClick={() => handleDownloadDocument(doc)}
-                                    className="text-emerald-600 hover:text-emerald-800 text-sm font-medium"
-                                  >
-                                    Download
-                                  </button>
-                                </li>
-                              ))}
-                            </ul>
-                          ) : (
-                            <p className="text-gray-500">
-                              No documents available
-                            </p>
-                          )}
-                        </div>
-                        <div className="px-6 py-4 bg-gray-50 rounded-b-lg flex justify-end">
-                          <AnimatedSubmitButton
-                            onClick={() => setDocumentsDialogOpen(false)}
-                            className="backdrop-blur-md bg-emerald-500 text-white hover:bg-emerald-600"
-                          >
-                            Close
-                          </AnimatedSubmitButton>
-                        </div>
-                      </motion.div>
-                    </motion.div>
-                  )}
-                </AnimatePresence>
 
                 <TabsContent value="trace-source" key="trace-source">
                   <motion.div
@@ -2024,6 +2111,10 @@ export default function Input() {
                                         .includes(term)
                                     );
                                   })
+                                  .slice(
+                                    (currentPageTrace - 1) * ITEMS_PER_PAGE,
+                                    currentPageTrace * ITEMS_PER_PAGE
+                                  )
                                   .map((item: any, index) => {
                                     // Format date captured
                                     let dateCaptured = "N/A";
@@ -2087,6 +2178,182 @@ export default function Input() {
                               </TableBody>
                             </Table>
                           </div>
+                          {/* Pagination controls */}
+                          <div className="flex items-center justify-between mt-4">
+                            <span className="text-sm text-gray-600">
+                              Showing{" "}
+                              {Math.min((currentPageTrace - 1) * ITEMS_PER_PAGE + 1, traceData.filter((item) => {
+                                // Filter by applied date range
+                                if (appliedStartDateTrace || appliedEndDateTrace) {
+                                  if (!item.diarystartdate) return false;
+                                  const itemDate = new Date(item.diarystartdate);
+                                  if (isNaN(itemDate.getTime())) return false;
+                                  if (appliedStartDateTrace) {
+                                    const start = new Date(appliedStartDateTrace);
+                                    start.setHours(0, 0, 0, 0);
+                                    if (itemDate < start) return false;
+                                  }
+                                  if (appliedEndDateTrace) {
+                                    const end = new Date(appliedEndDateTrace);
+                                    end.setHours(23, 59, 59, 999);
+                                    if (itemDate > end) return false;
+                                  }
+                                }
+                                return true;
+                              }).filter((item) => {
+                                // Filter by search term
+                                if (!searchTerm) return true;
+                                const term = searchTerm.toLowerCase();
+                                return (
+                                  (item.diaryentityName || "").toLowerCase().includes(term) ||
+                                  (item.diaryname || "").toLowerCase().includes(term) ||
+                                  (item.diaryentityownerName || "").toLowerCase().includes(term) ||
+                                  (item.diarystatusName || "").toLowerCase().includes(term)
+                                );
+                              }).length)}{" "}
+                              to{" "}
+                              {Math.min(currentPageTrace * ITEMS_PER_PAGE, traceData.filter((item) => {
+                                // Filter by applied date range
+                                if (appliedStartDateTrace || appliedEndDateTrace) {
+                                  if (!item.diarystartdate) return false;
+                                  const itemDate = new Date(item.diarystartdate);
+                                  if (isNaN(itemDate.getTime())) return false;
+                                  if (appliedStartDateTrace) {
+                                    const start = new Date(appliedStartDateTrace);
+                                    start.setHours(0, 0, 0, 0);
+                                    if (itemDate < start) return false;
+                                  }
+                                  if (appliedEndDateTrace) {
+                                    const end = new Date(appliedEndDateTrace);
+                                    end.setHours(23, 59, 59, 999);
+                                    if (itemDate > end) return false;
+                                  }
+                                }
+                                return true;
+                              }).filter((item) => {
+                                // Filter by search term
+                                if (!searchTerm) return true;
+                                const term = searchTerm.toLowerCase();
+                                return (
+                                  (item.diaryentityName || "").toLowerCase().includes(term) ||
+                                  (item.diaryname || "").toLowerCase().includes(term) ||
+                                  (item.diaryentityownerName || "").toLowerCase().includes(term) ||
+                                  (item.diarystatusName || "").toLowerCase().includes(term)
+                                );
+                              }).length)}{" "}
+                              of{" "}
+                              {traceData.filter((item) => {
+                                // Filter by applied date range
+                                if (appliedStartDateTrace || appliedEndDateTrace) {
+                                  if (!item.diarystartdate) return false;
+                                  const itemDate = new Date(item.diarystartdate);
+                                  if (isNaN(itemDate.getTime())) return false;
+                                  if (appliedStartDateTrace) {
+                                    const start = new Date(appliedStartDateTrace);
+                                    start.setHours(0, 0, 0, 0);
+                                    if (itemDate < start) return false;
+                                  }
+                                  if (appliedEndDateTrace) {
+                                    const end = new Date(appliedEndDateTrace);
+                                    end.setHours(23, 59, 59, 999);
+                                    if (itemDate > end) return false;
+                                  }
+                                }
+                                return true;
+                              }).filter((item) => {
+                                // Filter by search term
+                                if (!searchTerm) return true;
+                                const term = searchTerm.toLowerCase();
+                                return (
+                                  (item.diaryentityName || "").toLowerCase().includes(term) ||
+                                  (item.diaryname || "").toLowerCase().includes(term) ||
+                                  (item.diaryentityownerName || "").toLowerCase().includes(term) ||
+                                  (item.diarystatusName || "").toLowerCase().includes(term)
+                                );
+                              }).length} entries
+                            </span>
+                            <div className="flex space-x-2">
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => setCurrentPageTrace((prev) => Math.max(prev - 1, 1))}
+                                disabled={currentPageTrace === 1}
+                                className="border-emerald-200 hover:bg-emerald-50"
+                              >
+                                Previous
+                              </Button>
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() =>
+                                  setCurrentPageTrace((prev) =>
+                                    Math.min(prev + 1, Math.ceil(traceData.filter((item) => {
+                                      // Filter by applied date range
+                                      if (appliedStartDateTrace || appliedEndDateTrace) {
+                                        if (!item.diarystartdate) return false;
+                                        const itemDate = new Date(item.diarystartdate);
+                                        if (isNaN(itemDate.getTime())) return false;
+                                        if (appliedStartDateTrace) {
+                                          const start = new Date(appliedStartDateTrace);
+                                          start.setHours(0, 0, 0, 0);
+                                          if (itemDate < start) return false;
+                                        }
+                                        if (appliedEndDateTrace) {
+                                          const end = new Date(appliedEndDateTrace);
+                                          end.setHours(23, 59, 59, 999);
+                                          if (itemDate > end) return false;
+                                        }
+                                      }
+                                      return true;
+                                    }).filter((item) => {
+                                      // Filter by search term
+                                      if (!searchTerm) return true;
+                                      const term = searchTerm.toLowerCase();
+                                      return (
+                                        (item.diaryentityName || "").toLowerCase().includes(term) ||
+                                        (item.diaryname || "").toLowerCase().includes(term) ||
+                                        (item.diaryentityownerName || "").toLowerCase().includes(term) ||
+                                        (item.diarystatusName || "").toLowerCase().includes(term)
+                                      );
+                                    }).length / ITEMS_PER_PAGE))
+                                  )
+                                }
+                                disabled={currentPageTrace >= Math.ceil(traceData.filter((item) => {
+                                  // Filter by applied date range
+                                  if (appliedStartDateTrace || appliedEndDateTrace) {
+                                    if (!item.diarystartdate) return false;
+                                    const itemDate = new Date(item.diarystartdate);
+                                    if (isNaN(itemDate.getTime())) return false;
+                                    if (appliedStartDateTrace) {
+                                      const start = new Date(appliedStartDateTrace);
+                                      start.setHours(0, 0, 0, 0);
+                                      if (itemDate < start) return false;
+                                    }
+                                    if (appliedEndDateTrace) {
+                                      const end = new Date(appliedEndDateTrace);
+                                      end.setHours(23, 59, 59, 999);
+                                      if (itemDate > end) return false;
+                                    }
+                                  }
+                                  return true;
+                                }).filter((item) => {
+                                  // Filter by search term
+                                  if (!searchTerm) return true;
+                                  const term = searchTerm.toLowerCase();
+                                  return (
+                                    (item.diaryentityName || "").toLowerCase().includes(term) ||
+                                    (item.diaryname || "").toLowerCase().includes(term) ||
+                                    (item.diaryentityownerName || "").toLowerCase().includes(term) ||
+                                    (item.diarystatusName || "").toLowerCase().includes(term)
+                                  );
+                                }).length / ITEMS_PER_PAGE)}
+                                className="border-emerald-200 hover:bg-emerald-50"
+                              >
+                                Next
+                              </Button>
+                            </div>
+                          </div>
+
                         </div>
                       </CardContent>
                     </Card>
