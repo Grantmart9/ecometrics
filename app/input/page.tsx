@@ -41,12 +41,12 @@ import {
   AddCircle,
   UploadFile,
   History,
-  TrackChanges,
   CheckCircle,
   Description,
   Note,
   AttachFile,
 } from "@mui/icons-material";
+import { Snackbar, Alert } from "@mui/material";
 import {
   InputData,
   CreateInputDataRequest,
@@ -106,6 +106,108 @@ export default function Input() {
   const [attachmentFiles, setAttachmentFiles] = useState<File[]>([]);
   const [modalNotes, setModalNotes] = useState<string[]>([]);
   const [currentNoteInput, setCurrentNoteInput] = useState("");
+
+  // Custom alert dialog state
+  const [alertDialogOpen, setAlertDialogOpen] = useState(false);
+  const [alertMessage, setAlertMessage] = useState("");
+  const [alertType, setAlertType] = useState<"success" | "error">("success");
+
+  // Show custom alert
+  const showAlert = (message: string, type: "success" | "error") => {
+    setAlertMessage(message);
+    setAlertType(type);
+    setAlertDialogOpen(true);
+  };
+
+  // Detail dialog state for Input History
+  const [detailDialogOpen, setDetailDialogOpen] = useState(false);
+  const [selectedDetailItem, setSelectedDetailItem] = useState<any>(null);
+  const [detailLoading, setDetailLoading] = useState(false);
+
+  // Attachment dialog state for Input History
+  const [historyAttachmentDialogOpen, setHistoryAttachmentDialogOpen] = useState(false);
+  const [selectedHistoryAttachmentItem, setSelectedHistoryAttachmentItem] = useState<any>(null);
+
+  // Notes dialog state for Input History
+  const [historyNotesDialogOpen, setHistoryNotesDialogOpen] = useState(false);
+  const [selectedHistoryNotesItem, setSelectedHistoryNotesItem] = useState<any>(null);
+  const [historyEntryNotes, setHistoryEntryNotes] = useState<string[]>([]);
+
+  // Handle opening attachments dialog
+  const handleViewHistoryAttachments = (item: any) => {
+    setSelectedHistoryAttachmentItem(item);
+    setHistoryAttachmentDialogOpen(true);
+  };
+
+  // Handle opening notes dialog
+  const handleViewHistoryNotes = (item: any) => {
+    setSelectedHistoryNotesItem(item);
+    setHistoryEntryNotes(item.notes || []);
+    setHistoryNotesDialogOpen(true);
+  };
+
+  // Handle opening detail dialog and fetching data
+  const handleViewDetail = async (item: any) => {
+    setSelectedDetailItem(null);
+    setDetailDialogOpen(true);
+    setDetailLoading(true);
+
+    try {
+      const diaryId = item.diaryid || item.diarydetaildiary;
+      if (!diaryId) {
+        setSelectedDetailItem(item);
+        setDetailLoading(false);
+        return;
+      }
+
+      const requestBody = {
+        data: JSON.stringify({
+          RecordSet: "TS",
+          TableName: "diarydetail",
+          Action: "readExact",
+          Fields: {
+            diary: diaryId.toString()
+          }
+        }),
+        PageNo: "1",
+        NoOfLines: "300",
+        CrudMessage: "@CrudMessage"
+      };
+
+      const response = await crudService.create("/crud/diarydetail", requestBody) as any;
+
+      if (response && response.Data && response.Data.length > 0) {
+        const jsonData = response.Data[0].JsonData;
+        const parsedData = JSON.parse(jsonData);
+        
+        if (parsedData.TS && parsedData.TS.TableData && parsedData.TS.TableData.length > 0) {
+          const detailData = parsedData.TS.TableData[0];
+          setSelectedDetailItem({
+            ...item,
+            ...detailData,
+            // Use the fetched data for display
+            diarydetailname: detailData.diarydetailname,
+            diarydetailtypeName: detailData.diarydetailtypeName,
+            diarydetailunitName: detailData.diarydetailunitName,
+            diarydetailquantity: detailData.diarydetailquantity,
+            diarydetailamount: detailData.diarydetailamount,
+            diarydetailstartdate: detailData.diarydetailstartdate,
+            diarydetailenddate: detailData.diarydetailenddate,
+            diarydetailentityName: detailData.diarydetailentityName,
+          });
+        } else {
+          setSelectedDetailItem(item);
+        }
+      } else {
+        setSelectedDetailItem(item);
+      }
+    } catch (error) {
+      console.error("Error fetching detail data:", error);
+      setSelectedDetailItem(item);
+    } finally {
+      setDetailLoading(false);
+    }
+  };
 
   // Activity group state
   const [activityGroups, setActivityGroups] = useState<
@@ -681,7 +783,7 @@ export default function Input() {
     );
 
     if (!isFormValid) {
-      alert("Please fill in all required fields correctly");
+      showAlert("Please fill in all required fields correctly", "error");
       return;
     }
 
@@ -728,6 +830,7 @@ export default function Input() {
       }
 
       setSubmitSuccess(true);
+      showAlert("Data submitted successfully!", "success");
       setTimeout(() => setSubmitSuccess(false), 3000);
 
       // Reset form
@@ -758,7 +861,7 @@ export default function Input() {
       fetchInputData();
     } catch (error) {
       console.error("Submit error:", error);
-      alert("Error: Please try again.");
+      showAlert("Error: Please try again.", "error");
     } finally {
       setLoading(false);
     }
@@ -995,13 +1098,19 @@ export default function Input() {
 
   const handleUploadSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (uploadFiles.length === 0) return;
+    console.log("DEBUG: handleUploadSubmit called, uploadFiles:", uploadFiles);
+    if (uploadFiles.length === 0) {
+      console.log("DEBUG: No files to upload, returning early");
+      return;
+    }
 
     setLoading(true);
     const uploadedFiles: string[] = [];
 
     try {
+      console.log("DEBUG: Starting upload loop for", uploadFiles.length, "files");
       for (const file of uploadFiles) {
+        console.log("DEBUG: Processing file:", file.name);
         try {
           // Read file content
           const fileContent = await new Promise<string>((resolve, reject) => {
@@ -1089,14 +1198,17 @@ export default function Input() {
       }
 
       if (uploadedFiles.length > 0) {
-        alert(`Upload successful:\n${uploadedFiles.join("\n")}`);
+        console.log("DEBUG: Upload successful, showing alert for:", uploadedFiles);
+        showAlert(`Upload successful:\n${uploadedFiles.join("\n")}`, "success");
         // Reset form
         setUploadFiles([]);
-                                 setExcelPreviewFile(null);
+        setExcelPreviewFile(null);
+      } else {
+        console.log("DEBUG: No files uploaded successfully");
       }
     } catch (error) {
       console.error("Upload submit error:", error);
-      alert("Upload failed. Please try again.");
+      showAlert("Upload failed. Please try again.", "error");
     } finally {
       setLoading(false);
     }
@@ -1144,7 +1256,7 @@ export default function Input() {
               onValueChange={setSelectedTab}
               className="w-full"
             >
-              <TabsList className="grid w-full grid-cols-4 mb-6 backdrop-blur-md bg-white/20 border border-white/30">
+              <TabsList className="grid w-full grid-cols-2 mb-6 justify-center backdrop-blur-md bg-white/20 border border-white/30">
                 <TabsTrigger
                   value="enter-data"
                   className="flex flex-col items-center gap-1 data-[state=active]:bg-white/30 data-[state=active]:text-emerald-700"
@@ -1153,27 +1265,40 @@ export default function Input() {
                   Enter Data
                 </TabsTrigger>
                 <TabsTrigger
-                  value="upload-file"
-                  className="flex flex-col items-center gap-1 data-[state=active]:bg-white/30 data-[state=active]:text-emerald-700"
-                >
-                  <UploadFile className="h-4 w-4" />
-                  Upload File
-                </TabsTrigger>
-                <TabsTrigger
                   value="input-history"
                   className="flex flex-col items-center gap-1 data-[state=active]:bg-white/30 data-[state=active]:text-emerald-700"
                 >
                   <History className="h-4 w-4" />
                   Input History
                 </TabsTrigger>
-                <TabsTrigger
-                  value="trace-source"
-                  className="flex flex-col items-center gap-1 data-[state=active]:bg-white/30 data-[state=active]:text-emerald-700"
-                >
-                  <TrackChanges className="h-4 w-4" />
-                  Trace Source
-                </TabsTrigger>
               </TabsList>
+
+              {/* MUI Snackbar Alert - Bottom, Upper Most Layer */}
+              <Snackbar
+                open={alertDialogOpen}
+                autoHideDuration={5000}
+                onClose={() => setAlertDialogOpen(false)}
+                anchorOrigin={{ vertical: "bottom", horizontal: "center" }}
+                sx={{
+                  "& .MuiSnackbarContent-root": {
+                    zIndex: 99999,
+                  },
+                }}
+              >
+                <Alert
+                  onClose={() => setAlertDialogOpen(false)}
+                  severity={alertType}
+                  variant="filled"
+                  sx={{
+                    width: "100%",
+                    minWidth: 300,
+                    zIndex: 99999,
+                  }}
+                >
+                  {alertType === "success" ? "✓ " : "✕ "}
+                  {alertMessage}
+                </Alert>
+              </Snackbar>
 
               <AnimatePresence mode="wait">
                 <TabsContent
@@ -1442,116 +1567,108 @@ export default function Input() {
                   </motion.div>
                 </TabsContent>
 
-                {/* Attachment Modal for Enter Data tab */}
+                {/* Upload File Modal for Enter Data tab - shows Upload File content */}
                 <Dialog
                   open={attachmentModalOpen}
                   onOpenChange={setAttachmentModalOpen}
                 >
-                  <DialogContent className="sm:max-w-md">
+                  <DialogContent className="sm:max-w-5xl max-h-[80vh] overflow-y-auto">
                     <DialogHeader>
-                      <DialogTitle>Add Attachments</DialogTitle>
+                      <DialogTitle className="flex items-center gap-2">
+                        <UploadFile className="h-5 w-5" />
+                        Upload File
+                      </DialogTitle>
                       <DialogDescription>
-                        Select files to attach to this entry
+                        Upload an Excel file to import emissions data.
                       </DialogDescription>
                     </DialogHeader>
-                    <div className="space-y-4">
-                      <div className="flex items-center justify-center w-full">
-                        <label
-                          htmlFor="attachment-input"
-                          className="flex flex-col items-center justify-center w-full h-32 border-2 border-dashed border-gray-300 rounded-lg cursor-pointer bg-gray-50 hover:bg-gray-100"
+                    <form
+                      onSubmit={handleUploadSubmit}
+                      className="space-y-4"
+                    >
+                      <div className="space-y-3">
+                        <Label className="text-sm font-medium text-gray-700">
+                          Excel File
+                        </Label>
+                        <motion.div
+                          className={`border-2 border-dashed rounded-lg p-8 text-center transition-all ${
+                            isDragging
+                              ? "border-emerald-400 bg-emerald-50/30"
+                              : "border-gray-300 bg-gray-50 hover:border-gray-400 hover:bg-gray-100"
+                          }`}
+                          whileHover={{ scale: 1.02 }}
+                          whileTap={{ scale: 0.98 }}
+                          onDragOver={(e) => {
+                            e.preventDefault();
+                            setIsDragging(true);
+                          }}
+                          onDragLeave={() => setIsDragging(false)}
+                          onDrop={(e) => {
+                            e.preventDefault();
+                            setIsDragging(false);
+                            handleFileDrop(e);
+                          }}
                         >
-                          <div className="flex flex-col items-center justify-center pt-5 pb-6">
-                            <AttachFile className="w-8 h-8 mb-3 text-gray-400" />
-                            <p className="text-sm text-gray-500">
-                              <span className="font-semibold">
-                                Click to upload
-                              </span>{" "}
-                              or drag and drop
-                            </p>
-                            <p className="text-xs text-gray-500">
-                              PDF, CSV, Excel, JSON (MAX. 10MB)
-                            </p>
-                          </div>
-                          <input
-                            id="attachment-input"
-                            type="file"
-                            multiple
-                            accept=".pdf,.csv,.xlsx,.xls,.json"
-                            onChange={(e) => {
-                              const files = Array.from(e.target.files || []);
-                              const validFiles = files.filter((file) => {
-                                const allowedTypes = [
-                                  "application/pdf",
-                                  "text/csv",
-                                  "application/vnd.ms-excel",
-                                  "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-                                  "application/json",
-                                ];
-                                return (
-                                  allowedTypes.includes(file.type) &&
-                                  file.size <= 10 * 1024 * 1024
-                                );
-                              });
-                              if (validFiles.length !== files.length) {
-                                alert(
-                                  "Some files were skipped due to invalid type or size (max 10MB)",
-                                );
-                              }
-                              setAttachmentFiles((prev) => [
-                                ...prev,
-                                ...validFiles,
-                              ]);
-                            }}
-                            className="hidden"
-                          />
-                        </label>
-                      </div>
-                      {attachmentFiles.length > 0 && (
-                        <div className="space-y-2 max-h-40 overflow-y-auto">
-                          <p className="text-sm font-medium text-gray-700">
-                            Selected files ({attachmentFiles.length}):
-                          </p>
-                          {attachmentFiles.map((file, index) => (
-                            <div
-                              key={index}
-                              className="flex items-center justify-between p-2 bg-gray-50 rounded"
-                            >
-                              <span className="text-sm text-gray-700 truncate flex-1">
-                                {file.name}
-                              </span>
+                          {excelPreviewFile ? (
+                            <div className="space-y-3">
+                              <div className="flex items-center justify-center gap-3">
+                                <UploadFile className="h-8 w-8 text-emerald-600" />
+                                <div className="text-left">
+                                  <p className="text-sm font-medium text-gray-800">{excelPreviewFile.name}</p>
+                                  <p className="text-xs text-gray-500">{(excelPreviewFile.size / 1024 / 1024).toFixed(2)} MB</p>
+                                </div>
+                              </div>
+                              <p className="text-xs text-emerald-600">File loaded - preview below</p>
+                            </div>
+                          ) : (
+                            <div>
+                              <UploadFile className="h-12 w-12 mx-auto text-gray-400 mb-4" />
+                              <p className="text-sm text-gray-700 mb-4 font-medium">
+                                Drag and drop your Excel file here, or click to select
+                              </p>
+                              <FormInput
+                                id="upload-file-input-modal"
+                                type="file"
+                                accept=".xlsx,.xls"
+                                onChange={handleUploadFileSelect}
+                                className="hidden"
+                              />
                               <Button
                                 type="button"
-                                variant="ghost"
-                                size="sm"
+                                variant="outline"
                                 onClick={() =>
-                                  setAttachmentFiles((prev) =>
-                                    prev.filter((_, i) => i !== index),
-                                  )
+                                  document
+                                    .getElementById("upload-file-input-modal")
+                                    ?.click()
                                 }
-                                className="text-red-600 hover:text-red-800"
+                                className="backdrop-blur-md bg-white/20 border-gray-300"
                               >
-                                Remove
+                                Choose File
                               </Button>
                             </div>
-                          ))}
-                        </div>
-                      )}
-                    </div>
-                    <DialogFooter>
-                      <Button
-                        type="button"
-                        variant="outline"
-                        onClick={() => setAttachmentModalOpen(false)}
-                      >
-                        Cancel
-                      </Button>
-                      <Button
-                        type="button"
-                        onClick={() => setAttachmentModalOpen(false)}
-                      >
-                        Done
-                      </Button>
-                    </DialogFooter>
+                          )}
+                        </motion.div>
+                        <p className="text-sm text-gray-600">
+                          Supported: Excel files only (max 10MB)
+                        </p>
+
+                        {/* Excel Preview */}
+                        {excelPreviewFile && (
+                          <ExcelPreview file={excelPreviewFile} onClose={() => {}} />
+                        )}
+                      </div>
+                      <div className="flex justify-end">
+                        <Button
+                          type="button"
+                          variant="outline"
+                          onClick={() => {
+                            setAttachmentModalOpen(false);
+                          }}
+                        >
+                          Close
+                        </Button>
+                      </div>
+                    </form>
                   </DialogContent>
                 </Dialog>
 
@@ -1638,121 +1755,196 @@ export default function Input() {
                   </DialogContent>
                 </Dialog>
 
-                <TabsContent value="upload-file" key="upload-file">
-                  <motion.div
-                    initial={{ opacity: 0, scale: 0.95 }}
-                    animate={{ opacity: 1, scale: 1 }}
-                    exit={{ opacity: 0, scale: 0.95 }}
-                    transition={{ duration: 0.4 }}
-                  >
-                    <Card className="backdrop-blur-md bg-white/20 border border-white/30 shadow-xl">
-                      <CardHeader className="bg-gradient-to-r from-emerald-500/80 to-emerald-600/80 text-white rounded-t-lg p-3 backdrop-blur-sm">
-                        <CardTitle>Upload File</CardTitle>
-                        <CardDescription className="text-emerald-100">
-                          Upload an Excel file to import emissions data.
-                        </CardDescription>
-                      </CardHeader>
-                      <CardContent className="backdrop-blur-sm">
-                        <form
-                          onSubmit={handleUploadSubmit}
-                          className="space-y-4"
-                        >
-                          <div className="space-y-3">
-                            <Label className="text-sm font-medium text-gray-700">
-                              Excel File
-                            </Label>
-                            <motion.div
-                              className={`border-2 border-dashed rounded-lg p-8 text-center transition-all backdrop-blur-sm ${
-                                isDragging
-                                  ? "border-emerald-400 bg-emerald-50/30"
-                                  : "border-white/40 bg-white/10 hover:border-white/60 hover:bg-white/20"
-                              }`}
-                              whileHover={{ scale: 1.02 }}
-                              whileTap={{ scale: 0.98 }}
-                              onDragOver={(e) => {
-                                e.preventDefault();
-                                setIsDragging(true);
-                              }}
-                              onDragLeave={() => setIsDragging(false)}
-                              onDrop={(e) => {
-                                e.preventDefault();
-                                setIsDragging(false);
-                                handleFileDrop(e);
-                              }}
-                            >
-                              {excelPreviewFile ? (
-                                <div className="space-y-3">
-                                  <div className="flex items-center justify-center gap-3">
-                                    <UploadFile className="h-8 w-8 text-emerald-600" />
-                                    <div className="text-left">
-                                      <p className="text-sm font-medium text-gray-800">{excelPreviewFile.name}</p>
-                                      <p className="text-xs text-gray-500">{(excelPreviewFile.size / 1024 / 1024).toFixed(2)} MB</p>
-                                    </div>
-                                  </div>
-                                  <p className="text-xs text-emerald-600">File loaded - preview below</p>
-                                </div>
-                              ) : (
-                                <div>
-                                  <UploadFile className="h-12 w-12 mx-auto text-emerald-600 mb-4" />
-                                  <p className="text-sm text-gray-700 mb-4 font-medium">
-                                    Drag and drop your Excel file here, or click to select
-                                  </p>
-                                  <FormInput
-                                    id="upload-file-input"
-                                    type="file"
-                                    accept=".xlsx,.xls"
-                                    onChange={handleUploadFileSelect}
-                                    className="hidden"
-                                  />
-                                  <AnimatedSubmitButton
-                                    type="button"
-                                    onClick={() =>
-                                      document
-                                        .getElementById("upload-file-input")
-                                        ?.click()
-                                    }
-                                    variant="outline"
-                                    className="backdrop-blur-md bg-white/20 border-white/30"
+                {/* Detail Dialog for Input History */}
+                <Dialog open={detailDialogOpen} onOpenChange={setDetailDialogOpen}>
+                  <DialogContent className="sm:max-w-4xl max-h-[80vh] overflow-y-auto">
+                    <DialogHeader>
+                      <DialogTitle>Entry Details</DialogTitle>
+                      <DialogDescription>
+                        View all details for this entry
+                      </DialogDescription>
+                    </DialogHeader>
+                    {selectedDetailItem && (
+                      <div className="space-y-4">
+                        {detailLoading ? (
+                          <div className="flex justify-center items-center gap-2 py-8">
+                            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-emerald-600" />
+                            <span className="text-emerald-600 font-medium">
+                              Loading details...
+                            </span>
+                          </div>
+                        ) : (
+                          <Table>
+                            <TableHeader>
+                              <TableRow className="bg-emerald-50">
+                                <TableHead className="w-1/3">Field</TableHead>
+                                <TableHead>Value</TableHead>
+                              </TableRow>
+                            </TableHeader>
+                            <TableBody>
+                              <TableRow>
+                                <TableCell className="font-medium">Activity Group</TableCell>
+                                <TableCell>{selectedDetailItem.diarydetailname || selectedDetailItem.diaryname || "N/A"}</TableCell>
+                              </TableRow>
+                              <TableRow>
+                                <TableCell className="font-medium">Activity Type</TableCell>
+                                <TableCell>{selectedDetailItem.diarydetailtypeName || "N/A"}</TableCell>
+                              </TableRow>
+                              <TableRow>
+                                <TableCell className="font-medium">Date Captured</TableCell>
+                                <TableCell>{selectedDetailItem.editDate || "N/A"}</TableCell>
+                              </TableRow>
+                              <TableRow>
+                                <TableCell className="font-medium">Capturer Name</TableCell>
+                                <TableCell>{selectedDetailItem.diaryentityownerName || "N/A"}</TableCell>
+                              </TableRow>
+                              <TableRow>
+                                <TableCell className="font-medium">Status</TableCell>
+                                <TableCell>
+                                  <span
+                                    className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                                      selectedDetailItem.diarystatusName === "Approved"
+                                        ? "bg-green-100 text-green-800"
+                                        : selectedDetailItem.diarystatusName === "Rejected"
+                                        ? "bg-red-100 text-red-800"
+                                        : "bg-yellow-100 text-yellow-800"
+                                    }`}
                                   >
-                                    Choose File
-                                  </AnimatedSubmitButton>
-                                </div>
-                              )}
-                            </motion.div>
-                            <p className="text-sm text-gray-600">
-                              Supported: Excel files only (max 10MB)
-                            </p>
+                                    {selectedDetailItem.diarystatusName || "Pending"}
+                                  </span>
+                                </TableCell>
+                              </TableRow>
+                              <TableRow>
+                                <TableCell className="font-medium">Quantity</TableCell>
+                                <TableCell>{selectedDetailItem.diarydetailquantity || selectedDetailItem.quantity || "N/A"}</TableCell>
+                              </TableRow>
+                              <TableRow>
+                                <TableCell className="font-medium">Amount</TableCell>
+                                <TableCell>{selectedDetailItem.diarydetailamount || selectedDetailItem.amount || "N/A"}</TableCell>
+                              </TableRow>
+                              <TableRow>
+                                <TableCell className="font-medium">UOM</TableCell>
+                                <TableCell>{selectedDetailItem.diarydetailunitName || selectedDetailItem.uomname || "N/A"}</TableCell>
+                              </TableRow>
+                              <TableRow>
+                                <TableCell className="font-medium">Cost Centre</TableCell>
+                                <TableCell>{selectedDetailItem.diarydetailentityName || selectedDetailItem.diaryentityName || "N/A"}</TableCell>
+                              </TableRow>
+                              <TableRow>
+                                <TableCell className="font-medium">Start Date</TableCell>
+                                <TableCell>
+                                  {selectedDetailItem.diarydetailstartdate
+                                    ? new Date(selectedDetailItem.diarydetailstartdate).toLocaleDateString()
+                                    : "N/A"}
+                                </TableCell>
+                              </TableRow>
+                              <TableRow>
+                                <TableCell className="font-medium">End Date</TableCell>
+                                <TableCell>
+                                  {selectedDetailItem.diarydetailenddate
+                                    ? new Date(selectedDetailItem.diarydetailenddate).toLocaleDateString()
+                                    : "N/A"}
+                                </TableCell>
+                              </TableRow>
+                            </TableBody>
+                          </Table>
+                        )}
+                      </div>
+                    )}
+                    <DialogFooter>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        onClick={() => setDetailDialogOpen(false)}
+                      >
+                        Close
+                      </Button>
+                    </DialogFooter>
+                  </DialogContent>
+                </Dialog>
 
-                            {/* Excel Preview */}
-                            {excelPreviewFile && (
-                              <ExcelPreview file={excelPreviewFile} onClose={() => { setExcelPreviewFile(null); setUploadFiles([]); }} />
-                            )}
+                {/* Attachments Dialog for Input History */}
+                <Dialog open={historyAttachmentDialogOpen} onOpenChange={setHistoryAttachmentDialogOpen}>
+                  <DialogContent className="sm:max-w-md">
+                    <DialogHeader>
+                      <DialogTitle className="flex items-center gap-2">
+                        <AttachFile className="h-5 w-5" />
+                        Attachments
+                      </DialogTitle>
+                      <DialogDescription>
+                        View attachments for this entry
+                      </DialogDescription>
+                    </DialogHeader>
+                    {selectedHistoryAttachmentItem && (
+                      <div className="space-y-4">
+                        <div className="flex items-center justify-center w-full h-32 border-2 border-dashed border-gray-300 rounded-lg bg-gray-50">
+                          <div className="flex flex-col items-center justify-center">
+                            <AttachFile className="w-8 h-8 mb-3 text-gray-400" />
+                            <p className="text-sm text-gray-500">
+                              No attachments available
+                            </p>
                           </div>
-                          <div className="flex justify-end space-x-3">
-                            <AnimatedSubmitButton
-                              type="button"
-                              onClick={() => {
-                                setUploadFiles([]);
-                                setExcelPreviewFile(null);
-                              }}
-                              variant="outline"
-                              className="backdrop-blur-md bg-white/20 border-white/30"
+                        </div>
+                      </div>
+                    )}
+                    <DialogFooter>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        onClick={() => setHistoryAttachmentDialogOpen(false)}
+                      >
+                        Close
+                      </Button>
+                    </DialogFooter>
+                  </DialogContent>
+                </Dialog>
+
+                {/* Notes Dialog for Input History */}
+                <Dialog open={historyNotesDialogOpen} onOpenChange={setHistoryNotesDialogOpen}>
+                  <DialogContent className="sm:max-w-md">
+                    <DialogHeader>
+                      <DialogTitle className="flex items-center gap-2">
+                        <Note className="h-5 w-5" />
+                        Notes
+                      </DialogTitle>
+                      <DialogDescription>
+                        View notes for this entry
+                      </DialogDescription>
+                    </DialogHeader>
+                    <div className="space-y-4">
+                      {historyEntryNotes.length > 0 ? (
+                        <div className="space-y-2 max-h-60 overflow-y-auto">
+                          {historyEntryNotes.map((note, index) => (
+                            <div
+                              key={index}
+                              className="p-3 bg-gray-50 rounded"
                             >
-                              Clear
-                            </AnimatedSubmitButton>
-                            <AnimatedSubmitButton
-                              type="submit"
-                              disabled={!excelPreviewFile}
-                              loading={loading}
-                            >
-                              Submit
-                            </AnimatedSubmitButton>
+                              <p className="text-sm text-gray-700">{note}</p>
+                            </div>
+                          ))}
+                        </div>
+                      ) : (
+                        <div className="flex items-center justify-center w-full h-32 border-2 border-dashed border-gray-300 rounded-lg bg-gray-50">
+                          <div className="flex flex-col items-center justify-center">
+                            <Note className="w-8 h-8 mb-3 text-gray-400" />
+                            <p className="text-sm text-gray-500">
+                              No notes available
+                            </p>
                           </div>
-                        </form>
-                      </CardContent>
-                    </Card>
-                  </motion.div>
-                </TabsContent>
+                        </div>
+                      )}
+                    </div>
+                    <DialogFooter>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        onClick={() => setHistoryNotesDialogOpen(false)}
+                      >
+                        Close
+                      </Button>
+                    </DialogFooter>
+                  </DialogContent>
+                </Dialog>
 
                 <TabsContent value="input-history" key="input-history">
                   <motion.div
@@ -1817,22 +2009,19 @@ export default function Input() {
                               <TableHeader>
                                 <TableRow className="bg-emerald-50/50 backdrop-blur-sm">
                                   <TableHead className="text-emerald-700 font-semibold">
-                                    Date
+                                    Activity Group
                                   </TableHead>
                                   <TableHead className="text-emerald-700 font-semibold">
-                                    Activity
+                                    Date Captured
                                   </TableHead>
                                   <TableHead className="text-emerald-700 font-semibold">
-                                    Value
-                                  </TableHead>
-                                  <TableHead className="text-emerald-700 font-semibold">
-                                    Owner
+                                    Capturer Name
                                   </TableHead>
                                   <TableHead className="text-emerald-700 font-semibold">
                                     Status
                                   </TableHead>
-                                  <TableHead className="text-emerald-700 font-semibold">
-                                    Actions
+                                  <TableHead className="text-emerald-700 font-semibold text-center">
+                                    Attachments
                                   </TableHead>
                                 </TableRow>
                               </TableHeader>
@@ -1840,7 +2029,7 @@ export default function Input() {
                                 {loading ? (
                                   <TableRow>
                                     <TableCell
-                                      colSpan={6}
+                                      colSpan={5}
                                       className="text-center py-8"
                                     >
                                       <div className="flex justify-center items-center gap-2">
@@ -1854,7 +2043,7 @@ export default function Input() {
                                 ) : filteredData.length === 0 ? (
                                   <TableRow>
                                     <TableCell
-                                      colSpan={6}
+                                      colSpan={5}
                                       className="text-center py-8"
                                     >
                                       <div className="text-gray-500">
@@ -1874,23 +2063,25 @@ export default function Input() {
                                         key={index}
                                         className="hover:bg-emerald-50/30 backdrop-blur-sm"
                                       >
-                                        <TableCell className="text-gray-800">
-                                          {item.editDate || "N/A"}
-                                        </TableCell>
-                                        <TableCell className="text-gray-800">
+                                        <TableCell 
+                                          className="text-gray-800 cursor-pointer"
+                                          onClick={() => handleViewDetail(item)}
+                                        >
                                           {item.diaryname || "N/A"}
                                         </TableCell>
-                                        <TableCell className="text-gray-800">
-                                          {item.diaryamount
-                                            ? Number(
-                                                item.diaryamount
-                                              ).toLocaleString()
-                                            : "N/A"}
+                                        <TableCell 
+                                          className="text-gray-800 cursor-pointer"
+                                          onClick={() => handleViewDetail(item)}
+                                        >
+                                          {item.editDate || "N/A"}
                                         </TableCell>
-                                        <TableCell className="text-gray-800">
+                                        <TableCell 
+                                          className="text-gray-800 cursor-pointer"
+                                          onClick={() => handleViewDetail(item)}
+                                        >
                                           {item.diaryentityownerName || "N/A"}
                                         </TableCell>
-                                        <TableCell>
+                                        <TableCell onClick={() => handleViewDetail(item)}>
                                           <span
                                             className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
                                               item.diarystatusName === "Approved"
@@ -1904,25 +2095,29 @@ export default function Input() {
                                             {item.diarystatusName || "Pending"}
                                           </span>
                                         </TableCell>
-                                        <TableCell>
-                                          <div className="flex space-x-2">
+                                        <TableCell className="text-center">
+                                          <div className="flex justify-center gap-2">
                                             <Button
                                               variant="ghost"
-                                              size="sm"
-                                              onClick={() => handleEdit(item)}
-                                              className="text-emerald-600 hover:text-emerald-700 hover:bg-emerald-50"
+                                              size="icon"
+                                              onClick={(e) => {
+                                                e.stopPropagation();
+                                                handleViewHistoryAttachments(item);
+                                              }}
+                                              title="View Attachments"
                                             >
-                                              Edit
+                                              <AttachFile className="h-4 w-4 text-emerald-600" />
                                             </Button>
                                             <Button
                                               variant="ghost"
-                                              size="sm"
-                                              onClick={() =>
-                                                handleViewNotes(item)
-                                              }
-                                              className="text-blue-600 hover:text-blue-700 hover:bg-blue-50"
+                                              size="icon"
+                                              onClick={(e) => {
+                                                e.stopPropagation();
+                                                handleViewHistoryNotes(item);
+                                              }}
+                                              title="View Notes"
                                             >
-                                              Notes
+                                              <Note className="h-4 w-4 text-emerald-600" />
                                             </Button>
                                           </div>
                                         </TableCell>
@@ -1992,373 +2187,6 @@ export default function Input() {
                 </TabsContent>
 
 
-                <TabsContent value="trace-source" key="trace-source">
-                  <motion.div
-                    initial={{ opacity: 0, scale: 0.95 }}
-                    animate={{ opacity: 1, scale: 1 }}
-                    exit={{ opacity: 0, scale: 0.95 }}
-                    transition={{ duration: 0.4 }}
-                  >
-                    <Card className="backdrop-blur-md bg-white/20 border border-white/30 shadow-xl">
-                      <CardHeader className="bg-gradient-to-r from-emerald-500/80 to-emerald-600/80 text-white rounded-t-lg p-3 backdrop-blur-sm">
-                        <CardTitle>Trace Source</CardTitle>
-                        <CardDescription className="text-emerald-100">
-                          Trace the source of your emissions.
-                        </CardDescription>
-                      </CardHeader>
-                      <CardContent className="backdrop-blur-sm">
-                        <div className="space-y-4">
-                          <div className="flex justify-between items-end">
-                            <div className="flex space-x-4">
-                              <FormInput
-                                id="start-date-trace"
-                                type="date"
-                                value={startDateTrace}
-                                onChange={(e) =>
-                                  setStartDateTrace(e.target.value)
-                                }
-                                className="backdrop-blur-sm bg-white/50 border-white/30"
-                              />
-                              <FormInput
-                                id="end-date-trace"
-                                type="date"
-                                value={endDateTrace}
-                                onChange={(e) =>
-                                  setEndDateTrace(e.target.value)
-                                }
-                                className="backdrop-blur-sm bg-white/50 border-white/30"
-                              />
-                              <AnimatedSubmitButton onClick={handleFilterTrace}>
-                                Filter
-                              </AnimatedSubmitButton>
-                            </div>
-                            <div className="flex space-x-4">
-                              <FormInput
-                                id="search-trace"
-                                placeholder="Search table..."
-                                value={searchTerm}
-                                onChange={(e) => setSearchTerm(e.target.value)}
-                                className="backdrop-blur-sm bg-white/50 border-white/30"
-                              />
-                            </div>
-                          </div>
-                          <div className="rounded-lg overflow-hidden backdrop-blur-sm">
-                            <Table>
-                              <TableHeader>
-                                <TableRow className="backdrop-blur-sm bg-white/20">
-                                  <TableHead>Activity Group</TableHead>
-                                  <TableHead>Activity</TableHead>
-                                  <TableHead>Date Captured</TableHead>
-                                  <TableHead>Capturer Name</TableHead>
-                                  <TableHead>Status</TableHead>
-                                  <TableHead>Quantity</TableHead>
-                                  <TableHead>Amount</TableHead>
-                                  <TableHead>Factor</TableHead>
-                                  <TableHead>Emissions Cost</TableHead>
-                                  <TableHead>UOM</TableHead>
-                                </TableRow>
-                              </TableHeader>
-                              <TableBody>
-                                {traceData
-                                  .filter((item) => {
-                                    // Filter by applied date range
-                                    if (
-                                      appliedStartDateTrace ||
-                                      appliedEndDateTrace
-                                    ) {
-                                      if (!item.diarystartdate) return false;
-
-                                      const itemDate = new Date(
-                                        item.diarystartdate,
-                                      );
-                                      if (isNaN(itemDate.getTime()))
-                                        return false;
-
-                                      if (appliedStartDateTrace) {
-                                        const start = new Date(
-                                          appliedStartDateTrace,
-                                        );
-                                        start.setHours(0, 0, 0, 0); // Start of day
-                                        if (itemDate < start) return false;
-                                      }
-
-                                      if (appliedEndDateTrace) {
-                                        const end = new Date(
-                                          appliedEndDateTrace,
-                                        );
-                                        end.setHours(23, 59, 59, 999); // End of day
-                                        if (itemDate > end) return false;
-                                      }
-                                    }
-                                    return true;
-                                  })
-                                  .filter((item) => {
-                                    // Filter by search term
-                                    if (!searchTerm) return true;
-                                    const term = searchTerm.toLowerCase();
-                                    return (
-                                      (item.diaryentityName || "")
-                                        .toLowerCase()
-                                        .includes(term) ||
-                                      (item.diaryname || "")
-                                        .toLowerCase()
-                                        .includes(term) ||
-                                      (item.diaryentityownerName || "")
-                                        .toLowerCase()
-                                        .includes(term) ||
-                                      (item.diarystatusName || "")
-                                        .toLowerCase()
-                                        .includes(term)
-                                    );
-                                  })
-                                  .slice(
-                                    (currentPageTrace - 1) * ITEMS_PER_PAGE,
-                                    currentPageTrace * ITEMS_PER_PAGE
-                                  )
-                                  .map((item: any, index) => {
-                                    // Format date captured
-                                    let dateCaptured = "N/A";
-                                    if (item.diarystartdate) {
-                                      try {
-                                        const date = new Date(
-                                          item.diarystartdate,
-                                        );
-                                        if (!isNaN(date.getTime())) {
-                                          dateCaptured = date
-                                            .toISOString()
-                                            .split("T")[0];
-                                        }
-                                      } catch (error) {
-                                        console.warn(
-                                          "Invalid date format:",
-                                          item.diarystartdate,
-                                        );
-                                      }
-                                    }
-
-                                    return (
-                                      <motion.tr
-                                        key={index}
-                                        initial={{ opacity: 0, y: 20 }}
-                                        animate={{ opacity: 1, y: 0 }}
-                                        transition={{ delay: index * 0.1 }}
-                                        className="backdrop-blur-sm bg-white/10 hover:bg-white/20"
-                                      >
-                                        <TableCell className="font-medium">
-                                          {item.diaryentityName || "N/A"}
-                                        </TableCell>
-                                        <TableCell>
-                                          {item.diaryname || "N/A"}
-                                        </TableCell>
-                                        <TableCell>{dateCaptured}</TableCell>
-                                        <TableCell>
-                                          {item.diaryentityownerName ||
-                                            `User ${item.diaryCreatedBy}` ||
-                                            "N/A"}
-                                        </TableCell>
-                                        <TableCell>
-                                          {item.diarystatusName || "N/A"}
-                                        </TableCell>
-                                        <TableCell>
-                                          {item.diaryvaluejson
-                                            ? JSON.parse(item.diaryvaluejson)
-                                            : "N/A"}
-                                        </TableCell>
-                                        <TableCell>
-                                          {item.diaryvaluejson
-                                            ? JSON.parse(item.diaryvaluejson)
-                                            : "N/A"}
-                                        </TableCell>
-                                        <TableCell>N/A</TableCell>
-                                        <TableCell>N/A</TableCell>
-                                        <TableCell>N/A</TableCell>
-                                      </motion.tr>
-                                    );
-                                  })}
-                              </TableBody>
-                            </Table>
-                          </div>
-                          {/* Pagination controls */}
-                          <div className="flex items-center justify-between mt-4">
-                            <span className="text-sm text-gray-600">
-                              Showing{" "}
-                              {Math.min((currentPageTrace - 1) * ITEMS_PER_PAGE + 1, traceData.filter((item) => {
-                                // Filter by applied date range
-                                if (appliedStartDateTrace || appliedEndDateTrace) {
-                                  if (!item.diarystartdate) return false;
-                                  const itemDate = new Date(item.diarystartdate);
-                                  if (isNaN(itemDate.getTime())) return false;
-                                  if (appliedStartDateTrace) {
-                                    const start = new Date(appliedStartDateTrace);
-                                    start.setHours(0, 0, 0, 0);
-                                    if (itemDate < start) return false;
-                                  }
-                                  if (appliedEndDateTrace) {
-                                    const end = new Date(appliedEndDateTrace);
-                                    end.setHours(23, 59, 59, 999);
-                                    if (itemDate > end) return false;
-                                  }
-                                }
-                                return true;
-                              }).filter((item) => {
-                                // Filter by search term
-                                if (!searchTerm) return true;
-                                const term = searchTerm.toLowerCase();
-                                return (
-                                  (item.diaryentityName || "").toLowerCase().includes(term) ||
-                                  (item.diaryname || "").toLowerCase().includes(term) ||
-                                  (item.diaryentityownerName || "").toLowerCase().includes(term) ||
-                                  (item.diarystatusName || "").toLowerCase().includes(term)
-                                );
-                              }).length)}{" "}
-                              to{" "}
-                              {Math.min(currentPageTrace * ITEMS_PER_PAGE, traceData.filter((item) => {
-                                // Filter by applied date range
-                                if (appliedStartDateTrace || appliedEndDateTrace) {
-                                  if (!item.diarystartdate) return false;
-                                  const itemDate = new Date(item.diarystartdate);
-                                  if (isNaN(itemDate.getTime())) return false;
-                                  if (appliedStartDateTrace) {
-                                    const start = new Date(appliedStartDateTrace);
-                                    start.setHours(0, 0, 0, 0);
-                                    if (itemDate < start) return false;
-                                  }
-                                  if (appliedEndDateTrace) {
-                                    const end = new Date(appliedEndDateTrace);
-                                    end.setHours(23, 59, 59, 999);
-                                    if (itemDate > end) return false;
-                                  }
-                                }
-                                return true;
-                              }).filter((item) => {
-                                // Filter by search term
-                                if (!searchTerm) return true;
-                                const term = searchTerm.toLowerCase();
-                                return (
-                                  (item.diaryentityName || "").toLowerCase().includes(term) ||
-                                  (item.diaryname || "").toLowerCase().includes(term) ||
-                                  (item.diaryentityownerName || "").toLowerCase().includes(term) ||
-                                  (item.diarystatusName || "").toLowerCase().includes(term)
-                                );
-                              }).length)}{" "}
-                              of{" "}
-                              {traceData.filter((item) => {
-                                // Filter by applied date range
-                                if (appliedStartDateTrace || appliedEndDateTrace) {
-                                  if (!item.diarystartdate) return false;
-                                  const itemDate = new Date(item.diarystartdate);
-                                  if (isNaN(itemDate.getTime())) return false;
-                                  if (appliedStartDateTrace) {
-                                    const start = new Date(appliedStartDateTrace);
-                                    start.setHours(0, 0, 0, 0);
-                                    if (itemDate < start) return false;
-                                  }
-                                  if (appliedEndDateTrace) {
-                                    const end = new Date(appliedEndDateTrace);
-                                    end.setHours(23, 59, 59, 999);
-                                    if (itemDate > end) return false;
-                                  }
-                                }
-                                return true;
-                              }).filter((item) => {
-                                // Filter by search term
-                                if (!searchTerm) return true;
-                                const term = searchTerm.toLowerCase();
-                                return (
-                                  (item.diaryentityName || "").toLowerCase().includes(term) ||
-                                  (item.diaryname || "").toLowerCase().includes(term) ||
-                                  (item.diaryentityownerName || "").toLowerCase().includes(term) ||
-                                  (item.diarystatusName || "").toLowerCase().includes(term)
-                                );
-                              }).length} entries
-                            </span>
-                            <div className="flex space-x-2">
-                              <Button
-                                variant="outline"
-                                size="sm"
-                                onClick={() => setCurrentPageTrace((prev) => Math.max(prev - 1, 1))}
-                                disabled={currentPageTrace === 1}
-                                className="border-emerald-200 hover:bg-emerald-50"
-                              >
-                                Previous
-                              </Button>
-                              <Button
-                                variant="outline"
-                                size="sm"
-                                onClick={() =>
-                                  setCurrentPageTrace((prev) =>
-                                    Math.min(prev + 1, Math.ceil(traceData.filter((item) => {
-                                      // Filter by applied date range
-                                      if (appliedStartDateTrace || appliedEndDateTrace) {
-                                        if (!item.diarystartdate) return false;
-                                        const itemDate = new Date(item.diarystartdate);
-                                        if (isNaN(itemDate.getTime())) return false;
-                                        if (appliedStartDateTrace) {
-                                          const start = new Date(appliedStartDateTrace);
-                                          start.setHours(0, 0, 0, 0);
-                                          if (itemDate < start) return false;
-                                        }
-                                        if (appliedEndDateTrace) {
-                                          const end = new Date(appliedEndDateTrace);
-                                          end.setHours(23, 59, 59, 999);
-                                          if (itemDate > end) return false;
-                                        }
-                                      }
-                                      return true;
-                                    }).filter((item) => {
-                                      // Filter by search term
-                                      if (!searchTerm) return true;
-                                      const term = searchTerm.toLowerCase();
-                                      return (
-                                        (item.diaryentityName || "").toLowerCase().includes(term) ||
-                                        (item.diaryname || "").toLowerCase().includes(term) ||
-                                        (item.diaryentityownerName || "").toLowerCase().includes(term) ||
-                                        (item.diarystatusName || "").toLowerCase().includes(term)
-                                      );
-                                    }).length / ITEMS_PER_PAGE))
-                                  )
-                                }
-                                disabled={currentPageTrace >= Math.ceil(traceData.filter((item) => {
-                                  // Filter by applied date range
-                                  if (appliedStartDateTrace || appliedEndDateTrace) {
-                                    if (!item.diarystartdate) return false;
-                                    const itemDate = new Date(item.diarystartdate);
-                                    if (isNaN(itemDate.getTime())) return false;
-                                    if (appliedStartDateTrace) {
-                                      const start = new Date(appliedStartDateTrace);
-                                      start.setHours(0, 0, 0, 0);
-                                      if (itemDate < start) return false;
-                                    }
-                                    if (appliedEndDateTrace) {
-                                      const end = new Date(appliedEndDateTrace);
-                                      end.setHours(23, 59, 59, 999);
-                                      if (itemDate > end) return false;
-                                    }
-                                  }
-                                  return true;
-                                }).filter((item) => {
-                                  // Filter by search term
-                                  if (!searchTerm) return true;
-                                  const term = searchTerm.toLowerCase();
-                                  return (
-                                    (item.diaryentityName || "").toLowerCase().includes(term) ||
-                                    (item.diaryname || "").toLowerCase().includes(term) ||
-                                    (item.diaryentityownerName || "").toLowerCase().includes(term) ||
-                                    (item.diarystatusName || "").toLowerCase().includes(term)
-                                  );
-                                }).length / ITEMS_PER_PAGE)}
-                                className="border-emerald-200 hover:bg-emerald-50"
-                              >
-                                Next
-                              </Button>
-                            </div>
-                          </div>
-
-                        </div>
-                      </CardContent>
-                    </Card>
-                  </motion.div>
-                </TabsContent>
               </AnimatePresence>
             </Tabs>
           </motion.div>
