@@ -4,10 +4,19 @@ import { useState } from "react";
 import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+} from "@/components/ui/dialog";
 import Link from "next/link";
-import { Leaf, ArrowLeft, Mail, Lock, User, Building } from "lucide-react";
+import { Leaf, ArrowLeft, Mail, Lock, User, Building, Key, CheckCircle } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/lib/auth-context";
+import { environment } from "@/lib/environment";
 
 export default function LoginPage() {
   const [isLogin, setIsLogin] = useState(true);
@@ -19,6 +28,19 @@ export default function LoginPage() {
   });
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  // Reset password dialog state
+  const [showResetDialog, setShowResetDialog] = useState(false);
+  const [resetStep, setResetStep] = useState<"username" | "otp" | "success">("username");
+  const [resetFormData, setResetFormData] = useState({
+    username: "",
+    otp: "",
+    password: "",
+    confirmPassword: "",
+  });
+  const [resetLoading, setResetLoading] = useState(false);
+  const [resetError, setResetError] = useState<string | null>(null);
+
   const router = useRouter();
   const { login, register } = useAuth();
 
@@ -82,6 +104,123 @@ export default function LoginPage() {
       ...formData,
       [e.target.name]: e.target.value,
     });
+  };
+
+  const handleResetInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setResetFormData({
+      ...resetFormData,
+      [e.target.name]: e.target.value,
+    });
+  };
+
+  const handleSendResetCode = async () => {
+    if (!resetFormData.username.trim()) {
+      setResetError("Please enter your username or email");
+      return;
+    }
+
+    setResetLoading(true);
+    setResetError(null);
+
+    try {
+      const response = await fetch(
+        `${environment.apiUrl}/auth/reset-password-request`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({ username: resetFormData.username }),
+        }
+      );
+
+      const data = await response.json();
+
+      if (data.Status === 200) {
+        // Move to OTP step
+        setResetStep("otp");
+        setResetError(null);
+      } else {
+        setResetError(data.Message || "Failed to send reset code");
+      }
+    } catch (error) {
+      setResetError("Failed to send reset code. Please try again.");
+    } finally {
+      setResetLoading(false);
+    }
+  };
+
+  const handleResetPassword = async () => {
+    if (!resetFormData.otp.trim()) {
+      setResetError("Please enter the OTP code");
+      return;
+    }
+
+    if (!resetFormData.password) {
+      setResetError("Please enter a new password");
+      return;
+    }
+
+    if (resetFormData.password.length < 6) {
+      setResetError("Password must be at least 6 characters");
+      return;
+    }
+
+    if (resetFormData.password !== resetFormData.confirmPassword) {
+      setResetError("Passwords do not match");
+      return;
+    }
+
+    setResetLoading(true);
+    setResetError(null);
+
+    try {
+      const response = await fetch(
+        `${environment.apiUrl}/auth/reset-password-confirm`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            username: resetFormData.username,
+            code: resetFormData.otp,
+            password: resetFormData.password,
+          }),
+        }
+      );
+
+      const data = await response.json();
+
+      if (data.Status === 200) {
+        // Show success
+        setResetStep("success");
+      } else {
+        setResetError(data.Message || "Failed to reset password");
+      }
+    } catch (error) {
+      setResetError("Failed to reset password. Please try again.");
+    } finally {
+      setResetLoading(false);
+    }
+  };
+
+  const handleCloseResetDialog = () => {
+    setShowResetDialog(false);
+    setResetStep("username");
+    setResetFormData({
+      username: "",
+      otp: "",
+      password: "",
+      confirmPassword: "",
+    });
+    setResetError(null);
+  };
+
+  const handleOpenResetDialog = () => {
+    setShowResetDialog(true);
+    setResetStep("username");
+    setResetError(null);
   };
 
   return (
@@ -242,6 +381,19 @@ export default function LoginPage() {
                   )}
                 </Button>
               </div>
+
+              {/* Forgot Password link */}
+              {isLogin && (
+                <div className="mt-4 text-center">
+                  <button
+                    type="button"
+                    onClick={handleOpenResetDialog}
+                    className="text-green-600 hover:text-green-700 font-medium text-sm transition-colors"
+                  >
+                    Forgot your password?
+                  </button>
+                </div>
+              )}
             </form>
 
             <div className="mt-6">
@@ -303,6 +455,196 @@ export default function LoginPage() {
           </div>
         </div>
       </div>
+
+      {/* Reset Password Dialog */}
+      <Dialog open={showResetDialog} onOpenChange={setShowResetDialog}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>
+              {resetStep === "username" && "Reset Password"}
+              {resetStep === "otp" && "Enter OTP Code"}
+              {resetStep === "success" && "Password Reset Successful"}
+            </DialogTitle>
+            <DialogDescription>
+              {resetStep === "username" &&
+                "Enter your username or email address to receive a password reset code."}
+              {resetStep === "otp" &&
+                `Enter the OTP code sent to your email address for ${resetFormData.username}.`}
+              {resetStep === "success" &&
+                "Your password has been reset successfully."}
+            </DialogDescription>
+          </DialogHeader>
+
+          {resetStep === "username" && (
+            <>
+              <div className="space-y-4">
+                {resetError && (
+                  <div className="bg-red-50 border border-red-200 rounded-lg p-3 text-red-700 text-sm">
+                    {resetError}
+                  </div>
+                )}
+                <div>
+                  <label htmlFor="reset-username" className="sr-only">
+                    Username or email
+                  </label>
+                  <div className="relative">
+                    <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                      <User className="h-5 w-5 text-gray-400" />
+                    </div>
+                    <Input
+                      id="reset-username"
+                      name="username"
+                      type="text"
+                      className="pl-10"
+                      placeholder="Username or email"
+                      value={resetFormData.username}
+                      onChange={handleResetInputChange}
+                    />
+                  </div>
+                </div>
+              </div>
+              <DialogFooter>
+                <Button
+                  variant="outline"
+                  onClick={handleCloseResetDialog}
+                  disabled={resetLoading}
+                >
+                  Cancel
+                </Button>
+                <Button
+                  onClick={handleSendResetCode}
+                  disabled={resetLoading}
+                  className="bg-green-600 hover:bg-green-700"
+                >
+                  {resetLoading ? (
+                    <div className="flex items-center">
+                      <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin mr-2"></div>
+                      Sending...
+                    </div>
+                  ) : (
+                    "Continue"
+                  )}
+                </Button>
+              </DialogFooter>
+            </>
+          )}
+
+          {resetStep === "otp" && (
+            <>
+              <div className="space-y-4">
+                {resetError && (
+                  <div className="bg-red-50 border border-red-200 rounded-lg p-3 text-red-700 text-sm">
+                    {resetError}
+                  </div>
+                )}
+                <div>
+                  <label htmlFor="otp" className="sr-only">
+                    OTP Code
+                  </label>
+                  <div className="relative">
+                    <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                      <Key className="h-5 w-5 text-gray-400" />
+                    </div>
+                    <Input
+                      id="otp"
+                      name="otp"
+                      type="text"
+                      className="pl-10 text-center text-lg tracking-widest"
+                      placeholder="Enter OTP code"
+                      value={resetFormData.otp}
+                      onChange={handleResetInputChange}
+                      maxLength={6}
+                    />
+                  </div>
+                </div>
+                <div>
+                  <label htmlFor="reset-password" className="sr-only">
+                    New Password
+                  </label>
+                  <div className="relative">
+                    <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                      <Lock className="h-5 w-5 text-gray-400" />
+                    </div>
+                    <Input
+                      id="reset-password"
+                      name="password"
+                      type="password"
+                      className="pl-10"
+                      placeholder="New password"
+                      value={resetFormData.password}
+                      onChange={handleResetInputChange}
+                    />
+                  </div>
+                </div>
+                <div>
+                  <label htmlFor="confirm-password" className="sr-only">
+                    Confirm Password
+                  </label>
+                  <div className="relative">
+                    <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                      <Lock className="h-5 w-5 text-gray-400" />
+                    </div>
+                    <Input
+                      id="confirm-password"
+                      name="confirmPassword"
+                      type="password"
+                      className="pl-10"
+                      placeholder="Confirm new password"
+                      value={resetFormData.confirmPassword}
+                      onChange={handleResetInputChange}
+                    />
+                  </div>
+                </div>
+              </div>
+              <DialogFooter>
+                <Button
+                  variant="outline"
+                  onClick={() => setResetStep("username")}
+                  disabled={resetLoading}
+                >
+                  Back
+                </Button>
+                <Button
+                  onClick={handleResetPassword}
+                  disabled={resetLoading}
+                  className="bg-green-600 hover:bg-green-700"
+                >
+                  {resetLoading ? (
+                    <div className="flex items-center">
+                      <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin mr-2"></div>
+                      Resetting...
+                    </div>
+                  ) : (
+                    "Reset Password"
+                  )}
+                </Button>
+              </DialogFooter>
+            </>
+          )}
+
+          {resetStep === "success" && (
+            <>
+              <div className="flex flex-col items-center justify-center py-6">
+                <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mb-4">
+                  <CheckCircle className="h-8 w-8 text-green-600" />
+                </div>
+                <p className="text-center text-gray-600">
+                  Your password has been reset successfully. You can now sign in
+                  with your new password.
+                </p>
+              </div>
+              <DialogFooter>
+                <Button
+                  onClick={handleCloseResetDialog}
+                  className="w-full bg-green-600 hover:bg-green-700"
+                >
+                  Done
+                </Button>
+              </DialogFooter>
+            </>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

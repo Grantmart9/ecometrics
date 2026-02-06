@@ -555,9 +555,6 @@ export default function Input() {
     if (selectedTab === "input-history") {
       console.log("Calling fetchInputData for input-history tab");
       fetchInputData();
-    } else if (selectedTab === "trace-source") {
-      console.log("Calling fetchTraceData for trace-source tab");
-      fetchTraceData();
     }
   }, [selectedTab]);
 
@@ -1096,6 +1093,20 @@ export default function Input() {
     }
   };
 
+  // Handle attachment file drops in the Attachment Modal
+  const handleAttachmentDrop = (files: File[]) => {
+    const validFiles = files.filter((file) => {
+      // Accept any file type, limit size to 10MB
+      return file.size <= 10 * 1024 * 1024;
+    });
+
+    if (validFiles.length !== files.length) {
+      alert("Some files were skipped due to size limit (max 10MB)");
+    }
+
+    setAttachmentFiles((prev) => [...prev, ...validFiles]);
+  };
+
   const handleUploadSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     console.log("DEBUG: handleUploadSubmit called, uploadFiles:", uploadFiles);
@@ -1214,6 +1225,64 @@ export default function Input() {
     }
   };
 
+  // Handle Excel preview data submission (selected rows from preview)
+  const handleExcelPreviewSubmit = async (data: {
+    headers: string[];
+    rows: any[];
+    selectedRows: number[];
+  }) => {
+    console.log("DEBUG: handleExcelPreviewSubmit called with data:", data);
+
+    if (data.selectedRows.length === 0) {
+      showAlert("Please select at least one row to submit", "error");
+      return;
+    }
+
+    setLoading(true);
+
+    try {
+      // Get the selected rows data
+      const selectedRowsData = data.selectedRows.map((rowIndex) => data.rows[rowIndex]);
+
+      console.log("DEBUG: Selected rows data:", selectedRowsData);
+
+      // Format data for the procedure call using ~n~ placeholders
+      const formattedRows = selectedRowsData.map((row) => {
+        const formattedRow: any = {};
+        row.forEach((value: any, index: number) => {
+          formattedRow[`~${index}~`] = value;
+        });
+        return formattedRow;
+      });
+
+      const inDataString = JSON.stringify(formattedRows);
+      console.log("DEBUG: InData string:", inDataString);
+
+      // Call the upload procedure
+      const result = await crudService.callProcedure("sp_loadcarbon", {
+        InData: inDataString,
+        InEntity: "140634500", // This should probably be dynamic based on user/company
+      });
+
+      console.log("DEBUG: Upload procedure result:", result);
+      showAlert(`Successfully submitted ${data.selectedRows} row(s)`, "success");
+
+      // Reset form
+      setUploadFiles([]);
+      setExcelPreviewFile(null);
+    } catch (error) {
+      console.error("DEBUG: Excel preview submit error:", error);
+      showAlert("Failed to submit data. Please try again.", "error");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Close Excel preview
+  const handleCloseExcelPreview = () => {
+    setExcelPreviewFile(null);
+  };
+
   return (
     <div className="min-h-screen relative">
       {/* 3D Background */}
@@ -1256,19 +1325,33 @@ export default function Input() {
               onValueChange={setSelectedTab}
               className="w-full"
             >
-              <TabsList className="grid w-full grid-cols-2 mb-6 justify-center backdrop-blur-md bg-white/20 border border-white/30">
+              <TabsList className="grid w-full grid-cols-4 mb-6 justify-center backdrop-blur-md bg-white/20 border border-white/30">
                 <TabsTrigger
                   value="enter-data"
-                  className="flex flex-col items-center gap-1 data-[state=active]:bg-white/30 data-[state=active]:text-emerald-700"
+                  className="flex flex-row items-center gap-2 px-4 data-[state=active]:bg-white/30 data-[state=active]:text-emerald-700"
                 >
-                  <AddCircle className="h-4 w-4" />
-                  Enter Data
+                  <span className="flex items-center justify-center w-6 h-6 rounded-full bg-emerald-600 text-white text-xs font-bold">1</span>
+                  Capture Activity
+                </TabsTrigger>
+                <TabsTrigger
+                  value="capture-bulk"
+                  className="flex flex-row items-center gap-2 px-4 data-[state=active]:bg-white/30 data-[state=active]:text-blue-700"
+                >
+                  <span className="flex items-center justify-center w-6 h-6 rounded-full bg-blue-600 text-white text-xs font-bold">2</span>
+                  Capture Bulk
+                </TabsTrigger>
+                <TabsTrigger
+                  value="capture-file"
+                  className="flex flex-row items-center gap-2 px-4 data-[state=active]:bg-white/30 data-[state=active]:text-purple-700"
+                >
+                  <span className="flex items-center justify-center w-6 h-6 rounded-full bg-purple-600 text-white text-xs font-bold">3</span>
+                  Capture File
                 </TabsTrigger>
                 <TabsTrigger
                   value="input-history"
-                  className="flex flex-col items-center gap-1 data-[state=active]:bg-white/30 data-[state=active]:text-emerald-700"
+                  className="flex flex-row items-center gap-2 px-4 data-[state=active]:bg-white/30 data-[state=active]:text-amber-700"
                 >
-                  <History className="h-4 w-4" />
+                  <span className="flex items-center justify-center w-6 h-6 rounded-full bg-amber-600 text-white text-xs font-bold">4</span>
                   Input History
                 </TabsTrigger>
               </TabsList>
@@ -1387,179 +1470,197 @@ export default function Input() {
                                 )}
                               </div>
                             </div>
-                            <div className="flex gap-4">
-                              <div className="flex-1">
-                                <AnimatedFormField
-                                  id="start-date"
-                                  label="Start"
-                                  type="date"
-                                  placeholder="Start"
-                                  value={formData.startDate}
-                                  onChange={(e) =>
-                                    handleInputChange(
-                                      "startDate",
-                                      e.target.value,
-                                    )
-                                  }
-                                  required
-                                  validation={validation.startDate}
-                                />
-                              </div>
-                              <div className="flex-1">
-                                <AnimatedFormField
-                                  id="end-date"
-                                  label="End"
-                                  type="date"
-                                  placeholder="End"
-                                  value={formData.endDate}
-                                  onChange={(e) =>
-                                    handleInputChange("endDate", e.target.value)
-                                  }
-                                  required
-                                  validation={validation.endDate}
-                                />
-                              </div>
-                            </div>
-                            <div className="w-full">
-                              <Label htmlFor="cost-centre" className="block text-sm font-medium text-gray-700 mb-1">
-                                Cost Centre
-                              </Label>
-                              <Select
-                                value={selectedCostCentre}
-                                onValueChange={(value) => {
-                                  setSelectedCostCentre(value);
-                                  handleInputChange("costCentre", value);
-                                }}
-                              >
-                                <SelectTrigger className={validation.costCentre.message ? "border-red-500" : ""}>
-                                  <SelectValue placeholder="Select cost centre" />
-                                </SelectTrigger>
-                                <SelectContent>
-                                  {isLoadingCostCentres ? (
-                                    <SelectItem value="loading" disabled>
-                                      Loading...
-                                    </SelectItem>
-                                  ) : costCentres.length === 0 ? (
-                                    <SelectItem value="no-data" disabled>
-                                      No data found
-                                    </SelectItem>
-                                  ) : (
-                                    costCentres.map((centre) => (
-                                      <SelectItem key={centre.id} value={centre.name}>
-                                        {centre.name}
-                                      </SelectItem>
-                                    ))
+                            {/* Show form fields only after activity group is selected */}
+                            {selectedActivityGroup ? (
+                              <>
+                                <div className="flex gap-4">
+                                  <div className="flex-1">
+                                    <AnimatedFormField
+                                      id="start-date"
+                                      label="Start"
+                                      type="date"
+                                      placeholder="Start"
+                                      value={formData.startDate}
+                                      onChange={(e) =>
+                                        handleInputChange(
+                                          "startDate",
+                                          e.target.value,
+                                        )
+                                      }
+                                      required
+                                      validation={validation.startDate}
+                                    />
+                                  </div>
+                                  <div className="flex-1">
+                                    <AnimatedFormField
+                                      id="end-date"
+                                      label="End"
+                                      type="date"
+                                      placeholder="End"
+                                      value={formData.endDate}
+                                      onChange={(e) =>
+                                        handleInputChange("endDate", e.target.value)
+                                      }
+                                      required
+                                      validation={validation.endDate}
+                                    />
+                                  </div>
+                                </div>
+                                <div className="w-full">
+                                  <Label htmlFor="cost-centre" className="block text-sm font-medium text-gray-700 mb-1">
+                                    Cost Centre
+                                  </Label>
+                                  <Select
+                                    value={selectedCostCentre}
+                                    onValueChange={(value) => {
+                                      setSelectedCostCentre(value);
+                                      handleInputChange("costCentre", value);
+                                    }}
+                                  >
+                                    <SelectTrigger className={validation.costCentre.message ? "border-red-500" : ""}>
+                                      <SelectValue placeholder="Select cost centre" />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                      {isLoadingCostCentres ? (
+                                        <SelectItem value="loading" disabled>
+                                          Loading...
+                                        </SelectItem>
+                                      ) : costCentres.length === 0 ? (
+                                        <SelectItem value="no-data" disabled>
+                                          No data found
+                                        </SelectItem>
+                                      ) : (
+                                        costCentres.map((centre) => (
+                                          <SelectItem key={centre.id} value={centre.name}>
+                                            {centre.name}
+                                          </SelectItem>
+                                        ))
+                                      )}
+                                    </SelectContent>
+                                  </Select>
+                                  {validation.costCentre.message && (
+                                    <p className="text-red-500 text-xs mt-1">
+                                      {validation.costCentre.message}
+                                    </p>
                                   )}
-                                </SelectContent>
-                              </Select>
-                              {validation.costCentre.message && (
-                                <p className="text-red-500 text-xs mt-1">
-                                  {validation.costCentre.message}
-                                </p>
-                              )}
-                            </div>
-                            <div className="w-full">
-                              <Label htmlFor="consumption-type" className="block text-sm font-medium text-gray-700 mb-1">
-                                Consumption Type
-                              </Label>
-                              <Select
-                                value={selectedConsumptionType}
-                                onValueChange={(value) => {
-                                  setSelectedConsumptionType(value);
-                                  handleInputChange("consumptionType", value);
-                                }}
-                              >
-                                <SelectTrigger className={validation.consumptionType.message ? "border-red-500" : ""}>
-                                  <SelectValue placeholder="Select consumption type" />
-                                </SelectTrigger>
-                                <SelectContent>
-                                  {isLoadingConsumptionTypes ? (
-                                    <SelectItem value="loading" disabled>
-                                      Loading...
-                                    </SelectItem>
-                                  ) : consumptionTypes.length === 0 ? (
-                                    <SelectItem value="no-data" disabled>
-                                      No data found
-                                    </SelectItem>
-                                  ) : (
-                                    consumptionTypes.map((type) => (
-                                      <SelectItem key={type.id} value={type.name}>
-                                        {type.name}
-                                      </SelectItem>
-                                    ))
+                                </div>
+                                <div className="w-full">
+                                  <Label htmlFor="consumption-type" className="block text-sm font-medium text-gray-700 mb-1">
+                                    Consumption Type
+                                  </Label>
+                                  <Select
+                                    value={selectedConsumptionType}
+                                    onValueChange={(value) => {
+                                      setSelectedConsumptionType(value);
+                                      handleInputChange("consumptionType", value);
+                                    }}
+                                  >
+                                    <SelectTrigger className={validation.consumptionType.message ? "border-red-500" : ""}>
+                                      <SelectValue placeholder="Select consumption type" />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                      {isLoadingConsumptionTypes ? (
+                                        <SelectItem value="loading" disabled>
+                                          Loading...
+                                        </SelectItem>
+                                      ) : consumptionTypes.length === 0 ? (
+                                        <SelectItem value="no-data" disabled>
+                                          No data found
+                                        </SelectItem>
+                                      ) : (
+                                        consumptionTypes.map((type) => (
+                                          <SelectItem key={type.id} value={type.name}>
+                                            {type.name}
+                                          </SelectItem>
+                                        ))
+                                      )}
+                                    </SelectContent>
+                                  </Select>
+                                  {validation.consumptionType.message && (
+                                    <p className="text-red-500 text-xs mt-1">
+                                      {validation.consumptionType.message}
+                                    </p>
                                   )}
-                                </SelectContent>
-                              </Select>
-                              {validation.consumptionType.message && (
-                                <p className="text-red-500 text-xs mt-1">
-                                  {validation.consumptionType.message}
+                                </div>
+                                <div className="w-full">
+                                  <label htmlFor="monetary-value" className="block text-sm font-medium text-gray-700 mb-1">
+                                    Value
+                                  </label>
+                                  <div className="relative">
+                                    <input
+                                      id="monetary-value"
+                                      type="number"
+                                      className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 pr-12"
+                                      placeholder="Enter value"
+                                      value={formData.monetaryValue}
+                                      onChange={(e) =>
+                                        handleInputChange(
+                                          "monetaryValue",
+                                          e.target.value,
+                                        )
+                                      }
+                                      step="0.01"
+                                    />
+                                    {unitOfMeasurement && (
+                                      <span className="absolute inset-y-0 right-0 flex items-center pr-3 text-sm text-gray-500">
+                                        {unitOfMeasurement}
+                                      </span>
+                                    )}
+                                  </div>
+                                </div>
+                                <div className="w-full">
+                                  <AnimatedFormField
+                                    id="status"
+                                    label="Status"
+                                    type="text"
+                                    placeholder="Status"
+                                    value={formData.status}
+                                    onChange={(e) =>
+                                      handleInputChange("status", e.target.value)
+                                    }
+                                  />
+                                </div>
+                                <div className="flex gap-2 justify-center">
+                                  <Button
+                                    type="button"
+                                    variant="outline"
+                                    size="icon"
+                                    onClick={() => setAttachmentModalOpen(true)}
+                                    className="backdrop-blur-md bg-white/20 border-white/30 hover:bg-white/30"
+                                    title="Add attachments"
+                                  >
+                                    <AttachFile className="h-4 w-4" />
+                                  </Button>
+                                  <Button
+                                    type="button"
+                                    variant="outline"
+                                    size="icon"
+                                    onClick={() => setNotesModalOpen(true)}
+                                    className="backdrop-blur-md bg-white/20 border-white/30 hover:bg-white/30"
+                                    title="Add notes"
+                                  >
+                                    <Note className="h-4 w-4" />
+                                  </Button>
+                                </div>
+                                <div className="w-full flex justify-center">
+                                  <AnimatedSubmitButton
+                                    type="submit"
+                                    disabled={loading}
+                                    loading={loading}
+                                    success={submitSuccess}
+                                    onClick={() => {}}
+                                  >
+                                    {editingId ? "Update" : "Submit"}
+                                  </AnimatedSubmitButton>
+                                </div>
+                              </>
+                            ) : (
+                              <div className="w-full py-8 text-center">
+                                <p className="text-gray-500 text-sm">
+                                  Select an activity group above to enter data
                                 </p>
-                              )}
-                            </div>
-                            <div className="w-full">
-                              <label className="block text-sm font-medium text-gray-700 mb-1">
-                                Value {unitOfMeasurement && <span className="text-gray-500 font-normal">({unitOfMeasurement})</span>}
-                              </label>
-                              <input
-                                id="monetary-value"
-                                type="number"
-                                className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
-                                placeholder="Enter value"
-                                value={formData.monetaryValue}
-                                onChange={(e) =>
-                                  handleInputChange(
-                                    "monetaryValue",
-                                    e.target.value,
-                                  )
-                                }
-                                step="0.01"
-                              />
-                            </div>
-                            <div className="w-full">
-                              <AnimatedFormField
-                                id="status"
-                                label="Status"
-                                type="text"
-                                placeholder="Status"
-                                value={formData.status}
-                                onChange={(e) =>
-                                  handleInputChange("status", e.target.value)
-                                }
-                              />
-                            </div>
-                            <div className="flex gap-2 justify-center">
-                              <Button
-                                type="button"
-                                variant="outline"
-                                size="icon"
-                                onClick={() => setAttachmentModalOpen(true)}
-                                className="backdrop-blur-md bg-white/20 border-white/30 hover:bg-white/30"
-                                title="Add attachments"
-                              >
-                                <AttachFile className="h-4 w-4" />
-                              </Button>
-                              <Button
-                                type="button"
-                                variant="outline"
-                                size="icon"
-                                onClick={() => setNotesModalOpen(true)}
-                                className="backdrop-blur-md bg-white/20 border-white/30 hover:bg-white/30"
-                                title="Add notes"
-                              >
-                                <Note className="h-4 w-4" />
-                              </Button>
-                            </div>
-                            <div className="w-full flex justify-center">
-                              <AnimatedSubmitButton
-                                type="submit"
-                                disabled={loading}
-                                loading={loading}
-                                success={submitSuccess}
-                                onClick={() => {}}
-                              >
-                                {editingId ? "Update" : "Submit"}
-                              </AnimatedSubmitButton>
-                            </div>
+                              </div>
+                            )}
                           </div>
                         </form>
                       </CardContent>
@@ -1567,110 +1668,175 @@ export default function Input() {
                   </motion.div>
                 </TabsContent>
 
-                {/* Upload File Modal for Enter Data tab - shows Upload File content */}
-                <Dialog
-                  open={attachmentModalOpen}
-                  onOpenChange={setAttachmentModalOpen}
-                >
-                  <DialogContent className="sm:max-w-5xl max-h-[80vh] overflow-y-auto">
-                    <DialogHeader>
-                      <DialogTitle className="flex items-center gap-2">
-                        <UploadFile className="h-5 w-5" />
-                        Upload File
-                      </DialogTitle>
-                      <DialogDescription>
-                        Upload an Excel file to import emissions data.
-                      </DialogDescription>
-                    </DialogHeader>
-                    <form
-                      onSubmit={handleUploadSubmit}
-                      className="space-y-4"
-                    >
-                      <div className="space-y-3">
-                        <Label className="text-sm font-medium text-gray-700">
-                          Excel File
-                        </Label>
-                        <motion.div
-                          className={`border-2 border-dashed rounded-lg p-8 text-center transition-all ${
-                            isDragging
-                              ? "border-emerald-400 bg-emerald-50/30"
-                              : "border-gray-300 bg-gray-50 hover:border-gray-400 hover:bg-gray-100"
-                          }`}
-                          whileHover={{ scale: 1.02 }}
-                          whileTap={{ scale: 0.98 }}
-                          onDragOver={(e) => {
-                            e.preventDefault();
-                            setIsDragging(true);
-                          }}
-                          onDragLeave={() => setIsDragging(false)}
-                          onDrop={(e) => {
-                            e.preventDefault();
-                            setIsDragging(false);
-                            handleFileDrop(e);
-                          }}
-                        >
-                          {excelPreviewFile ? (
-                            <div className="space-y-3">
-                              <div className="flex items-center justify-center gap-3">
-                                <UploadFile className="h-8 w-8 text-emerald-600" />
-                                <div className="text-left">
-                                  <p className="text-sm font-medium text-gray-800">{excelPreviewFile.name}</p>
-                                  <p className="text-xs text-gray-500">{(excelPreviewFile.size / 1024 / 1024).toFixed(2)} MB</p>
+                {/* Capture Bulk Tab */}
+                <TabsContent value="capture-bulk" key="capture-bulk">
+                  <motion.div
+                    initial={{ opacity: 0, scale: 0.95 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    exit={{ opacity: 0, scale: 0.95 }}
+                    transition={{ duration: 0.4 }}
+                  >
+                    <Card className="backdrop-blur-md bg-white/20 border-white/30 shadow-xl">
+                      <CardHeader className="bg-gradient-to-r from-blue-500/80 to-blue-600/80 text-white rounded-t-lg p-3 backdrop-blur-sm">
+                        <CardTitle>Capture Bulk</CardTitle>
+                        <CardDescription className="text-blue-100">
+                          Enter multiple emissions data entries at once.
+                        </CardDescription>
+                      </CardHeader>
+                      <CardContent className="backdrop-blur-sm">
+                        <div className="text-center py-12 text-gray-500">
+                          <p>Bulk data entry functionality coming soon...</p>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  </motion.div>
+                </TabsContent>
+
+                {/* Capture File Tab */}
+                <TabsContent value="capture-file" key="capture-file">
+                  <motion.div
+                    initial={{ opacity: 0, scale: 0.95 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    exit={{ opacity: 0, scale: 0.95 }}
+                    transition={{ duration: 0.4 }}
+                  >
+                    <Card className="backdrop-blur-md bg-white/20 border-white/30 shadow-xl">
+                      <CardHeader className="bg-gradient-to-r from-purple-500/80 to-purple-600/80 text-white rounded-t-lg p-3 backdrop-blur-sm">
+                        <CardTitle>Capture File</CardTitle>
+                        <CardDescription className="text-purple-100">
+                          Upload and process file data for emissions tracking.
+                        </CardDescription>
+                      </CardHeader>
+                      <CardContent className="backdrop-blur-sm">
+                        <form onSubmit={handleUploadSubmit} className="space-y-4">
+                          <div className="space-y-3">
+                            <Label className="text-sm font-medium text-gray-700">
+                              Excel Files
+                            </Label>
+                            <motion.div
+                              className={`border-2 border-dashed rounded-lg p-8 text-center transition-all ${
+                                isDragging
+                                  ? "border-purple-400 bg-purple-50/30"
+                                  : "border-gray-300 bg-gray-50 hover:border-gray-400 hover:bg-gray-100"
+                              }`}
+                              whileHover={{ scale: 1.02 }}
+                              whileTap={{ scale: 0.98 }}
+                              onDragOver={(e) => {
+                                e.preventDefault();
+                                setIsDragging(true);
+                              }}
+                              onDragLeave={() => setIsDragging(false)}
+                              onDrop={(e) => {
+                                e.preventDefault();
+                                setIsDragging(false);
+                                handleFileDrop(e);
+                              }}
+                            >
+                              <div>
+                                <UploadFile className="h-12 w-12 mx-auto text-gray-400 mb-4" />
+                                <p className="text-sm text-gray-700 mb-4 font-medium">
+                                  Drag and drop files here, or click to select
+                                </p>
+                                <FormInput
+                                  id="capture-file-input"
+                                  type="file"
+                                  accept=".xlsx,.xls,.csv"
+                                  multiple
+                                  onChange={handleUploadFileSelect}
+                                  className="hidden"
+                                />
+                                <Button
+                                  type="button"
+                                  variant="outline"
+                                  onClick={() =>
+                                    document
+                                      .getElementById("capture-file-input")
+                                      ?.click()
+                                  }
+                                  className="backdrop-blur-md bg-white/20 border-gray-300"
+                                >
+                                  Choose Files
+                                </Button>
+                              </div>
+                            </motion.div>
+                            <p className="text-sm text-gray-600">
+                              Supported: Excel and CSV files (max 10MB each)
+                            </p>
+
+                            {/* Selected Files List */}
+                            {uploadFiles.length > 0 && (
+                              <div className="space-y-2">
+                                <p className="text-sm font-medium text-gray-700">
+                                  Selected Files ({uploadFiles.length}):
+                                </p>
+                                <div className="space-y-2 max-h-40 overflow-y-auto">
+                                  {uploadFiles.map((file, index) => (
+                                    <div
+                                      key={index}
+                                      className="flex items-center justify-between p-2 bg-gray-50 rounded"
+                                    >
+                                      <div className="flex items-center gap-2">
+                                        <UploadFile className="h-4 w-4 text-purple-600" />
+                                        <span className="text-sm text-gray-700">{file.name}</span>
+                                        <span className="text-xs text-gray-500">
+                                          ({(file.size / 1024 / 1024).toFixed(2)} MB)
+                                        </span>
+                                      </div>
+                                      <Button
+                                        type="button"
+                                        variant="ghost"
+                                        size="sm"
+                                        onClick={() =>
+                                          setUploadFiles((prev) =>
+                                            prev.filter((_, i) => i !== index)
+                                          )
+                                        }
+                                        className="text-red-600 hover:text-red-800"
+                                      >
+                                        Remove
+                                      </Button>
+                                    </div>
+                                  ))}
                                 </div>
                               </div>
-                              <p className="text-xs text-emerald-600">File loaded - preview below</p>
-                            </div>
-                          ) : (
-                            <div>
-                              <UploadFile className="h-12 w-12 mx-auto text-gray-400 mb-4" />
-                              <p className="text-sm text-gray-700 mb-4 font-medium">
-                                Drag and drop your Excel file here, or click to select
-                              </p>
-                              <FormInput
-                                id="upload-file-input-modal"
-                                type="file"
-                                accept=".xlsx,.xls"
-                                onChange={handleUploadFileSelect}
-                                className="hidden"
-                              />
-                              <Button
-                                type="button"
-                                variant="outline"
-                                onClick={() =>
-                                  document
-                                    .getElementById("upload-file-input-modal")
-                                    ?.click()
-                                }
-                                className="backdrop-blur-md bg-white/20 border-gray-300"
-                              >
-                                Choose File
-                              </Button>
-                            </div>
-                          )}
-                        </motion.div>
-                        <p className="text-sm text-gray-600">
-                          Supported: Excel files only (max 10MB)
-                        </p>
+                            )}
 
-                        {/* Excel Preview */}
-                        {excelPreviewFile && (
-                          <ExcelPreview file={excelPreviewFile} onClose={() => {}} />
-                        )}
-                      </div>
-                      <div className="flex justify-end">
-                        <Button
-                          type="button"
-                          variant="outline"
-                          onClick={() => {
-                            setAttachmentModalOpen(false);
-                          }}
-                        >
-                          Close
-                        </Button>
-                      </div>
-                    </form>
-                  </DialogContent>
-                </Dialog>
+                            {/* Excel Preview Component */}
+                            {excelPreviewFile && (
+                              <div className="mt-4">
+                                <ExcelPreview
+                                  file={excelPreviewFile}
+                                  onClose={handleCloseExcelPreview}
+                                  onSubmit={handleExcelPreviewSubmit}
+                                />
+                              </div>
+                            )}
+                          </div>
+                             {/* Action Buttons - hide when Excel preview is shown */}
+                             {!excelPreviewFile && (
+                               <div className="flex justify-end gap-2">
+                                 <Button
+                                   type="button"
+                                   variant="outline"
+                                   onClick={() => setUploadFiles([])}
+                                   disabled={uploadFiles.length === 0}
+                                 >
+                                   Clear All
+                                 </Button>
+                                 <Button
+                                   type="submit"
+                                   disabled={uploadFiles.length === 0 || loading}
+                                   className="bg-purple-600 hover:bg-purple-700"
+                                 >
+                                   {loading ? "Uploading..." : "Upload Files"}
+                                 </Button>
+                               </div>
+                             )}
+                         </form>
+                      </CardContent>
+                    </Card>
+                  </motion.div>
+                </TabsContent>
 
                 {/* Notes Modal for Enter Data tab */}
                 <Dialog open={notesModalOpen} onOpenChange={setNotesModalOpen}>
@@ -1748,6 +1914,120 @@ export default function Input() {
                       <Button
                         type="button"
                         onClick={() => setNotesModalOpen(false)}
+                      >
+                        Done
+                      </Button>
+                    </DialogFooter>
+                  </DialogContent>
+                </Dialog>
+
+                {/* Attachment Modal for Enter Data tab */}
+                <Dialog open={attachmentModalOpen} onOpenChange={setAttachmentModalOpen}>
+                  <DialogContent className="sm:max-w-md">
+                    <DialogHeader>
+                      <DialogTitle className="flex items-center gap-2">
+                        <AttachFile className="h-5 w-5" />
+                        Add Attachments
+                      </DialogTitle>
+                      <DialogDescription>
+                        Upload files for this entry (no preview)
+                      </DialogDescription>
+                    </DialogHeader>
+                    <div className="space-y-4">
+                      {/* File Upload Area */}
+                      <div
+                        className={`border-2 border-dashed rounded-lg p-6 text-center transition-all ${
+                          isDragging
+                            ? "border-purple-400 bg-purple-50"
+                            : "border-gray-300 hover:border-gray-400"
+                        }`}
+                        onDragOver={(e) => {
+                          e.preventDefault();
+                          setIsDragging(true);
+                        }}
+                        onDragLeave={() => setIsDragging(false)}
+                        onDrop={(e) => {
+                          e.preventDefault();
+                          setIsDragging(false);
+                          const files = Array.from(e.dataTransfer.files);
+                          handleAttachmentDrop(files);
+                        }}
+                      >
+                        <AttachFile className="h-10 w-10 mx-auto text-gray-400 mb-3" />
+                        <p className="text-sm text-gray-700 mb-2">
+                          Drag and drop files here, or click to select
+                        </p>
+                        <input
+                          type="file"
+                          id="attachment-input"
+                          multiple
+                          className="hidden"
+                          onChange={(e) => {
+                            const files = Array.from(e.target.files || []);
+                            handleAttachmentDrop(files);
+                          }}
+                        />
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          onClick={() =>
+                            document.getElementById("attachment-input")?.click()
+                          }
+                        >
+                          Choose Files
+                        </Button>
+                      </div>
+
+                      {/* Selected Files List */}
+                      {attachmentFiles.length > 0 && (
+                        <div className="space-y-2">
+                          <p className="text-sm font-medium text-gray-700">
+                            Selected Files ({attachmentFiles.length}):
+                          </p>
+                          <div className="space-y-2 max-h-60 overflow-y-auto">
+                            {attachmentFiles.map((file, index) => (
+                              <div
+                                key={index}
+                                className="flex items-center justify-between p-3 bg-gray-50 rounded"
+                              >
+                                <div className="flex items-center gap-2">
+                                  <AttachFile className="h-4 w-4 text-purple-600" />
+                                  <span className="text-sm text-gray-700">{file.name}</span>
+                                  <span className="text-xs text-gray-500">
+                                    ({(file.size / 1024 / 1024).toFixed(2)} MB)
+                                  </span>
+                                </div>
+                                <Button
+                                  type="button"
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={() =>
+                                    setAttachmentFiles((prev) =>
+                                      prev.filter((_, i) => i !== index)
+                                    )
+                                  }
+                                  className="text-red-600 hover:text-red-800"
+                                >
+                                  Remove
+                                </Button>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                    <DialogFooter>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        onClick={() => setAttachmentModalOpen(false)}
+                      >
+                        Cancel
+                      </Button>
+                      <Button
+                        type="button"
+                        onClick={() => setAttachmentModalOpen(false)}
                       >
                         Done
                       </Button>
@@ -1954,9 +2234,9 @@ export default function Input() {
                     transition={{ duration: 0.4 }}
                   >
                     <Card className="backdrop-blur-md bg-white/20 border border-white/30 shadow-xl">
-                      <CardHeader className="bg-gradient-to-r from-emerald-500/80 to-emerald-600/80 text-white rounded-t-lg p-3 backdrop-blur-sm">
+                      <CardHeader className="bg-gradient-to-r from-amber-500/80 to-amber-600/80 text-white rounded-t-lg p-3 backdrop-blur-sm">
                         <CardTitle>Input History</CardTitle>
-                        <CardDescription className="text-emerald-100">
+                        <CardDescription className="text-amber-100">
                           View and manage your previously entered emissions data.
                         </CardDescription>
                       </CardHeader>

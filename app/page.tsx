@@ -30,6 +30,7 @@ import {
 } from "@/components/ui/card";
 import { useAuth } from "@/lib/auth-context";
 import { useRouter } from "next/navigation";
+import { crudService } from "@/lib/crudService";
 
 export default function LandingPage() {
   const [signupModalOpen, setSignupModalOpen] = useState(false);
@@ -37,78 +38,96 @@ export default function LandingPage() {
   const { isAuthenticated, user, logout } = useAuth();
   const router = useRouter();
 
-  // Mock articles data for ABSA South Africa
-  const mockArticles = [
-    {
-      Header_1: "ABSA Launches Green Banking Initiative",
-      Title_1:
-        "ABSA introduces comprehensive green banking solutions to support South Africa's transition to a sustainable economy.",
-      Image_1:
-        "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=800&h=400&fit=crop",
-      Header_2: "New Digital Banking Platform Goes Live",
-      Title_2:
-        "ABSA's latest digital banking platform offers enhanced security and seamless user experience for millions of customers.",
-      Image_2:
-        "https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=800&h=400&fit=crop",
-      Header_3: "ABSA Reports Strong Q4 Financial Results",
-      Title_3:
-        "Record profits driven by digital transformation and strategic investments in key sectors of the South African economy.",
-      Image_3:
-        "https://images.unsplash.com/photo-1569163139394-de44cb8938ba?w=800&h=400&fit=crop",
-      Header_4: "Empowering SMEs Across South Africa",
-      Title_4:
-        "ABSA's SME support programs help small businesses thrive with tailored financial solutions and expert guidance.",
-      Image_4:
-        "https://images.unsplash.com/photo-1551288049-bebda4e38f71?w=800&h=400&fit=crop",
-      Header_5: "ABSA Stock Performance and Market Outlook",
-      Title_5:
-        "Analysis of ABSA's stock performance and expert insights on market trends affecting South African banking sector.",
-      Image_5:
-        "https://images.unsplash.com/photo-1518709268805-4e9042af2176?w=800&h=400&fit=crop",
-      Header_6: "Community Development Projects Update",
-      Title_6:
-        "ABSA's latest community initiatives focus on education, entrepreneurship, and sustainable development in underserved areas.",
-      Image_6:
-        "https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=800&h=400&fit=crop",
-      Header_7: "ABSA Wins Banking Innovation Award",
-      Title_7:
-        "Recognized for groundbreaking fintech solutions that are transforming the South African banking landscape.",
-      Image_7:
-        "https://images.unsplash.com/photo-1552664730-d307ca884978?w=800&h=400&fit=crop",
-      Header_8: "New Branch Openings Across Provinces",
-      Title_8:
-        "ABSA expands its footprint with modern banking facilities in key economic hubs across South Africa.",
-      Image_8:
-        "https://images.unsplash.com/photo-1486406146926-c627a92ad1ab?w=800&h=400&fit=crop",
-      Header_9: "Youth Employment Initiative Success",
-      Title_9:
-        "ABSA's graduate program achieves record placement rates, contributing to South Africa's skills development.",
-      Image_9:
-        "https://images.unsplash.com/photo-1522202176988-66273c2fd55f?w=800&h=400&fit=crop",
-      Header_10: "ABSA's ESG Report Highlights Achievements",
-      Title_10:
-        "Comprehensive Environmental, Social, and Governance report showcases ABSA's commitment to sustainable banking.",
-      Image_10:
-        "https://images.unsplash.com/photo-1554224155-6726b3ff858f?w=800&h=400&fit=crop",
-    },
-  ];
+  // Articles state
+  const [articles, setArticles] = useState<any[]>([]);
+  const [articleImages, setArticleImages] = useState<any[]>([]);
+  const [loadingArticles, setLoadingArticles] = useState(false);
 
-  const articles: any[] = mockArticles;
+  // Fetch articles from CRUD
+  useEffect(() => {
+    const fetchArticles = async () => {
+      setLoadingArticles(true);
+      try {
+        const response = await crudService.callCrud({
+          data: JSON.stringify([{
+            RecordSet: "Articles",
+            TableName: "get_quizadmin",
+            Action: "procedure",
+            Fields: {
+              Ent: "4",
+              QType: "Article"
+            }
+          }]),
+        }) as any;
+        console.log("Articles API response:", response);
 
-  const parsedArticles =
-    articles.length > 0
-      ? Object.keys(articles[0])
-          .filter((key) => key.startsWith("Header_"))
-          .map((key) => {
-            const index = key.split("_")[1];
-            return {
-              header: articles[0][`Header_${index}`],
-              title: articles[0][`Title_${index}`],
-              image: articles[0][`Image_${index}`],
-              // Add more fields if available, e.g., content: articles[0][`Content_${index}`]
-            };
-          })
-      : [];
+        if (response && response.Data && response.Data.length > 0) {
+          const jsonData = response.Data[0].JsonData;
+          const parsedData = JSON.parse(jsonData);
+          console.log("Parsed articles data:", parsedData);
+          
+          if (parsedData.Articles && parsedData.Articles.TableData && Array.isArray(parsedData.Articles.TableData)) {
+            setArticles(parsedData.Articles.TableData);
+            
+            // Fetch images for articles if we have article IDs
+            const articleIds = parsedData.Articles.TableData
+              .filter((item: any) => item.quizid)
+              .map((item: any) => item.quizid);
+            
+            if (articleIds.length > 0) {
+              fetchArticleImages(articleIds);
+            }
+          }
+        }
+      } catch (error) {
+        console.error("Error fetching articles:", error);
+      } finally {
+        setLoadingArticles(false);
+      }
+    };
+
+    const fetchArticleImages = async (ids: number[]) => {
+      try {
+        const response = await crudService.callCrud({
+          data: JSON.stringify([{
+            RecordSet: "ArticleImages",
+            TableName: "attachment",
+            Action: "readIn",
+            Fields: {
+              RelativeID: `(${ids.join(",")})`
+            }
+          }]),
+        }) as any;
+        console.log("Article images API response:", response);
+
+        if (response && response.Data && response.Data.length > 0) {
+          const jsonData = response.Data[0].JsonData;
+          const parsedData = JSON.parse(jsonData);
+          console.log("Parsed article images data:", parsedData);
+          
+          if (parsedData.TS && parsedData.TS.TableData && Array.isArray(parsedData.TS.TableData)) {
+            setArticleImages(parsedData.TS.TableData);
+          }
+        }
+      } catch (error) {
+        console.error("Error fetching article images:", error);
+      }
+    };
+
+    fetchArticles();
+  }, []);
+
+  // Parse articles from API or fallback to mock data
+  const parsedArticles = articles.length > 0
+    ? articles.map((item: any) => ({
+        id: item.quizid,
+        header: item.quizname || "Article",
+        title: item.quizdescription || "",
+        image: item.Image || item.image || item.Attachment || item.attachment || "",
+        date: item.quizadmininstancedate || "",
+        author: item.quizadminentityName || "",
+      }))
+    : [];
 
   // Carbon footprint animation component using Three.js
   const CarbonAnimation = dynamic(
@@ -470,7 +489,7 @@ export default function LandingPage() {
       )}
 
       {/* Articles Section - Only for authenticated users */}
-      {isAuthenticated && parsedArticles.length > 0 && (
+      {isAuthenticated && (
         <section className="py-20 bg-white">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <motion.div
@@ -489,60 +508,43 @@ export default function LandingPage() {
               </p>
             </motion.div>
 
-            {!isAuthenticated ? (
-              <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
-                {parsedArticles.slice(0, 6).map((article, index) => (
-                  <motion.div
-                    key={index}
-                    initial={{ opacity: 0, y: 40 }}
-                    whileInView={{ opacity: 1, y: 0 }}
-                    transition={{ duration: 0.6, delay: index * 0.1 }}
-                    viewport={{ once: true }}
-                  >
-                    <Link href={`/article/${index + 1}`} className="block">
-                      <Card className="h-full border-0 shadow-lg hover:shadow-xl transition-shadow cursor-pointer">
-                        <div className="relative h-48 bg-gradient-to-br from-green-100 to-emerald-100 rounded-t-lg overflow-hidden">
-                          <img
-                            src={article.image}
-                            alt={article.header}
-                            className="w-full h-full object-cover"
-                          />
-                        </div>
-                        <CardContent className="p-6">
-                          <h3 className="text-xl font-bold text-gray-900 mb-3">
-                            {article.header}
-                          </h3>
-                          <p className="text-gray-600 text-base">
-                            {article.title}
-                          </p>
-                        </CardContent>
-                      </Card>
-                    </Link>
-                  </motion.div>
-                ))}
+            {loadingArticles ? (
+              <div className="flex justify-center items-center py-20">
+                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-green-600"></div>
               </div>
-            ) : (
-              <div>
+            ) : parsedArticles.length > 0 ? (
+              <>
                 {/* Featured Article */}
                 {parsedArticles.slice(0, 1).map((article, index) => (
                   <motion.div
-                    key={index}
+                    key={article.id || `featured-${index}`}
                     initial={{ opacity: 0, y: 40 }}
                     whileInView={{ opacity: 1, y: 0 }}
                     transition={{ duration: 0.6 }}
                     viewport={{ once: true }}
                     className="mb-12"
                   >
-                    <Link href={`/article/${index + 1}`} className="block">
+                    <Link href={`/article/${article.id || index + 1}`} className="block">
                       <Card className="border-0 shadow-lg hover:shadow-xl transition-shadow cursor-pointer">
                         <div className="relative h-64 md:h-80 bg-gradient-to-br from-green-100 to-emerald-100 rounded-t-lg overflow-hidden">
-                          <img
-                            src={article.image}
-                            alt={article.header}
-                            className="w-full h-full object-cover"
-                          />
+                          {article.image ? (
+                            <img
+                              src={article.image}
+                              alt={article.header}
+                              className="w-full h-full object-cover"
+                            />
+                          ) : (
+                            <div className="w-full h-full flex items-center justify-center">
+                              <div className="text-green-600 text-6xl font-bold">
+                                {article.header?.charAt(0) || "N"}
+                              </div>
+                            </div>
+                          )}
                         </div>
                         <CardContent className="p-8">
+                          <div className="text-sm text-green-600 font-medium mb-2">
+                            {article.date || "Featured Article"}
+                          </div>
                           <h3 className="text-3xl font-bold text-gray-900 mb-4">
                             {article.header}
                           </h3>
@@ -554,30 +556,42 @@ export default function LandingPage() {
                     </Link>
                   </motion.div>
                 ))}
-                {/* Other Articles */}
+
+                {/* Article Grid */}
                 <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
-                  {parsedArticles.slice(1, 6).map((article, index) => (
+                  {parsedArticles.slice(1).map((article, index) => (
                     <motion.div
-                      key={index + 1}
+                      key={article.id || `article-${index}`}
                       initial={{ opacity: 0, y: 40 }}
                       whileInView={{ opacity: 1, y: 0 }}
-                      transition={{ duration: 0.6, delay: (index + 1) * 0.1 }}
+                      transition={{ duration: 0.6, delay: index * 0.1 }}
                       viewport={{ once: true }}
                     >
-                      <Link href={`/article/${index + 2}`} className="block">
+                      <Link href={`/article/${article.id || index + 2}`} className="block">
                         <Card className="h-full border-0 shadow-lg hover:shadow-xl transition-shadow cursor-pointer">
                           <div className="relative h-48 bg-gradient-to-br from-green-100 to-emerald-100 rounded-t-lg overflow-hidden">
-                            <img
-                              src={article.image}
-                              alt={article.header}
-                              className="w-full h-full object-cover"
-                            />
+                            {article.image ? (
+                              <img
+                                src={article.image}
+                                alt={article.header}
+                                className="w-full h-full object-cover"
+                              />
+                            ) : (
+                              <div className="w-full h-full flex items-center justify-center">
+                                <div className="text-green-600 text-4xl font-bold">
+                                  {article.header?.charAt(0) || "A"}
+                                </div>
+                              </div>
+                            )}
                           </div>
                           <CardContent className="p-6">
+                            <div className="text-sm text-green-600 font-medium mb-2">
+                              {article.date || "Article"}
+                            </div>
                             <h3 className="text-xl font-bold text-gray-900 mb-3">
                               {article.header}
                             </h3>
-                            <p className="text-gray-600 text-base">
+                            <p className="text-gray-600 text-base line-clamp-3">
                               {article.title}
                             </p>
                           </CardContent>
@@ -586,6 +600,10 @@ export default function LandingPage() {
                     </motion.div>
                   ))}
                 </div>
+              </>
+            ) : (
+              <div className="text-center py-20">
+                <p className="text-gray-600 text-lg">No articles available at the moment.</p>
               </div>
             )}
           </div>

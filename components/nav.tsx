@@ -21,9 +21,9 @@ import { crudService } from "@/lib/crudService";
 const carboncalcNavItems = [{ href: "/input", label: "Upload Data" }];
 
 const ecometricsNavItems = [
+  { href: "/dashboard", label: "Dashboard" },
   { href: "/real-time-carbon-tracking", label: "Carbon Emissions Tracking" },
   { href: "/automated-reports", label: "Automated Reports" },
-  { href: "/custom-dashboards", label: "Custom Dashboards" },
   { href: "/emission-source-breakdown", label: "Emission Breakdown" },
   { href: "/cloud-integration", label: "Cloud Integration" },
   { href: "/team-collaboration", label: "Team Collaboration" },
