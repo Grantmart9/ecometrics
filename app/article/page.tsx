@@ -1,7 +1,7 @@
 "use client";
 
-import { useState, useEffect, use } from "react";
-import { useParams, useRouter } from "next/navigation";
+import { useState, useEffect, Suspense } from "react";
+import { useSearchParams } from "next/navigation";
 import { motion } from "framer-motion";
 import dynamic from "next/dynamic";
 import {
@@ -12,7 +12,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, Paperclip, Calendar, User } from "lucide-react";
+import { ArrowLeft, Paperclip, Calendar, User, Image } from "lucide-react";
 import { crudService } from "@/lib/crudService";
 import Link from "next/link";
 
@@ -43,22 +43,59 @@ interface ArticleQuestion {
   quizquestiondescription: string;
 }
 
-export default function ArticlePage() {
-  const params = useParams();
-  const router = useRouter();
+function ArticleContent() {
+  const searchParams = useSearchParams();
+  const articleId = searchParams.get("id");
   const [article, setArticle] = useState<ArticleDetail | null>(null);
   const [questions, setQuestions] = useState<ArticleQuestion[]>([]);
+  const [articleImage, setArticleImage] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    const fetchArticle = async () => {
-      if (!params.id) return;
+    const loadArticle = async () => {
+      if (!articleId) return;
 
-      const articleId = params.id;
+      const id = parseInt(articleId);
       setLoading(true);
       setError(null);
 
+      // Check if article data is already in sessionStorage (from home page)
+      const storedArticles = sessionStorage.getItem('articles_data');
+      const storedImages = sessionStorage.getItem('article_images');
+      
+      if (storedArticles) {
+        const articles = JSON.parse(storedArticles);
+        // Find article by quizid (handle both number and string types)
+        const articleData = articles.find((a: any) => 
+          String(a.quizid) === String(id) || a.quizid === id
+        );
+        
+        if (articleData) {
+          console.log('Found article in sessionStorage:', articleData);
+          setArticle(articleData);
+          
+          // Also check for image
+          if (storedImages) {
+            const images = JSON.parse(storedImages);
+            const articleImage = images.find((img: any) => 
+              String(img.relativeid ?? img.RelativeID) === String(id) || 
+              img.relativeid === id || img.RelativeID === id
+            );
+            if (articleImage) {
+              console.log('Found image in sessionStorage:', articleImage);
+              // Set the image URL
+              const imageUrl = articleImage.imageUrl || 
+                (articleImage.attachmentcontent ? `data:image/png;base64,${articleImage.attachmentcontent}` : null);
+              setArticleImage(imageUrl);
+            }
+          }
+          setLoading(false);
+          return; // No need to make API calls
+        }
+      }
+
+      // Fallback: Fetch article details from API if not in sessionStorage
       try {
         // Fetch article details
         const articleResponse = await crudService.callCrud({
@@ -119,8 +156,8 @@ export default function ArticlePage() {
       }
     };
 
-    fetchArticle();
-  }, [params.id]);
+    loadArticle();
+  }, [articleId]);
 
   const formatDate = (dateNum: number | null) => {
     if (!dateNum) return "N/A";
@@ -191,6 +228,18 @@ export default function ArticlePage() {
                   {article.quiztypeName}
                 </CardDescription>
               </CardHeader>
+              
+              {/* Article Image */}
+              {articleImage && (
+                <div className="relative h-64 md:h-96 w-full overflow-hidden">
+                  <img
+                    src={articleImage}
+                    alt={article.quizname}
+                    className="w-full h-full object-cover"
+                  />
+                </div>
+              )}
+              
               <CardContent className="p-8 space-y-8">
                 {/* Article Info */}
                 <div className="space-y-4">
@@ -287,5 +336,24 @@ export default function ArticlePage() {
         </div>
       </main>
     </div>
+  );
+}
+
+function ArticleLoading() {
+  return (
+    <div className="min-h-screen bg-gradient-to-br from-green-50 via-emerald-50 to-sky-50">
+      <ThreeBackground />
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-green-600"></div>
+      </div>
+    </div>
+  );
+}
+
+export default function ArticlePage() {
+  return (
+    <Suspense fallback={<ArticleLoading />}>
+      <ArticleContent />
+    </Suspense>
   );
 }

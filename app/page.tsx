@@ -1,11 +1,12 @@
 "use client";
 
-import { useState, useEffect, Suspense } from "react";
+import { useState, useEffect, Suspense, useMemo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import dynamic from "next/dynamic";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { SignupModal } from "@/components/signup-modal";
+import { Skeleton } from "@/components/ui/skeleton";
 import Link from "next/link";
 import {
   Leaf,
@@ -42,6 +43,9 @@ export default function LandingPage() {
   const [articles, setArticles] = useState<any[]>([]);
   const [articleImages, setArticleImages] = useState<any[]>([]);
   const [loadingArticles, setLoadingArticles] = useState(false);
+  
+  // Track which articles have images loaded
+  const [imagesLoaded, setImagesLoaded] = useState<Set<number>>(new Set());
 
   // Fetch articles from CRUD
   useEffect(() => {
@@ -59,20 +63,21 @@ export default function LandingPage() {
             }
           }]),
         }) as any;
-        console.log("Articles API response:", response);
 
         if (response && response.Data && response.Data.length > 0) {
           const jsonData = response.Data[0].JsonData;
           const parsedData = JSON.parse(jsonData);
-          console.log("Parsed articles data:", parsedData);
           
           if (parsedData.Articles && parsedData.Articles.TableData && Array.isArray(parsedData.Articles.TableData)) {
             setArticles(parsedData.Articles.TableData);
             
+            // Store articles in sessionStorage for article page to use
+            sessionStorage.setItem('articles_data', JSON.stringify(parsedData.Articles.TableData));
+            
             // Fetch images for articles if we have article IDs
-            const articleIds = parsedData.Articles.TableData
+            const articleIds: number[] = Array.from(new Set(parsedData.Articles.TableData
               .filter((item: any) => item.quizid)
-              .map((item: any) => item.quizid);
+              .map((item: any) => item.quizid)) as unknown as number[]);
             
             if (articleIds.length > 0) {
               fetchArticleImages(articleIds);
@@ -103,10 +108,34 @@ export default function LandingPage() {
         if (response && response.Data && response.Data.length > 0) {
           const jsonData = response.Data[0].JsonData;
           const parsedData = JSON.parse(jsonData);
-          console.log("Parsed article images data:", parsedData);
           
-          if (parsedData.TS && parsedData.TS.TableData && Array.isArray(parsedData.TS.TableData)) {
-            setArticleImages(parsedData.TS.TableData);
+          // Handle both 'TS' and 'ArticleImages' key formats from API
+          const tableData = parsedData.TS?.TableData || parsedData.ArticleImages?.TableData || [];
+          
+          if (tableData && Array.isArray(tableData) && tableData.length > 0) {
+            // Convert base64 attachmentcontent to image URLs
+            const processedImages = tableData.map((item: any) => {
+              const imageType = item.attachmentType || item.attachmenttype || item.attachmentContentType || item.attachmentmimetype || 'image/png';
+              const dataUrl = item.attachmentcontent 
+                ? `data:${imageType};base64,${item.attachmentcontent}` 
+                : null;
+              
+              return {
+                ...item,
+                imageUrl: dataUrl,
+              };
+            });
+            
+            setArticleImages(processedImages);
+            
+            // Track which articles have images loaded
+            const loadedIds = new Set(processedImages.map(img => 
+              img.attachmentRelativeID ?? img.attachmentRelativeId ?? img.attachmentrelativeid ?? img.RelativeID ?? img.relativeid ?? 0
+            ).filter(Boolean));
+            setImagesLoaded(loadedIds);
+            
+            // Store images in sessionStorage for article page to use
+            sessionStorage.setItem('article_images', JSON.stringify(processedImages));
           }
         }
       } catch (error) {
@@ -117,17 +146,52 @@ export default function LandingPage() {
     fetchArticles();
   }, []);
 
-  // Parse articles from API or fallback to mock data
-  const parsedArticles = articles.length > 0
-    ? articles.map((item: any) => ({
+  // Parse articles from API or fallback to mock data - recalculate when articles or images change
+  const parsedArticles = useMemo(() => {
+    if (articles.length === 0) {
+      return [];
+    }
+    
+    const result = articles.map((item: any) => {
+      // Find matching image for this article using relativeid
+      const imageItem = articleImages.find(
+        (img: any) => {
+          const imgRelativeId = img.attachmentRelativeID ?? img.attachmentRelativeId ?? img.attachmentrelativeid ?? img.RelativeID ?? img.relativeid ?? null;
+          return String(imgRelativeId) === String(item.quizid);
+        }
+      );
+      
+      // Use the converted imageUrl, or construct from attachmentcontent if needed
+      let displayImage = imageItem?.imageUrl || 
+                           (imageItem?.attachmentcontent ? `data:image/png;base64,${imageItem.attachmentcontent}` : null) ||
+                           item.Image || 
+                           item.image || 
+                           item.Attachment || 
+                           item.attachment ||
+                           "";
+      
+      // Validate and fix data URL format
+      if (displayImage && !displayImage.startsWith('data:')) {
+        if (displayImage.length > 0 && !displayImage.includes('://')) {
+          displayImage = `data:image/png;base64,${displayImage}`;
+        }
+      }
+      
+      return {
         id: item.quizid,
         header: item.quizname || "Article",
         title: item.quizdescription || "",
-        image: item.Image || item.image || item.Attachment || item.attachment || "",
+        image: displayImage,
         date: item.quizadmininstancedate || "",
         author: item.quizadminentityName || "",
-      }))
-    : [];
+      };
+    });
+    
+    // Deduplicate articles by quizid - keep first occurrence
+    return result.filter((article, index, self) => 
+      index === self.findIndex((a) => a.id === article.id)
+    );
+  }, [articles, articleImages]);
 
   // Carbon footprint animation component using Three.js
   const CarbonAnimation = dynamic(
@@ -141,6 +205,41 @@ export default function LandingPage() {
       ),
     },
   );
+
+  // Image with skeleton loading component
+  function ArticleImage({
+    src,
+    alt,
+    className,
+    skeletonHeight = "h-64",
+    isLoading,
+  }: {
+    src: string | null | undefined;
+    alt: string;
+    className?: string;
+    skeletonHeight?: string;
+    isLoading: boolean;
+  }) {
+    const [hasError, setHasError] = useState(false);
+
+    // Show skeleton while loading or if no image
+    if (isLoading || !src || hasError) {
+      return (
+        <div className={`w-full ${skeletonHeight} bg-gradient-to-br from-green-100 to-emerald-100 rounded-t-lg`}>
+          <Skeleton className="w-full h-full rounded-t-lg" />
+        </div>
+      );
+    }
+
+    return (
+      <img
+        src={src}
+        alt={alt}
+        className={`${className} w-full h-full object-cover rounded-t-lg`}
+        onError={() => setHasError(true)}
+      />
+    );
+  }
 
   const handleLogin = () => {
     router.push("/login");
@@ -524,22 +623,16 @@ export default function LandingPage() {
                     viewport={{ once: true }}
                     className="mb-12"
                   >
-                    <Link href={`/article/${article.id || index + 1}`} className="block">
+                    <Link href={`/article?id=${article.id || index + 1}`} className="block">
                       <Card className="border-0 shadow-lg hover:shadow-xl transition-shadow cursor-pointer">
                         <div className="relative h-64 md:h-80 bg-gradient-to-br from-green-100 to-emerald-100 rounded-t-lg overflow-hidden">
-                          {article.image ? (
-                            <img
-                              src={article.image}
-                              alt={article.header}
-                              className="w-full h-full object-cover"
-                            />
-                          ) : (
-                            <div className="w-full h-full flex items-center justify-center">
-                              <div className="text-green-600 text-6xl font-bold">
-                                {article.header?.charAt(0) || "N"}
-                              </div>
-                            </div>
-                          )}
+                          <ArticleImage
+                            src={article.image}
+                            alt={article.header}
+                            className="w-full h-full object-cover"
+                            skeletonHeight="h-64 md:h-80"
+                            isLoading={!imagesLoaded.has(Number(article.id))}
+                          />
                         </div>
                         <CardContent className="p-8">
                           <div className="text-sm text-green-600 font-medium mb-2">
@@ -567,22 +660,16 @@ export default function LandingPage() {
                       transition={{ duration: 0.6, delay: index * 0.1 }}
                       viewport={{ once: true }}
                     >
-                      <Link href={`/article/${article.id || index + 2}`} className="block">
+                      <Link href={`/article?id=${article.id || index + 2}`} className="block">
                         <Card className="h-full border-0 shadow-lg hover:shadow-xl transition-shadow cursor-pointer">
                           <div className="relative h-48 bg-gradient-to-br from-green-100 to-emerald-100 rounded-t-lg overflow-hidden">
-                            {article.image ? (
-                              <img
-                                src={article.image}
-                                alt={article.header}
-                                className="w-full h-full object-cover"
-                              />
-                            ) : (
-                              <div className="w-full h-full flex items-center justify-center">
-                                <div className="text-green-600 text-4xl font-bold">
-                                  {article.header?.charAt(0) || "A"}
-                                </div>
-                              </div>
-                            )}
+                            <ArticleImage
+                              src={article.image}
+                              alt={article.header}
+                              className="w-full h-full object-cover"
+                              skeletonHeight="h-48"
+                              isLoading={!imagesLoaded.has(Number(article.id))}
+                            />
                           </div>
                           <CardContent className="p-6">
                             <div className="text-sm text-green-600 font-medium mb-2">
