@@ -84,8 +84,15 @@ export default function LandingPage() {
             }
           }
         }
-      } catch (error) {
+      } catch (error: any) {
         console.error("Error fetching articles:", error);
+        
+        // Check for 401 authentication error
+        if (error.message?.includes('401') || error.message?.includes('Authentication required')) {
+          console.log("Authentication error - logging out and redirecting to login");
+          logout();
+          router.push("/login");
+        }
       } finally {
         setLoadingArticles(false);
       }
@@ -138,8 +145,15 @@ export default function LandingPage() {
             sessionStorage.setItem('article_images', JSON.stringify(processedImages));
           }
         }
-      } catch (error) {
+      } catch (error: any) {
         console.error("Error fetching article images:", error);
+        
+        // Check for 401 authentication error
+        if (error.message?.includes('401') || error.message?.includes('Authentication required')) {
+          console.log("Authentication error - logging out and redirecting to login");
+          logout();
+          router.push("/login");
+        }
       }
     };
 
