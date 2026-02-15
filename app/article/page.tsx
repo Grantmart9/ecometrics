@@ -78,6 +78,54 @@ const staggerItem = {
   transition: { duration: 0.5, ease: "easeOut" }
 };
 
+// Enhanced animation variants for articles
+const cardHoverEffect = {
+  rest: { scale: 1, rotateX: 0, rotateY: 0 },
+  hover: { scale: 1.02, rotateX: 2, rotateY: -2 }
+};
+
+const floatAnimation = {
+  initial: { y: 0 },
+  animate: { 
+    y: [-10, 10, -10],
+    transition: { 
+      duration: 6, 
+      repeat: Infinity, 
+      ease: "easeInOut" 
+    }
+  }
+};
+
+const pulseGlow = {
+  initial: { boxShadow: "0 0 0 0 rgba(34, 197, 94, 0)" },
+  animate: {
+    boxShadow: [
+      "0 0 0 0 rgba(34, 197, 94, 0)",
+      "0 0 0 20px rgba(34, 197, 94, 0.3)",
+      "0 0 0 40px rgba(34, 197, 94, 0.1)",
+      "0 0 0 60px rgba(34, 197, 94, 0.05)",
+      "0 0 0 80px rgba(34, 197, 94, 0.02)",
+      "0 0 0 100px rgba(34, 197, 94, 0.01)",
+      "0 0 0 0 rgba(34, 197, 94, 0)"
+    ]
+  }
+};
+
+const particleFloat = {
+  initial: { opacity: 0, scale: 0 },
+  animate: { 
+    opacity: [0, 0.6, 0],
+    scale: [0, 1, 0],
+    x: [0, Math.random() * 100 - 50],
+    y: [0, Math.random() * 100 - 50],
+    transition: { 
+      duration: 4 + Math.random() * 2, 
+      repeat: Infinity, 
+      ease: "easeInOut" 
+    }
+  }
+};
+
 function ArticleContent() {
   const searchParams = useSearchParams();
   const articleId = searchParams.get("id");
@@ -111,10 +159,13 @@ function ArticleContent() {
           
           if (storedImages) {
             const images = JSON.parse(storedImages);
+            console.log('Stored images:', images);
+            console.log('Looking for article id:', id);
             const articleImage = images.find((img: any) => 
-              String(img.relativeid ?? img.RelativeID) === String(id) || 
-              img.relativeid === id || img.RelativeID === id
+              String(img.attachmentRelativeID ?? img.attachmentRelativeId ?? img.attachmentrelativeid ?? img.relativeid ?? img.RelativeID) === String(id) || 
+              img.attachmentRelativeID === id || img.attachmentRelativeId === id || img.attachmentrelativeid === id || img.relativeid === id || img.RelativeID === id
             );
+            console.log('Found image:', articleImage);
             if (articleImage) {
               const imageUrl = articleImage.imageUrl || 
                 (articleImage.attachmentcontent ? `data:image/png;base64,${articleImage.attachmentcontent}` : null);
@@ -147,6 +198,44 @@ function ArticleContent() {
           if (parsedData.Articles && parsedData.Articles.TableData && parsedData.Articles.TableData.length > 0) {
             setArticle(parsedData.Articles.TableData[0]);
           }
+        }
+
+        // Also try to fetch the article image from API
+        try {
+          const imageResponse = await crudService.callCrud({
+            data: JSON.stringify([{
+              RecordSet: "ArticleImages",
+              TableName: "attachment",
+              Action: "readIn",
+              Fields: {
+                RelativeID: `(${articleId})`
+              }
+            }]),
+          }) as any;
+          
+          console.log("Article image API response:", imageResponse);
+          
+          if (imageResponse && imageResponse.Data && imageResponse.Data.length > 0) {
+            const jsonData = imageResponse.Data[0].JsonData;
+            const parsedData = JSON.parse(jsonData);
+            const tableData = parsedData.TS?.TableData || parsedData.ArticleImages?.TableData || [];
+            
+            console.log("Image table data:", tableData);
+            
+            if (tableData && Array.isArray(tableData) && tableData.length > 0) {
+              const img = tableData[0];
+              const imageType = img.attachmentType || img.attachmenttype || img.attachmentmimetype || 'image/png';
+              const imageUrl = img.attachmentcontent 
+                ? `data:${imageType};base64,${img.attachmentcontent}` 
+                : null;
+              console.log("Constructed image URL:", imageUrl ? "present" : "null");
+              if (imageUrl) {
+                setArticleImage(imageUrl);
+              }
+            }
+          }
+        } catch (imgErr) {
+          console.error("Error fetching article image:", imgErr);
         }
 
         const questionsResponse = await crudService.callCrud({
@@ -200,6 +289,7 @@ function ArticleContent() {
           <motion.div
             animate={{ rotate: 360 }}
             transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
+            variants={pulseGlow}
           >
             <div className="relative">
               <CarbonAnimation />
@@ -270,7 +360,7 @@ function ArticleContent() {
         animate={{ opacity: 1 }}
         transition={{ duration: 1 }}
       >
-        {[...Array(6)].map((_, i) => (
+        {[...Array(12)].map((_, i) => (
           <motion.div
             key={i}
             className="absolute"
@@ -278,18 +368,45 @@ function ArticleContent() {
               left: `${Math.random() * 100}%`,
               top: `${Math.random() * 100}%`,
             }}
+            initial={{ opacity: 0, scale: 0 }}
             animate={{
-              y: [0, -100, 0],
-              x: [0, Math.random() * 50 - 25, 0],
-              opacity: [0, 0.3, 0],
+              y: [0, -150, 0],
+              x: [0, Math.random() * 80 - 40, 0],
+              opacity: [0, 0.5, 0],
+              scale: [0, 1.2, 0],
             }}
             transition={{
               duration: 8 + Math.random() * 4,
               repeat: Infinity,
+              delay: Math.random() * 3,
+              ease: "easeInOut",
+            }}
+          >
+            <Leaf className="h-5 w-5 text-green-400" />
+          </motion.div>
+        ))}
+        {/* Additional sparkles */}
+        {[...Array(8)].map((_, i) => (
+          <motion.div
+            key={`sparkle-${i}`}
+            className="absolute"
+            style={{
+              left: `${20 + Math.random() * 60}%`,
+              top: `${20 + Math.random() * 60}%`,
+            }}
+            initial={{ opacity: 0, scale: 0 }}
+            animate={{
+              scale: [0, 1.5, 0],
+              opacity: [0, 0.8, 0],
+              rotate: [0, 180, 360],
+            }}
+            transition={{
+              duration: 4 + Math.random() * 3,
+              repeat: Infinity,
               delay: Math.random() * 2,
             }}
           >
-            <Leaf className="h-4 w-4 text-green-400" />
+            <Sparkles className="h-4 w-4 text-yellow-400" />
           </motion.div>
         ))}
       </motion.div>
@@ -339,8 +456,73 @@ function ArticleContent() {
               initial="initial"
               animate="animate"
             >
-              {/* Hero Card */}
-              <motion.div variants={staggerItem} className="relative mb-8">
+              {/* Hero Image - Now at the top */}
+              <AnimatePresence>
+                {articleImage && (
+                  <motion.div
+                    variants={staggerItem}
+                    initial={{ opacity: 0, scale: 0.95 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    exit={{ opacity: 0, scale: 0.95 }}
+                    transition={{ duration: 0.6 }}
+                    className="mb-8"
+                  >
+                    <motion.div
+                      whileHover={{ scale: 1.02 }}
+                      transition={{ duration: 0.3 }}
+                      className="relative overflow-hidden rounded-3xl shadow-2xl"
+                    >
+                      <motion.div
+                        className="absolute inset-0 bg-gradient-to-t from-black/50 via-black/20 to-transparent z-10"
+                      />
+                      <motion.div
+                        className="absolute inset-0 bg-gradient-to-r from-green-500/20 via-transparent to-emerald-500/20 z-10"
+                      />
+                      <img
+                        src={articleImage}
+                        alt={article.quizname}
+                        className="w-full h-[400px] md:h-[500px] object-cover"
+                      />
+                      <motion.div
+                        className="absolute bottom-6 left-6 z-20"
+                        initial={{ opacity: 0, y: 20 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ delay: 0.3 }}
+                      >
+                        <span className="inline-flex items-center gap-2 px-4 py-2 bg-white/90 backdrop-blur-sm rounded-full text-sm font-medium text-gray-700 shadow-lg">
+                          <Image className="h-4 w-4" />
+                          Article Image
+                        </span>
+                      </motion.div>
+                      {/* Floating badge */}
+                      <motion.div
+                        className="absolute top-6 right-6 z-20"
+                        initial={{ opacity: 0, x: 20 }}
+                        animate={{ opacity: 1, x: 0 }}
+                        transition={{ delay: 0.5 }}
+                      >
+                        <span className="inline-flex items-center gap-2 px-4 py-2 bg-green-600/90 backdrop-blur-sm rounded-full text-sm font-medium text-white shadow-lg">
+                          <Sparkles className="h-4 w-4 text-yellow-300" />
+                          {article.quiztypeName}
+                        </span>
+                      </motion.div>
+                    </motion.div>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+
+              {/* Hero Card with Title */}
+              <motion.div 
+                variants={staggerItem} 
+                className="relative mb-8"
+                initial="initial"
+                whileHover="hover"
+                animate="animate"
+              >
+                <motion.div
+                  variants={cardHoverEffect}
+                  transition={{ type: "spring", stiffness: 300, damping: 20 }}
+                >
                 <Card className="backdrop-blur-xl bg-white/80 border-white/30 shadow-2xl overflow-hidden">
                   {/* Animated gradient overlay */}
                   <motion.div
@@ -370,18 +552,20 @@ function ArticleContent() {
                       animate={{ opacity: 1, x: 0 }}
                       transition={{ delay: 0.2 }}
                     >
-                      <div className="flex items-center gap-2 mb-2">
-                        <motion.div
-                          animate={{ rotate: [0, 360] }}
-                          transition={{ duration: 8, repeat: Infinity, ease: "linear" }}
-                        >
-                          <Sparkles className="h-5 w-5 text-yellow-300" />
-                        </motion.div>
-                        <CardDescription className="text-green-100">
-                          {article.quiztypeName}
-                        </CardDescription>
-                      </div>
-                      <CardTitle className="text-4xl font-bold leading-tight">
+                      {!articleImage && (
+                        <div className="flex items-center gap-2 mb-2">
+                          <motion.div
+                            animate={{ rotate: [0, 360] }}
+                            transition={{ duration: 8, repeat: Infinity, ease: "linear" }}
+                          >
+                            <Sparkles className="h-5 w-5 text-yellow-300" />
+                          </motion.div>
+                          <CardDescription className="text-green-100">
+                            {article.quiztypeName}
+                          </CardDescription>
+                        </div>
+                      )}
+                      <CardTitle className="text-4xl md:text-5xl font-bold leading-tight">
                         {article.quizname}
                       </CardTitle>
                     </motion.div>
@@ -445,47 +629,8 @@ function ArticleContent() {
                     </motion.div>
                   </CardContent>
                 </Card>
+                </motion.div>
               </motion.div>
-
-              {/* Article Image */}
-              <AnimatePresence>
-                {articleImage && (
-                  <motion.div
-                    variants={staggerItem}
-                    initial={{ opacity: 0, scale: 0.95 }}
-                    animate={{ opacity: 1, scale: 1 }}
-                    exit={{ opacity: 0, scale: 0.95 }}
-                    transition={{ duration: 0.6 }}
-                    className="mb-8"
-                  >
-                    <motion.div
-                      whileHover={{ scale: 1.02 }}
-                      transition={{ duration: 0.3 }}
-                      className="relative overflow-hidden rounded-2xl shadow-xl"
-                    >
-                      <motion.div
-                        className="absolute inset-0 bg-gradient-to-t from-black/30 to-transparent z-10"
-                      />
-                      <img
-                        src={articleImage}
-                        alt={article.quizname}
-                        className="w-full h-80 md:h-96 object-cover"
-                      />
-                      <motion.div
-                        className="absolute bottom-4 left-4 z-20"
-                        initial={{ opacity: 0, y: 20 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        transition={{ delay: 0.3 }}
-                      >
-                        <span className="inline-flex items-center gap-2 px-4 py-2 bg-white/90 backdrop-blur-sm rounded-full text-sm font-medium text-gray-700">
-                          <Image className="h-4 w-4" />
-                          Article Image
-                        </span>
-                      </motion.div>
-                    </motion.div>
-                  </motion.div>
-                )}
-              </AnimatePresence>
 
               {/* Article Questions/Content */}
               <AnimatePresence>

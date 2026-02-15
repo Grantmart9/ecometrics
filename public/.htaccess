@@ -1,12 +1,22 @@
 RewriteEngine On
 RewriteBase /
 
-# Handle Next.js App Router static export routes
-RewriteCond %{REQUEST_FILENAME} !-f
-RewriteCond %{REQUEST_FILENAME} !-d
+# Serve static files directly (CSS, JS, images, etc.)
+RewriteCond %{REQUEST_FILENAME} -f
+RewriteRule ^ - [L]
+
+# Serve directories
+RewriteCond %{REQUEST_FILENAME} -d
+RewriteRule ^ - [L]
+
+# Convert clean URLs to .html for Next.js static export
+# /login -> /login.html, /dashboard -> /dashboard.html
+RewriteCond %{REQUEST_URI} !\.
+RewriteCond %{REQUEST_URI} !^/api/
+RewriteCond %{REQUEST_URI} !^/_
 RewriteRule ^([^.]+)$ $1.html [L]
 
-# Fallback for client-side routing
+# Fallback to index.html for SPA routing
 RewriteCond %{REQUEST_FILENAME} !-f
 RewriteCond %{REQUEST_FILENAME} !-d
-RewriteRule . /index.html [L]
+RewriteRule ^ /index.html [L]

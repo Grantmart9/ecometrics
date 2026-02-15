@@ -1,1 +1,6 @@
-/*    /index.html   200
+# Netlify-style redirects (also works with some other hosting providers)
+# API routes - proxy to backend
+/api/*  https://api.temo.co.za/advice/dev/:splat  200
+
+# Next.js routes - let Next.js handle all routes
+/*  /index.html  200

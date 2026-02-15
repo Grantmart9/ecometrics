@@ -1607,7 +1607,7 @@ export default function Input() {
                                         }}
                                         className={`
                                           flex flex-col items-center justify-center
-                                          w-20 h-24 p-1 rounded-lg cursor-pointer
+                                          w-24 h-28 p-1 rounded-lg cursor-pointer
                                           transition-all duration-200 border-2
                                           ${isSelected
                                             ? "border-emerald-600 bg-emerald-50 shadow-md"
@@ -1630,7 +1630,7 @@ export default function Input() {
                                           )}
                                         </div>
                                         {/* Activity group name below image */}
-                                        <span className="text-xs font-medium text-center line-clamp-1 mt-1">
+                                        <span className="text-[10px] font-medium text-center line-clamp-2 mt-0.5 leading-tight">
                                           {group.name}
                                         </span>
                                       </div>

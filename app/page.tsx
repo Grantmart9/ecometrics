@@ -43,7 +43,7 @@ export default function LandingPage() {
   const [articles, setArticles] = useState<any[]>([]);
   const [articleImages, setArticleImages] = useState<any[]>([]);
   const [loadingArticles, setLoadingArticles] = useState(false);
-  
+
   // Track which articles have images loaded
   const [imagesLoaded, setImagesLoaded] = useState<Set<number>>(new Set());
 
@@ -52,33 +52,46 @@ export default function LandingPage() {
     const fetchArticles = async () => {
       setLoadingArticles(true);
       try {
-        const response = await crudService.callCrud({
-          data: JSON.stringify([{
-            RecordSet: "Articles",
-            TableName: "get_quizadmin",
-            Action: "procedure",
-            Fields: {
-              Ent: "4",
-              QType: "Article"
-            }
-          }]),
-        }) as any;
+        const response = (await crudService.callCrud({
+          data: JSON.stringify([
+            {
+              RecordSet: "Articles",
+              TableName: "get_quizadmin",
+              Action: "procedure",
+              Fields: {
+                Ent: "4",
+                QType: "Article",
+              },
+            },
+          ]),
+        })) as any;
 
         if (response && response.Data && response.Data.length > 0) {
           const jsonData = response.Data[0].JsonData;
           const parsedData = JSON.parse(jsonData);
-          
-          if (parsedData.Articles && parsedData.Articles.TableData && Array.isArray(parsedData.Articles.TableData)) {
+
+          if (
+            parsedData.Articles &&
+            parsedData.Articles.TableData &&
+            Array.isArray(parsedData.Articles.TableData)
+          ) {
             setArticles(parsedData.Articles.TableData);
-            
+
             // Store articles in sessionStorage for article page to use
-            sessionStorage.setItem('articles_data', JSON.stringify(parsedData.Articles.TableData));
-            
+            sessionStorage.setItem(
+              "articles_data",
+              JSON.stringify(parsedData.Articles.TableData),
+            );
+
             // Fetch images for articles if we have article IDs
-            const articleIds: number[] = Array.from(new Set(parsedData.Articles.TableData
-              .filter((item: any) => item.quizid)
-              .map((item: any) => item.quizid)) as unknown as number[]);
-            
+            const articleIds: number[] = Array.from(
+              new Set(
+                parsedData.Articles.TableData.filter(
+                  (item: any) => item.quizid,
+                ).map((item: any) => item.quizid),
+              ) as unknown as number[],
+            );
+
             if (articleIds.length > 0) {
               fetchArticleImages(articleIds);
             }
@@ -94,57 +107,85 @@ export default function LandingPage() {
 
     const fetchArticleImages = async (ids: number[]) => {
       try {
-        const response = await crudService.callCrud({
-          data: JSON.stringify([{
-            RecordSet: "ArticleImages",
-            TableName: "attachment",
-            Action: "readIn",
-            Fields: {
-              RelativeID: `(${ids.join(",")})`
-            }
-          }]),
-        }) as any;
+        const response = (await crudService.callCrud({
+          data: JSON.stringify([
+            {
+              RecordSet: "ArticleImages",
+              TableName: "attachment",
+              Action: "readIn",
+              Fields: {
+                RelativeID: `(${ids.join(",")})`,
+              },
+            },
+          ]),
+        })) as any;
         console.log("Article images API response:", response);
 
         if (response && response.Data && response.Data.length > 0) {
           const jsonData = response.Data[0].JsonData;
           const parsedData = JSON.parse(jsonData);
-          
+
           // Handle both 'TS' and 'ArticleImages' key formats from API
-          const tableData = parsedData.TS?.TableData || parsedData.ArticleImages?.TableData || [];
-          
+          const tableData =
+            parsedData.TS?.TableData ||
+            parsedData.ArticleImages?.TableData ||
+            [];
+
           if (tableData && Array.isArray(tableData) && tableData.length > 0) {
             // Convert base64 attachmentcontent to image URLs
             const processedImages = tableData.map((item: any) => {
-              const imageType = item.attachmentType || item.attachmenttype || item.attachmentContentType || item.attachmentmimetype || 'image/png';
-              const dataUrl = item.attachmentcontent 
-                ? `data:${imageType};base64,${item.attachmentcontent}` 
+              const imageType =
+                item.attachmentType ||
+                item.attachmenttype ||
+                item.attachmentContentType ||
+                item.attachmentmimetype ||
+                "image/png";
+              const dataUrl = item.attachmentcontent
+                ? `data:${imageType};base64,${item.attachmentcontent}`
                 : null;
-              
+
               return {
                 ...item,
                 imageUrl: dataUrl,
               };
             });
-            
+
             setArticleImages(processedImages);
-            
+
             // Track which articles have images loaded
-            const loadedIds = new Set(processedImages.map(img => 
-              img.attachmentRelativeID ?? img.attachmentRelativeId ?? img.attachmentrelativeid ?? img.RelativeID ?? img.relativeid ?? 0
-            ).filter(Boolean));
+            const loadedIds = new Set(
+              processedImages
+                .map(
+                  (img) =>
+                    img.attachmentRelativeID ??
+                    img.attachmentRelativeId ??
+                    img.attachmentrelativeid ??
+                    img.RelativeID ??
+                    img.relativeid ??
+                    0,
+                )
+                .filter(Boolean),
+            );
             setImagesLoaded(loadedIds);
-            
+
             // Store images in sessionStorage for article page to use
-            sessionStorage.setItem('article_images', JSON.stringify(processedImages));
+            sessionStorage.setItem(
+              "article_images",
+              JSON.stringify(processedImages),
+            );
           }
         }
       } catch (error: any) {
         console.error("Error fetching article images:", error);
-        
+
         // Check for 401 authentication error
-        if (error.message?.includes('401') || error.message?.includes('Authentication required')) {
-          console.log("Authentication error - logging out and redirecting to login");
+        if (
+          error.message?.includes("401") ||
+          error.message?.includes("Authentication required")
+        ) {
+          console.log(
+            "Authentication error - logging out and redirecting to login",
+          );
           logout();
           router.push("/login");
         }
@@ -159,32 +200,39 @@ export default function LandingPage() {
     if (articles.length === 0) {
       return [];
     }
-    
+
     const result = articles.map((item: any) => {
       // Find matching image for this article using relativeid
-      const imageItem = articleImages.find(
-        (img: any) => {
-          const imgRelativeId = img.attachmentRelativeID ?? img.attachmentRelativeId ?? img.attachmentrelativeid ?? img.RelativeID ?? img.relativeid ?? null;
-          return String(imgRelativeId) === String(item.quizid);
-        }
-      );
-      
+      const imageItem = articleImages.find((img: any) => {
+        const imgRelativeId =
+          img.attachmentRelativeID ??
+          img.attachmentRelativeId ??
+          img.attachmentrelativeid ??
+          img.RelativeID ??
+          img.relativeid ??
+          null;
+        return String(imgRelativeId) === String(item.quizid);
+      });
+
       // Use the converted imageUrl, or construct from attachmentcontent if needed
-      let displayImage = imageItem?.imageUrl || 
-                           (imageItem?.attachmentcontent ? `data:image/png;base64,${imageItem.attachmentcontent}` : null) ||
-                           item.Image || 
-                           item.image || 
-                           item.Attachment || 
-                           item.attachment ||
-                           "";
-      
+      let displayImage =
+        imageItem?.imageUrl ||
+        (imageItem?.attachmentcontent
+          ? `data:image/png;base64,${imageItem.attachmentcontent}`
+          : null) ||
+        item.Image ||
+        item.image ||
+        item.Attachment ||
+        item.attachment ||
+        "";
+
       // Validate and fix data URL format
-      if (displayImage && !displayImage.startsWith('data:')) {
-        if (displayImage.length > 0 && !displayImage.includes('://')) {
+      if (displayImage && !displayImage.startsWith("data:")) {
+        if (displayImage.length > 0 && !displayImage.includes("://")) {
           displayImage = `data:image/png;base64,${displayImage}`;
         }
       }
-      
+
       return {
         id: item.quizid,
         header: item.quizname || "Article",
@@ -194,10 +242,11 @@ export default function LandingPage() {
         author: item.quizadminentityName || "",
       };
     });
-    
+
     // Deduplicate articles by quizid - keep first occurrence
-    return result.filter((article, index, self) => 
-      index === self.findIndex((a) => a.id === article.id)
+    return result.filter(
+      (article, index, self) =>
+        index === self.findIndex((a) => a.id === article.id),
     );
   }, [articles, articleImages]);
 
@@ -233,7 +282,9 @@ export default function LandingPage() {
     // Show skeleton while loading or if no image
     if (isLoading || !src || hasError) {
       return (
-        <div className={`w-full ${skeletonHeight} bg-gradient-to-br from-green-100 to-emerald-100 rounded-t-lg`}>
+        <div
+          className={`w-full ${skeletonHeight} bg-gradient-to-br from-green-100 to-emerald-100 rounded-t-lg`}
+        >
           <Skeleton className="w-full h-full rounded-t-lg" />
         </div>
       );
@@ -500,7 +551,10 @@ export default function LandingPage() {
           </section>
 
           {/* How It Works Section */}
-          <section id="how-it-works" className="py-20 bg-gradient-to-br from-green-50 to-emerald-50">
+          <section
+            id="how-it-works"
+            className="py-20 bg-gradient-to-br from-green-50 to-emerald-50"
+          >
             <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
               <motion.div
                 initial={{ opacity: 0, y: 40 }}
@@ -592,85 +646,100 @@ export default function LandingPage() {
           </section>
         </>
       ) : (
-        <></>
+        <>
+          {/* BBC-Style News Header */}
+          <header className="bg-black text-white">
+            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+              <div className="flex items-center justify-between h-16">
+                <div className="text-sm text-gray-300">
+                  {new Date().toLocaleDateString("en-US", {
+                    weekday: "long",
+                    day: "numeric",
+                    month: "long",
+                    year: "numeric",
+                  })}
+                </div>
+              </div>
+            </div>
+          </header>
+
+          {/* News Navigation Bar */}
+        </>
       )}
 
-      {/* Articles Section - Only for authenticated users */}
+      {/* BBC-Style News Content for authenticated users */}
       {isAuthenticated && (
-        <section className="py-20 bg-white">
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <motion.div
-              initial={{ opacity: 0, y: 40 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.6 }}
-              viewport={{ once: true }}
-              className="text-center mb-16"
-            >
-              <h2 className="text-4xl font-bold text-gray-900 mb-4">
-                Latest News
-              </h2>
-              <p className="text-xl text-gray-600 max-w-3xl mx-auto">
-                Stay updated with the latest developments and insights from
-                EcoMetrics
-              </p>
-            </motion.div>
-
+        <main className="bg-gray-100 min-h-screen">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
             {loadingArticles ? (
               <div className="flex justify-center items-center py-20">
-                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-green-600"></div>
+                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-red-600"></div>
               </div>
             ) : parsedArticles.length > 0 ? (
-              <>
-                {/* Featured Article */}
-                {parsedArticles.slice(0, 1).map((article, index) => (
-                  <motion.div
-                    key={article.id || `featured-${index}`}
-                    initial={{ opacity: 0, y: 40 }}
-                    whileInView={{ opacity: 1, y: 0 }}
-                    transition={{ duration: 0.6 }}
-                    viewport={{ once: true }}
-                    className="mb-12"
-                  >
-                    <Link href={`/article?id=${article.id || index + 1}`} className="block">
-                      <Card className="border-0 shadow-lg hover:shadow-xl transition-shadow cursor-pointer">
-                        <div className="relative h-64 md:h-80 bg-gradient-to-br from-green-100 to-emerald-100 rounded-t-lg overflow-hidden">
+              <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                {/* Main News Column */}
+                <div className="lg:col-span-2 space-y-6">
+                  {/* Top Story - Featured Article */}
+                  {parsedArticles.slice(0, 1).map((article, index) => (
+                    <motion.article
+                      key={article.id || `featured-${index}`}
+                      initial={{ opacity: 0, y: 20 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ duration: 0.5 }}
+                      className="bg-white rounded-lg overflow-hidden shadow-md hover:shadow-lg transition-shadow"
+                    >
+                      <Link
+                        href={`/article?id=${article.id || index + 1}`}
+                        className="block"
+                      >
+                        <div className="relative aspect-video bg-gray-200">
                           <ArticleImage
                             src={article.image}
                             alt={article.header}
                             className="w-full h-full object-cover"
-                            skeletonHeight="h-64 md:h-80"
+                            skeletonHeight="aspect-video"
                             isLoading={!imagesLoaded.has(Number(article.id))}
                           />
-                        </div>
-                        <CardContent className="p-8">
-                          <div className="text-sm text-green-600 font-medium mb-2">
-                            {article.date || "Featured Article"}
+                          <div className="absolute top-4 left-4">
+                            <span className="bg-red-600 text-white text-xs font-bold px-2 py-1 rounded">
+                              TOP STORY
+                            </span>
                           </div>
-                          <h3 className="text-3xl font-bold text-gray-900 mb-4">
+                        </div>
+                        <div className="p-6">
+                          <h2 className="text-2xl md:text-3xl font-bold text-gray-900 mb-3 hover:text-red-600 transition-colors">
                             {article.header}
-                          </h3>
-                          <p className="text-gray-600 text-lg">
+                          </h2>
+                          <p className="text-gray-600 text-lg leading-relaxed">
                             {article.title}
                           </p>
-                        </CardContent>
-                      </Card>
-                    </Link>
-                  </motion.div>
-                ))}
+                          <div className="mt-4 flex items-center text-sm text-gray-500">
+                            <span className="font-medium text-red-600">
+                              {article.author || "EcoMetrics"}
+                            </span>
+                            <span className="mx-2">•</span>
+                            <span>{article.date || "Recent"}</span>
+                          </div>
+                        </div>
+                      </Link>
+                    </motion.article>
+                  ))}
 
-                {/* Article Grid */}
-                <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
-                  {parsedArticles.slice(1).map((article, index) => (
-                    <motion.div
-                      key={article.id || `article-${index}`}
-                      initial={{ opacity: 0, y: 40 }}
-                      whileInView={{ opacity: 1, y: 0 }}
-                      transition={{ duration: 0.6, delay: index * 0.1 }}
-                      viewport={{ once: true }}
-                    >
-                      <Link href={`/article?id=${article.id || index + 2}`} className="block">
-                        <Card className="h-full border-0 shadow-lg hover:shadow-xl transition-shadow cursor-pointer">
-                          <div className="relative h-48 bg-gradient-to-br from-green-100 to-emerald-100 rounded-t-lg overflow-hidden">
+                  {/* News Grid - 2 columns */}
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    {parsedArticles.slice(1, 5).map((article, index) => (
+                      <motion.article
+                        key={article.id || `article-${index}`}
+                        initial={{ opacity: 0, y: 20 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ duration: 0.5, delay: (index + 1) * 0.1 }}
+                        className="bg-white rounded-lg overflow-hidden shadow-md hover:shadow-lg transition-shadow"
+                      >
+                        <Link
+                          href={`/article?id=${article.id || index + 2}`}
+                          className="block"
+                        >
+                          <div className="relative h-48 bg-gray-200">
                             <ArticleImage
                               src={article.image}
                               alt={article.header}
@@ -679,30 +748,174 @@ export default function LandingPage() {
                               isLoading={!imagesLoaded.has(Number(article.id))}
                             />
                           </div>
-                          <CardContent className="p-6">
-                            <div className="text-sm text-green-600 font-medium mb-2">
-                              {article.date || "Article"}
-                            </div>
-                            <h3 className="text-xl font-bold text-gray-900 mb-3">
+                          <div className="p-4">
+                            <h3 className="text-lg font-bold text-gray-900 mb-2 hover:text-red-600 transition-colors line-clamp-2">
                               {article.header}
                             </h3>
-                            <p className="text-gray-600 text-base line-clamp-3">
+                            <p className="text-gray-600 text-sm line-clamp-2">
                               {article.title}
                             </p>
-                          </CardContent>
-                        </Card>
-                      </Link>
-                    </motion.div>
-                  ))}
+                            <div className="mt-3 text-xs text-gray-500">
+                              <span className="font-medium text-red-600">
+                                {article.author || "EcoMetrics"}
+                              </span>
+                              <span className="mx-1">•</span>
+                              <span>{article.date || "Recent"}</span>
+                            </div>
+                          </div>
+                        </Link>
+                      </motion.article>
+                    ))}
+                  </div>
+
+                  {/* More News List */}
+                  {parsedArticles.length > 5 && (
+                    <div className="bg-white rounded-lg shadow-md overflow-hidden">
+                      <div className="border-b border-gray-200 px-6 py-4">
+                        <h3 className="text-lg font-bold text-gray-900">
+                          More News
+                        </h3>
+                      </div>
+                      <div className="divide-y divide-gray-200">
+                        {parsedArticles.slice(5).map((article, index) => (
+                          <motion.div
+                            key={article.id || `more-${index}`}
+                            initial={{ opacity: 0, x: -20 }}
+                            animate={{ opacity: 1, x: 0 }}
+                            transition={{ duration: 0.3, delay: index * 0.05 }}
+                          >
+                            <Link
+                              href={`/article?id=${article.id || index + 6}`}
+                              className="block px-6 py-4 hover:bg-gray-50 transition-colors"
+                            >
+                              <div className="flex items-start space-x-4">
+                                <div className="flex-1">
+                                  <h4 className="font-semibold text-gray-900 hover:text-red-600 transition-colors">
+                                    {article.header}
+                                  </h4>
+                                  <p className="text-sm text-gray-600 mt-1 line-clamp-2">
+                                    {article.title}
+                                  </p>
+                                  <div className="mt-2 text-xs text-gray-500">
+                                    <span className="font-medium text-red-600">
+                                      {article.author || "EcoMetrics"}
+                                    </span>
+                                    <span className="mx-1">•</span>
+                                    <span>{article.date || "Recent"}</span>
+                                  </div>
+                                </div>
+                                {article.image && (
+                                  <div className="w-24 h-16 flex-shrink-0 rounded overflow-hidden bg-gray-200">
+                                    <img
+                                      src={article.image}
+                                      alt=""
+                                      className="w-full h-full object-cover"
+                                    />
+                                  </div>
+                                )}
+                              </div>
+                            </Link>
+                          </motion.div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
                 </div>
-              </>
+
+                {/* Sidebar */}
+                <aside className="space-y-6">
+                  {/* Trending Section */}
+                  <div className="bg-white rounded-lg shadow-md overflow-hidden">
+                    <div className="bg-red-600 px-4 py-3">
+                      <h3 className="text-white font-bold flex items-center">
+                        <TrendingUp className="h-4 w-4 mr-2" />
+                        Trending
+                      </h3>
+                    </div>
+                    <div className="divide-y divide-gray-200">
+                      {parsedArticles.slice(0, 5).map((article, index) => (
+                        <Link
+                          key={`trending-${article.id || index}`}
+                          href={`/article?id=${article.id || index + 1}`}
+                          className="block px-4 py-3 hover:bg-gray-50 transition-colors"
+                        >
+                          <div className="flex items-start space-x-3">
+                            <span className="text-2xl font-bold text-red-600">
+                              {index + 1}
+                            </span>
+                            <p className="text-sm font-medium text-gray-900 hover:text-red-600 transition-colors line-clamp-2">
+                              {article.header}
+                            </p>
+                          </div>
+                        </Link>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Quick Links */}
+                  <div className="bg-white rounded-lg shadow-md overflow-hidden">
+                    <div className="border-b border-gray-200 px-4 py-3">
+                      <h3 className="font-bold text-gray-900">Quick Links</h3>
+                    </div>
+                    <div className="p-4 space-y-2">
+                      <Link
+                        href="/dashboard"
+                        className="flex items-center p-2 rounded hover:bg-gray-100 transition-colors"
+                      >
+                        <TrendingUp className="h-5 w-5 text-green-600 mr-3" />
+                        <span className="text-gray-700">Dashboard</span>
+                      </Link>
+                      <Link
+                        href="/input"
+                        className="flex items-center p-2 rounded hover:bg-gray-100 transition-colors"
+                      >
+                        <Database className="h-5 w-5 text-blue-600 mr-3" />
+                        <span className="text-gray-700">Input Data</span>
+                      </Link>
+                      <Link
+                        href="/automated-reports"
+                        className="flex items-center p-2 rounded hover:bg-gray-100 transition-colors"
+                      >
+                        <Settings className="h-5 w-5 text-purple-600 mr-3" />
+                        <span className="text-gray-700">Reports</span>
+                      </Link>
+                      <Link
+                        href="/settings"
+                        className="flex items-center p-2 rounded hover:bg-gray-100 transition-colors"
+                      >
+                        <User className="h-5 w-5 text-gray-600 mr-3" />
+                        <span className="text-gray-700">Settings</span>
+                      </Link>
+                    </div>
+                  </div>
+
+                  {/* Newsletter Signup */}
+                  <div className="bg-gradient-to-br from-green-600 to-emerald-600 rounded-lg shadow-md p-6 text-white">
+                    <h3 className="font-bold text-lg mb-2">Stay Informed</h3>
+                    <p className="text-green-100 text-sm mb-4">
+                      Get the latest sustainability news delivered to your
+                      inbox.
+                    </p>
+                    <Button className="w-full bg-white text-green-600 hover:bg-gray-100">
+                      Subscribe
+                    </Button>
+                  </div>
+                </aside>
+              </div>
             ) : (
-              <div className="text-center py-20">
-                <p className="text-gray-600 text-lg">No articles available at the moment.</p>
+              <div className="bg-white rounded-lg shadow-md p-12 text-center">
+                <Leaf className="h-16 w-16 text-gray-300 mx-auto mb-4" />
+                <h3 className="text-xl font-semibold text-gray-900 mb-2">
+                  No News Available
+                </h3>
+                <p className="text-gray-600">
+                  Check back later for the latest sustainability news and
+                  updates.
+                </p>
               </div>
             )}
           </div>
-        </section>
+        </main>
       )}
 
       {/* CTA Section */}
