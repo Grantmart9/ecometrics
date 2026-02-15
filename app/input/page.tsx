@@ -1775,7 +1775,7 @@ export default function Input() {
                                           e.target.value,
                                         )
                                       }
-                                      step="0.01"
+                                      step="1"
                                     />
                                     {unitOfMeasurement ? (
                                       <span className="absolute inset-y-0 right-0 flex items-center pr-3 text-sm text-gray-500">
