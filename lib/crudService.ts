@@ -171,9 +171,9 @@ class CrudService {
       };
       console.log("CORS headers in response:", corsHeaders);
 
-      // Handle unauthorized - redirect to login
+      // Handle 401 unauthorized - throw error without redirecting
       if (response.status === 401) {
-        console.error("Unauthorized - user may need to login");
+        console.error("Unauthorized - authentication required");
         throw new Error("Authentication required. Please login again.");
       }
 
@@ -304,9 +304,9 @@ class CrudService {
         body: JSON.stringify(crud),
       });
 
-      // HANDLE 401 UNAUTHORISED - TOKEN EXPIRED OR INVALID
+      // HANDLE 401 UNAUTHORISED - TOKEN EXPIRED OR INVALID - THROW ERROR
       if (response.status === 401) {
-        console.error("Unauthorized in callCrud - user may need to login");
+        console.error("Unauthorized - authentication required");
         throw new Error("Authentication required. Please login again.");
       }
 
@@ -460,7 +460,9 @@ class CrudService {
         body: JSON.stringify(request),
       });
 
+      // HANDLE 401 UNAUTHORISED - THROW ERROR
       if (response.status === 401) {
+        console.error("Unauthorized - authentication required");
         throw new Error("Authentication required. Please login again.");
       }
 

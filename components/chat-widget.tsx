@@ -8,6 +8,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { aiService } from "@/lib/aiService";
 
 interface Message {
   id: string;
@@ -20,6 +21,7 @@ export function ChatWidget() {
   const [isOpen, setIsOpen] = useState(false);
   const [messages, setMessages] = useState<Message[]>([]);
   const [inputValue, setInputValue] = useState("");
+  const [isTyping, setIsTyping] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   const scrollToBottom = () => {
@@ -43,7 +45,7 @@ export function ChatWidget() {
     }
   }, [isOpen, messages.length]);
 
-  const handleSendMessage = () => {
+  const handleSendMessage = async () => {
     if (inputValue.trim() === "") return;
 
     const userMessage: Message = {
@@ -56,25 +58,43 @@ export function ChatWidget() {
     setMessages((prev) => [...prev, userMessage]);
     setInputValue("");
 
-    // Simulate bot response after a delay
-    setTimeout(() => {
-      const botResponses = [
-        "That's a great question! Let me help you with that.",
-        "I understand you're looking to optimize your emissions data. Here's what I recommend...",
-        "Based on your carbon tracking, I suggest reviewing your electricity usage patterns.",
-        "Feel free to ask me anything about sustainability metrics or emission calculations!",
-      ];
-      const randomResponse =
-        botResponses[Math.floor(Math.random() * botResponses.length)];
+    // Call AI API
+    setIsTyping(true);
+    try {
+      const result = await aiService.generate({
+        model: "llama3.2",
+        prompt: `You are an AI assistant for EcoMetrics, a carbon footprint tracking application. 
+        
+User question: ${inputValue}
+
+Please provide a helpful, concise response about:
+- Carbon emissions tracking
+- Sustainability metrics
+- Environmental compliance
+- Emission calculations
+
+If the question is not related to environmental topics, politely redirect to relevant topics.`,
+      });
 
       const botMessage: Message = {
         id: (Date.now() + 1).toString(),
-        text: randomResponse,
+        text: result.response,
         sender: "bot",
         timestamp: new Date(),
       };
       setMessages((prev) => [...prev, botMessage]);
-    }, 1000);
+    } catch (error: any) {
+      console.error("AI API error:", error);
+      const errorMessage: Message = {
+        id: (Date.now() + 1).toString(),
+        text: `I'm having trouble connecting to the AI server. This may be due to CORS restrictions or network issues. Please ensure the Ollama server at 13.48.35.34:11434 is running and has CORS enabled.\n\nError: ${error.message || "Unknown error"}`,
+        sender: "bot",
+        timestamp: new Date(),
+      };
+      setMessages((prev) => [...prev, errorMessage]);
+    } finally {
+      setIsTyping(false);
+    }
   };
 
   const handleKeyPress = (e: React.KeyboardEvent) => {
@@ -131,6 +151,17 @@ export function ChatWidget() {
                 </div>
               </div>
             ))}
+            {isTyping && (
+              <div className="flex justify-start">
+                <div className="bg-white text-gray-800 border border-gray-200 rounded-bl-md rounded-tr-md rounded-br-md p-3">
+                  <div className="flex gap-1">
+                    <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: "0ms" }}></div>
+                    <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: "150ms" }}></div>
+                    <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: "300ms" }}></div>
+                  </div>
+                </div>
+              </div>
+            )}
             <div ref={messagesEndRef} />
           </div>
 
@@ -142,12 +173,12 @@ export function ChatWidget() {
                 value={inputValue}
                 onChange={(e) => setInputValue(e.target.value)}
                 onKeyPress={handleKeyPress}
-                placeholder="Type your message..."
+                placeholder="Ask about carbon emissions..."
                 className="flex-1 px-4 py-2 border border-gray-300 rounded-full focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
               />
               <button
                 onClick={handleSendMessage}
-                disabled={!inputValue.trim()}
+                disabled={!inputValue.trim() || isTyping}
                 className="bg-blue-600 hover:bg-blue-700 disabled:bg-gray-400 text-white p-2 rounded-full transition-colors duration-200 disabled:cursor-not-allowed"
                 aria-label="Send message"
               >

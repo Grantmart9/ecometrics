@@ -86,13 +86,7 @@ export default function LandingPage() {
         }
       } catch (error: any) {
         console.error("Error fetching articles:", error);
-        
-        // Check for 401 authentication error
-        if (error.message?.includes('401') || error.message?.includes('Authentication required')) {
-          console.log("Authentication error - logging out and redirecting to login");
-          logout();
-          router.push("/login");
-        }
+        // 401 errors are handled globally by crudService - no additional handling needed
       } finally {
         setLoadingArticles(false);
       }

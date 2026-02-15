@@ -45,8 +45,9 @@ import {
   Description,
   Note,
   AttachFile,
+  ExpandMore,
 } from "@mui/icons-material";
-import { Snackbar, Alert } from "@mui/material";
+import { Snackbar, Alert, Accordion, AccordionSummary, AccordionDetails } from "@mui/material";
 import {
   InputData,
   CreateInputDataRequest,
@@ -211,7 +212,7 @@ export default function Input() {
 
   // Activity group state
   const [activityGroups, setActivityGroups] = useState<
-    { id: number; name: string; attachmentId?: number; image?: string }[]
+    { id: number; name: string; attachmentId?: number; image?: string; activities: { id: number; name: string }[] }[]
   >([]);
   const [selectedActivityGroup, setSelectedActivityGroup] =
     useState<string>("");
@@ -220,9 +221,10 @@ export default function Input() {
   
   // Consumption types (activities) state
   const [consumptionTypes, setConsumptionTypes] = useState<
-    { id: number; name: string }[]
+    { id: number; name: string; tableid?: string }[]
   >([]);
   const [selectedConsumptionType, setSelectedConsumptionType] = useState<string>("");
+  const [selectedConsumptionTypeTableId, setSelectedConsumptionTypeTableId] = useState<string>("");
   const [isLoadingConsumptionTypes, setIsLoadingConsumptionTypes] = useState(false);
 
   // Cost centres state
@@ -232,15 +234,28 @@ export default function Input() {
   const [selectedCostCentre, setSelectedCostCentre] = useState<string>("");
   const [isLoadingCostCentres, setIsLoadingCostCentres] = useState(false);
 
+  // Bulk entry dialog state
+  const [bulkEntryDialogOpen, setBulkEntryDialogOpen] = useState(false);
+  const [bulkEntryActivityGroup, setBulkEntryActivityGroup] = useState<string>("");
+  const [bulkEntryActivity, setBulkEntryActivity] = useState<string>("");
+
   // Unit of measurement state
   const [unitOfMeasurement, setUnitOfMeasurement] = useState<string>("");
   const [isLoadingUnit, setIsLoadingUnit] = useState(false);
+  
+  // Additional info results (suffixes for input fields)
+  const [additionalInfoResults, setAdditionalInfoResults] = useState<{
+    result: string;
+    process: string;
+    value?: string;
+  }[]>([]);
   const [validation, setValidation] = useState({
     costCentre: { isValid: false, message: "" },
     startDate: { isValid: false, message: "" },
     endDate: { isValid: false, message: "" },
     consumptionType: { isValid: false, message: "" },
   });
+
 
   // Cookie-based authentication - no token setting needed
   // Cookies are automatically sent with requests
@@ -311,11 +326,24 @@ export default function Input() {
             })
             .map((item: any, index: number) => {
               console.log(`📊 Processing activity group ${index}:`, item);
+              // Extract activities from the activity array
+              const activities: { id: number; name: string }[] = [];
+              if (item.activity && Array.isArray(item.activity)) {
+                item.activity.forEach((activity: any) => {
+                  if (activity.Id !== undefined && activity.Name && typeof activity.Name === "string" && activity.Name.trim() !== "") {
+                    activities.push({
+                      id: activity.Id,
+                      name: activity.Name,
+                    });
+                  }
+                });
+              }
               return {
                 id: item.activityGroupId,
                 name: item.activityGroupName,
                 attachmentId: undefined,
                 image: undefined,
+                activities: activities,
               };
             });
 
@@ -382,7 +410,7 @@ export default function Input() {
 
           // Extract consumption types (activities) from the response
           // Activities are nested in the activity array within each activity group
-          const allActivities: { id: number; name: string }[] = [];
+          const allActivities: { id: number; name: string; tableid?: string }[] = [];
           tableData.forEach((item: any) => {
             if (item.activity && Array.isArray(item.activity)) {
               item.activity.forEach((activity: any) => {
@@ -390,6 +418,7 @@ export default function Input() {
                   allActivities.push({
                     id: activity.Id,
                     name: activity.Name,
+                    tableid: activity.Id ? String(activity.Id) : undefined,
                   });
                 }
               });
@@ -485,15 +514,22 @@ export default function Input() {
     const fetchUnitOfMeasurement = async () => {
       if (!session?.access_token || !selectedConsumptionType) {
         setUnitOfMeasurement("");
+        setAdditionalInfoResults([]);
         return;
       }
 
       setIsLoadingUnit(true);
       try {
+        // Use the tableid from the selected consumption type
+        const tableid = selectedConsumptionTypeTableId || "140634262";
+        
         console.log(
           "📡 Fetching unit of measurement for consumption type:",
           selectedConsumptionType,
+          "with tableid:",
+          tableid
         );
+        
         const response = await crudService.callCrud({
           data: JSON.stringify([
             {
@@ -501,7 +537,7 @@ export default function Input() {
               TableName: "additionalinfo",
               Action: "readExact",
               Fields: {
-                tableid: "140634234",
+                tableid: tableid,
               },
             },
           ]),
@@ -514,9 +550,11 @@ export default function Input() {
 
         if (response?.Data && response.Data[0]?.JsonData) {
           const jsonData = JSON.parse(response.Data[0].JsonData);
+          console.log("📊 Parsed JSON data:", jsonData);
+          
           const tableData = jsonData.Unit?.TableData || [];
-
           console.log("📊 Unit table data:", tableData);
+          console.log("📊 Table data length:", tableData.length);
 
           // Find the unit with additionalinfoProcess = "diarydetailunit"
           const unitItem = tableData.find(
@@ -527,27 +565,51 @@ export default function Input() {
               item.additionalinfoResult.trim() !== "",
           );
 
+          console.log("📊 Found unit item:", unitItem);
+
+          // Extract all additional info results for suffixes
+          const allResults = tableData
+            .filter(
+              (item: any) =>
+                item.additionalinfoResult &&
+                typeof item.additionalinfoResult === "string" &&
+                item.additionalinfoResult.trim() !== "",
+            )
+            .map((item: any) => ({
+              result: item.additionalinfoResult,
+              process: item.additionalinfoProcess,
+              value: item.additionalinforuleactionvalue || undefined,
+            }));
+          
+          console.log("📊 All additional info results:", allResults);
+          setAdditionalInfoResults(allResults);
+
           if (unitItem) {
             console.log("✅ Setting unit of measurement:", unitItem.additionalinfoResult);
             setUnitOfMeasurement(unitItem.additionalinfoResult);
           } else {
-            console.warn("⚠️ No unit found in response");
+            console.warn("⚠️ No unit found in response - checking all items:");
+            tableData.forEach((item: any, index: number) => {
+              console.log(`  Item ${index}:`, item.additionalinfoProcess, "->", item.additionalinfoResult);
+            });
             setUnitOfMeasurement("");
           }
         } else {
-          console.warn("⚠️ No unit data found in response");
+          console.warn("⚠️ No unit data found in response - response structure:", response);
           setUnitOfMeasurement("");
+          setAdditionalInfoResults([]);
         }
       } catch (error) {
         console.error("❌ Error fetching unit of measurement:", error);
         setUnitOfMeasurement("");
+        setAdditionalInfoResults([]);
       } finally {
         setIsLoadingUnit(false);
       }
     };
 
     fetchUnitOfMeasurement();
-  }, [session?.access_token, selectedConsumptionType]);
+  }, [session?.access_token, selectedConsumptionType, selectedEntityId, consumptionTypes, selectedConsumptionTypeTableId]);
 
   // Load input data when component mounts or tab changes
   useEffect(() => {
@@ -803,28 +865,124 @@ export default function Input() {
         attachments: attachmentFiles.map((file) => file.name),
       };
 
-      if (editingId) {
-        // Update existing record
-        const updatePayload: UpdateInputDataRequest = {
-          id: editingId,
-          ...payload,
-        } as any;
-        console.log(
-          "DEBUG: About to call crudService.update for emissions-input",
-          editingId,
-          updatePayload,
-        );
-        await crudService.update("emissions-input", editingId, updatePayload);
-        console.log("DEBUG: crudService.update successful");
-      } else {
-        // Create new record
-        console.log(
-          "DEBUG: About to call crudService.create for emissions-input",
-          payload,
-        );
-        await crudService.create("emissions-input", payload);
-        console.log("DEBUG: crudService.create successful");
+      // Get current timestamp for capturedate
+      const capturedate = new Date().toISOString().replace("T", " ").substring(0, 23);
+
+      // Find the consumption type ID (type: 59279 for Consumption)
+      const consumptionTypeId = "59279";
+      // Find the status ID (status: 58585 for Submit)
+      const statusId = "58585";
+
+      // Payload 1: Create Diary entry
+      const diaryRequest = {
+        data: JSON.stringify([
+          {
+            RecordSet: "Diary",
+            TableName: "diary",
+            Action: "create",
+            Fields: {
+              entity: selectedEntityId || "140634167",
+              startdate: formData.startDate,
+              enddate: formData.endDate,
+              type: consumptionTypeId,
+              name: formData.consumptionType || "Activity",
+              entityowner: session?.user?.id || "4",
+              status: statusId,
+              entitysupplier: selectedEntityRelationship || "140634501",
+              capturedate: capturedate,
+            },
+          },
+        ]),
+        PageNo: "1",
+        NoOfLines: "300",
+        CrudMessage: "@CrudMessage",
+      };
+
+      console.log("DEBUG: Creating Diary entry", diaryRequest);
+      const diaryResponse = await crudService.callCrud(diaryRequest);
+      console.log("DEBUG: Diary created", diaryResponse);
+
+      // Extract the created diary ID
+      let diaryId = null;
+      if (diaryResponse?.Data && diaryResponse.Data[0]?.JsonData) {
+        const parsed = JSON.parse(diaryResponse.Data[0].JsonData);
+        diaryId = parsed.Diary?.Id;
       }
+
+      // Payload 2: Create DiaryDetail entry
+      if (diaryId) {
+        const diaryDetailRequest = {
+          data: JSON.stringify([
+            {
+              RecordSet: "DiaryDetail",
+              TableName: "diarydetail",
+              Action: "create",
+              Fields: {
+                entity: selectedEntityId || "140634234",
+                startdate: formData.startDate,
+                enddate: formData.endDate,
+                diary: String(diaryId),
+                amount: formData.monetaryValue || "0",
+                name: formData.consumptionType || "Activity",
+                quantity: formData.monetaryValue || "0",
+                unit: "58502",
+                entitysupplier: selectedEntityRelationship || "140634503",
+                capturedate: capturedate,
+              },
+            },
+          ]),
+          PageNo: "1",
+          NoOfLines: "300",
+          CrudMessage: "@CrudMessage",
+        };
+
+        console.log("DEBUG: Creating DiaryDetail entry", diaryDetailRequest);
+        const diaryDetailResponse = await crudService.callCrud(diaryDetailRequest);
+        console.log("DEBUG: DiaryDetail created", diaryDetailResponse);
+      }
+
+      // Payload 3: Fetch Consumption data (to refresh the list)
+      const consumptionRequest = {
+        data: '[{"RecordSet":"Consumption","TableName":"diary","Action":"readExact","Fields":{"type":"59279"}}]',
+        PageNo: "1",
+        NoOfLines: "300",
+        CrudMessage: "@CrudMessage",
+      };
+      const consumptionResponse = await crudService.callCrud(consumptionRequest);
+      console.log("DEBUG: Consumption data fetched", consumptionResponse);
+
+      // Payload 4: Fetch IH (Intensity Hours) data
+      const ihRequest = {
+        data: JSON.stringify([
+          {
+            RecordSet: "IH",
+            TableName: "diary",
+            Action: "readExact",
+            Fields: {
+              entitysupplier: selectedEntityRelationship || "140634501",
+              type: consumptionTypeId,
+            },
+          },
+        ]),
+        PageNo: "1",
+        NoOfLines: "300",
+        CrudMessage: "@CrudMessage",
+      };
+      const ihResponse = await crudService.callCrud(ihRequest);
+      console.log("DEBUG: IH data fetched", ihResponse);
+
+      // Payload 5: Fetch Unit data
+      const unitRequest = {
+        data: '[{"RecordSet":"Unit","TableName":"additionalinfo","Action":"readExact","Fields":{"tableid":"null"}}]',
+        PageNo: "1",
+        NoOfLines: "300",
+        CrudMessage: "@CrudMessage",
+      };
+      const unitResponse = await crudService.callCrud(unitRequest);
+      console.log("DEBUG: Unit data fetched", unitResponse);
+
+      // Refresh the input data list
+      fetchInputData();
 
       setSubmitSuccess(true);
       showAlert("Data submitted successfully!", "success");
@@ -842,6 +1000,7 @@ export default function Input() {
       });
       setSelectedActivityGroup("");
       setSelectedConsumptionType("");
+      setSelectedConsumptionTypeTableId("");
       setSelectedCostCentre("");
       setUnitOfMeasurement("");
       setValidation({
@@ -962,6 +1121,11 @@ export default function Input() {
     });
     setSelectedActivityGroup(item.activityGroupName || "");
     setSelectedConsumptionType(item.diarytypeName || "");
+    // Set tableid if available in consumption types
+    const selectedType1 = consumptionTypes.find(t => t.name === item.diarytypeName);
+    if (selectedType1?.tableid) {
+      setSelectedConsumptionTypeTableId(selectedType1.tableid);
+    }
     setSelectedCostCentre(item.diaryentityName || "");
     setEditingId(item.diaryid);
     setSelectedTab("enter-data");
@@ -979,6 +1143,11 @@ export default function Input() {
     });
     setSelectedActivityGroup((item as any).activityGroup || "");
     setSelectedConsumptionType(item.consumptionType || "");
+    // Set tableid if available in consumption types
+    const selectedType2 = consumptionTypes.find(t => t.name === item.consumptionType);
+    if (selectedType2?.tableid) {
+      setSelectedConsumptionTypeTableId(selectedType2.tableid);
+    }
     setSelectedCostCentre(item.costCentre || "");
     setEditingId(item.id);
     setSelectedTab("enter-data");
@@ -1552,6 +1721,13 @@ export default function Input() {
                                     value={selectedConsumptionType}
                                     onValueChange={(value) => {
                                       setSelectedConsumptionType(value);
+                                      // Clear the tableid when selection changes to ensure fresh fetch
+                                      setSelectedConsumptionTypeTableId("");
+                                      // Also set the tableid for the selected consumption type
+                                      const selectedType = consumptionTypes.find(t => t.name === value);
+                                      if (selectedType?.tableid) {
+                                        setSelectedConsumptionTypeTableId(selectedType.tableid);
+                                      }
                                       handleInputChange("consumptionType", value);
                                     }}
                                   >
@@ -1590,7 +1766,7 @@ export default function Input() {
                                     <input
                                       id="monetary-value"
                                       type="number"
-                                      className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 pr-12"
+                                      className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 pr-20"
                                       placeholder="Enter value"
                                       value={formData.monetaryValue}
                                       onChange={(e) =>
@@ -1601,24 +1777,35 @@ export default function Input() {
                                       }
                                       step="0.01"
                                     />
-                                    {unitOfMeasurement && (
+                                    {unitOfMeasurement ? (
                                       <span className="absolute inset-y-0 right-0 flex items-center pr-3 text-sm text-gray-500">
                                         {unitOfMeasurement}
                                       </span>
-                                    )}
+                                    ) : null}
                                   </div>
                                 </div>
                                 <div className="w-full">
-                                  <AnimatedFormField
-                                    id="status"
-                                    label="Status"
-                                    type="text"
-                                    placeholder="Status"
+                                  <Label htmlFor="status" className="block text-sm font-medium text-gray-700 mb-1">
+                                    Status
+                                  </Label>
+                                  <Select
                                     value={formData.status}
-                                    onChange={(e) =>
-                                      handleInputChange("status", e.target.value)
-                                    }
-                                  />
+                                    onValueChange={(value) => handleInputChange("status", value)}
+                                  >
+                                    <SelectTrigger>
+                                      <SelectValue placeholder="Select status" />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                      <SelectItem value="Not-started">Not-started</SelectItem>
+                                      <SelectItem value="In-Progress">In-Progress</SelectItem>
+                                      <SelectItem value="Completed">Completed</SelectItem>
+                                      <SelectItem value="open">Open</SelectItem>
+                                      <SelectItem value="closed">Closed</SelectItem>
+                                      <SelectItem value="submit">Submit</SelectItem>
+                                      <SelectItem value="approved">Approved</SelectItem>
+                                      <SelectItem value="rejected">Rejected</SelectItem>
+                                    </SelectContent>
+                                  </Select>
                                 </div>
                                 <div className="flex gap-2 justify-center">
                                   <Button
@@ -1684,9 +1871,77 @@ export default function Input() {
                         </CardDescription>
                       </CardHeader>
                       <CardContent className="backdrop-blur-sm">
-                        <div className="text-center py-12 text-gray-500">
-                          <p>Bulk data entry functionality coming soon...</p>
-                        </div>
+                        {/* MUI Accordions for Activity Groups */}
+                        {isLoadingActivityGroups ? (
+                          <div className="flex justify-center items-center py-12">
+                            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600" />
+                            <span className="ml-3 text-gray-600">Loading activity groups...</span>
+                          </div>
+                        ) : activityGroups.length === 0 ? (
+                          <div className="text-center py-12 text-gray-500">
+                            <p>No activity groups found</p>
+                          </div>
+                        ) : (
+                          <div className="space-y-3">
+                            {activityGroups.map((group) => (
+                              <Accordion 
+                                key={group.id}
+                                className="backdrop-blur-sm bg-white/50 border border-white/30 shadow-sm"
+                              >
+                                <AccordionSummary
+                                  expandIcon={<ExpandMore className="text-blue-600" />}
+                                  className="hover:bg-white/30 transition-colors rounded-t-lg"
+                                >
+                                  <div className="flex items-center gap-3">
+                                    {group.image && (
+                                      <img
+                                        src={`data:image/png;base64,${group.image}`}
+                                        alt={`${group.name} diagram`}
+                                        className="w-8 h-8 object-contain"
+                                      />
+                                    )}
+                                    <span className="font-medium text-gray-800">
+                                      {group.name}
+                                    </span>
+                                  </div>
+                                </AccordionSummary>
+                                <AccordionDetails className="bg-white/30 rounded-b-lg">
+                                  <div className="p-4">
+                                    <p className="text-sm font-medium text-gray-700 mb-3">
+                                      Activities:
+                                    </p>
+                                    {group.activities && group.activities.length > 0 ? (
+                                      <div className="space-y-2">
+                                        {group.activities.map((activity) => (
+                                          <div
+                                            key={activity.id}
+                                            className="flex items-center justify-between p-3 bg-white/50 rounded-lg cursor-pointer hover:bg-white/70 transition-colors border border-gray-200"
+                                            onClick={() => {
+                                              setBulkEntryActivityGroup(group.name);
+                                              setBulkEntryActivity(activity.name);
+                                              setBulkEntryDialogOpen(true);
+                                            }}
+                                          >
+                                            <span className="text-sm text-gray-800">
+                                              {activity.name}
+                                            </span>
+                                            <span className="text-xs text-blue-600">
+                                              Select →
+                                            </span>
+                                          </div>
+                                        ))}
+                                      </div>
+                                    ) : (
+                                      <p className="text-sm text-gray-500">
+                                        No activities available
+                                      </p>
+                                    )}
+                                  </div>
+                                </AccordionDetails>
+                              </Accordion>
+                            ))}
+                          </div>
+                        )}
                       </CardContent>
                     </Card>
                   </motion.div>
@@ -2223,6 +2478,202 @@ export default function Input() {
                         Close
                       </Button>
                     </DialogFooter>
+                  </DialogContent>
+                </Dialog>
+
+                {/* Bulk Entry Dialog */}
+                <Dialog open={bulkEntryDialogOpen} onOpenChange={setBulkEntryDialogOpen}>
+                  <DialogContent className="sm:max-w-lg max-h-[80vh] overflow-y-auto">
+                    <DialogHeader>
+                      <DialogTitle>Enter Data</DialogTitle>
+                      <DialogDescription>
+                        Enter emissions data for {bulkEntryActivity}
+                      </DialogDescription>
+                    </DialogHeader>
+                    <form onSubmit={handleFormSubmit} className="space-y-4">
+                      <div className="flex gap-4">
+                        <div className="flex-1">
+                          <AnimatedFormField
+                            id="bulk-start-date"
+                            label="Start"
+                            type="date"
+                            placeholder="Start"
+                            value={formData.startDate}
+                            onChange={(e) =>
+                              handleInputChange("startDate", e.target.value)
+                            }
+                            required
+                            validation={validation.startDate}
+                          />
+                        </div>
+                        <div className="flex-1">
+                          <AnimatedFormField
+                            id="bulk-end-date"
+                            label="End"
+                            type="date"
+                            placeholder="End"
+                            value={formData.endDate}
+                            onChange={(e) =>
+                              handleInputChange("endDate", e.target.value)
+                            }
+                            required
+                            validation={validation.endDate}
+                          />
+                        </div>
+                      </div>
+                      <div className="w-full">
+                        <Label htmlFor="bulk-cost-centre" className="block text-sm font-medium text-gray-700 mb-1">
+                          Cost Centre
+                        </Label>
+                        <Select
+                          value={selectedCostCentre}
+                          onValueChange={(value) => {
+                            setSelectedCostCentre(value);
+                            handleInputChange("costCentre", value);
+                          }}
+                        >
+                          <SelectTrigger className={validation.costCentre.message ? "border-red-500" : ""}>
+                            <SelectValue placeholder="Select cost centre" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {isLoadingCostCentres ? (
+                              <SelectItem value="loading" disabled>
+                                Loading...
+                              </SelectItem>
+                            ) : costCentres.length === 0 ? (
+                              <SelectItem value="no-data" disabled>
+                                No data found
+                              </SelectItem>
+                            ) : (
+                              costCentres.map((centre) => (
+                                <SelectItem key={centre.id} value={centre.name}>
+                                  {centre.name}
+                                </SelectItem>
+                              ))
+                            )}
+                          </SelectContent>
+                        </Select>
+                        {validation.costCentre.message && (
+                          <p className="text-red-500 text-xs mt-1">
+                            {validation.costCentre.message}
+                          </p>
+                        )}
+                      </div>
+                      <div className="w-full">
+                        <Label htmlFor="bulk-consumption-type" className="block text-sm font-medium text-gray-700 mb-1">
+                          Consumption Type
+                        </Label>
+                        <Select
+                          value={bulkEntryActivity}
+                          onValueChange={(value) => {
+                            setBulkEntryActivity(value);
+                            setSelectedConsumptionType(value);
+                            // Clear the tableid when selection changes to ensure fresh fetch
+                            setSelectedConsumptionTypeTableId("");
+                            // Also set the tableid for the selected consumption type
+                            const selectedTypeBulk = consumptionTypes.find(t => t.name === value);
+                            if (selectedTypeBulk?.tableid) {
+                              setSelectedConsumptionTypeTableId(selectedTypeBulk.tableid);
+                            }
+                            handleInputChange("consumptionType", value);
+                          }}
+                        >
+                          <SelectTrigger className={validation.consumptionType.message ? "border-red-500" : ""}>
+                            <SelectValue placeholder="Select consumption type" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {consumptionTypes.map((type) => (
+                              <SelectItem key={type.id} value={type.name}>
+                                {type.name}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                        {validation.consumptionType.message && (
+                          <p className="text-red-500 text-xs mt-1">
+                            {validation.consumptionType.message}
+                          </p>
+                        )}
+                      </div>
+                      <div className="w-full">
+                        <label htmlFor="bulk-monetary-value" className="block text-sm font-medium text-gray-700 mb-1">
+                          Value
+                        </label>
+                        <div className="relative">
+                          <input
+                            id="bulk-monetary-value"
+                            type="number"
+                            className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 pr-12"
+                            placeholder="Enter value"
+                            value={formData.monetaryValue}
+                            onChange={(e) =>
+                              handleInputChange(
+                                "monetaryValue",
+                                e.target.value,
+                              )
+                            }
+                            step="0.01"
+                          />
+                          {unitOfMeasurement && (
+                            <span className="absolute inset-y-0 right-0 flex items-center pr-3 text-sm text-gray-500">
+                              {unitOfMeasurement}
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                      <div className="w-full">
+                        <Label htmlFor="bulk-status" className="block text-sm font-medium text-gray-700 mb-1">
+                          Status
+                        </Label>
+                        <Select
+                          value={formData.status}
+                          onValueChange={(value) => handleInputChange("status", value)}
+                        >
+                          <SelectTrigger>
+                            <SelectValue placeholder="Select status" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="Not-started">Not-started</SelectItem>
+                            <SelectItem value="In-Progress">In-Progress</SelectItem>
+                            <SelectItem value="Completed">Completed</SelectItem>
+                            <SelectItem value="open">Open</SelectItem>
+                            <SelectItem value="closed">Closed</SelectItem>
+                            <SelectItem value="submit">Submit</SelectItem>
+                            <SelectItem value="approved">Approved</SelectItem>
+                            <SelectItem value="rejected">Rejected</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <DialogFooter>
+                        <Button
+                          type="button"
+                          variant="outline"
+                          onClick={() => {
+                            setBulkEntryDialogOpen(false);
+                            // Reset form fields
+                            setFormData((prev) => ({
+                              ...prev,
+                              startDate: "",
+                              endDate: "",
+                              monetaryValue: "",
+                              status: "",
+                            }));
+                            setSelectedCostCentre("");
+                            setValidation({
+                              costCentre: { isValid: false, message: "" },
+                              startDate: { isValid: false, message: "" },
+                              endDate: { isValid: false, message: "" },
+                              consumptionType: { isValid: false, message: "" },
+                            });
+                          }}
+                        >
+                          Cancel
+                        </Button>
+                        <Button type="submit" className="bg-blue-600 hover:bg-blue-700" disabled={loading}>
+                          {loading ? "Saving..." : "Save"}
+                        </Button>
+                      </DialogFooter>
+                    </form>
                   </DialogContent>
                 </Dialog>
 
