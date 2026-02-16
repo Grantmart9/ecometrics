@@ -251,8 +251,8 @@ export default function LandingPage() {
   }, [articles, articleImages]);
 
   // Carbon footprint animation component using Three.js
-  const CarbonAnimation = dynamic(
-    () => import("@/components/CarbonAnimation"),
+  const HeroAnimation = dynamic(
+    () => import("@/components/hero-animation"),
     {
       ssr: false,
       loading: () => (
@@ -414,96 +414,199 @@ export default function LandingPage() {
       {/* Hero Section or News Header */}
       {!isAuthenticated ? (
         <>
-          <section className="relative overflow-hidden py-20 lg:py-32">
-            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          {/* Hero Section with Modern Animation */}
+          <section className="relative min-h-screen flex items-center overflow-hidden">
+            {/* Animated background gradient */}
+            <div className="absolute inset-0 bg-gradient-to-br from-green-50 via-emerald-50 to-sky-50" />
+            
+            {/* Animated mesh gradient overlay */}
+            <motion.div
+              className="absolute inset-0 opacity-30"
+              style={{
+                background: "radial-gradient(circle at 20% 50%, rgba(16, 185, 129, 0.2) 0%, transparent 50%), radial-gradient(circle at 80% 20%, rgba(5, 150, 105, 0.15) 0%, transparent 40%), radial-gradient(circle at 40% 80%, rgba(52, 211, 153, 0.1) 0%, transparent 40%)",
+              }}
+              animate={{
+                scale: [1, 1.1, 1],
+                rotate: [0, 5, 0],
+              }}
+              transition={{
+                duration: 20,
+                repeat: Infinity,
+                ease: "easeInOut",
+              }}
+            />
+
+            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
               <div className="grid lg:grid-cols-2 gap-12 items-center">
+                {/* Left Content */}
                 <motion.div
                   initial="initial"
                   animate="animate"
                   variants={staggerChildren}
                   className="text-center lg:text-left"
                 >
+                  {/* Badge */}
+                  <motion.div
+                    variants={fadeIn}
+                    className="inline-flex items-center gap-2 bg-green-100/80 backdrop-blur-sm border border-green-200 rounded-full px-4 py-2 mb-6"
+                  >
+                    <span className="relative flex h-2 w-2">
+                      <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
+                      <span className="relative inline-flex rounded-full h-2 w-2 bg-green-500"></span>
+                    </span>
+                    <span className="text-sm font-medium text-green-700">Trusted by 10,000+ companies worldwide</span>
+                  </motion.div>
+
                   <motion.h1
                     variants={fadeIn}
-                    className="text-5xl lg:text-7xl font-extrabold text-gray-900 mb-6"
+                    className="text-5xl lg:text-7xl font-extrabold text-gray-900 mb-6 leading-tight"
                   >
                     Measure. Reduce.{" "}
-                    <span className="text-transparent bg-clip-text bg-gradient-to-r from-green-600 to-emerald-600">
-                      Sustain.
+                    <span className="relative">
+                      <span className="text-transparent bg-clip-text bg-gradient-to-r from-green-600 via-emerald-500 to-teal-500">
+                        Sustain.
+                      </span>
+                      <motion.span
+                        className="absolute -bottom-2 left-0 w-full h-1 bg-gradient-to-r from-green-400 to-emerald-400 rounded-full"
+                        initial={{ scaleX: 0 }}
+                        animate={{ scaleX: 1 }}
+                        transition={{ delay: 0.8, duration: 0.6 }}
+                      />
                     </span>
                   </motion.h1>
 
                   <motion.p
                     variants={fadeIn}
-                    className="text-xl text-gray-600 mb-8 max-w-lg mx-auto lg:mx-0"
+                    className="text-xl text-gray-600 mb-8 max-w-lg mx-auto lg:mx-0 leading-relaxed"
                   >
                     EcoMetrics empowers businesses to track and reduce their
-                    carbon footprint with intelligent analytics.
+                    carbon footprint with intelligent analytics and actionable insights.
                   </motion.p>
 
                   <motion.div
                     variants={fadeIn}
                     className="flex flex-col sm:flex-row gap-4 justify-center lg:justify-start"
                   >
-                    <Button
-                      size="lg"
-                      className="bg-green-600 hover:bg-green-700 text-white px-8 py-4 text-lg"
-                      onClick={() => setSignupModalOpen(true)}
+                    <motion.div
+                      whileHover={{ scale: 1.02 }}
+                      whileTap={{ scale: 0.98 }}
                     >
-                      Get Started
-                    </Button>
-
-                    <Link href="#about">
                       <Button
-                        variant="outline"
                         size="lg"
-                        className="border-green-200 text-green-700 hover:bg-green-50 px-8 py-4 text-lg"
+                        className="bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white px-8 py-6 text-lg shadow-lg shadow-green-500/25 transition-all duration-300"
+                        onClick={() => setSignupModalOpen(true)}
                       >
-                        Learn More
+                        Get Started Free
+                        <motion.span
+                          className="ml-2"
+                          animate={{ x: [0, 4, 0] }}
+                          transition={{ duration: 1.5, repeat: Infinity }}
+                        >
+                          →
+                        </motion.span>
                       </Button>
+                    </motion.div>
+
+                    <Link href="#features">
+                      <motion.div
+                        whileHover={{ scale: 1.02 }}
+                        whileTap={{ scale: 0.98 }}
+                      >
+                        <Button
+                          variant="outline"
+                          size="lg"
+                          className="border-2 border-green-200 text-green-700 hover:bg-green-50 hover:border-green-300 px-8 py-6 text-lg transition-all duration-300"
+                        >
+                          <svg className="w-5 h-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z" />
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                          </svg>
+                          Watch Demo
+                        </Button>
+                      </motion.div>
                     </Link>
+                  </motion.div>
+
+                  {/* Trust indicators */}
+                  <motion.div
+                    variants={fadeIn}
+                    className="mt-12 flex flex-wrap items-center justify-center lg:justify-start gap-8"
+                  >
+                    <div className="flex items-center gap-2">
+                      <div className="flex -space-x-2">
+                        {[1, 2, 3, 4].map((i) => (
+                          <div
+                            key={i}
+                            className="w-8 h-8 rounded-full bg-gradient-to-br from-green-400 to-emerald-500 border-2 border-white flex items-center justify-center text-white text-xs font-bold"
+                          >
+                            {String.fromCharCode(64 + i)}
+                          </div>
+                        ))}
+                      </div>
+                      <span className="text-sm text-gray-600">Join 10,000+ users</span>
+                    </div>
+                    <div className="flex items-center gap-1">
+                      {[1, 2, 3, 4, 5].map((i) => (
+                        <svg key={i} className="w-5 h-5 text-yellow-400" fill="currentColor" viewBox="0 0 20 20">
+                          <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
+                        </svg>
+                      ))}
+                      <span className="text-sm text-gray-600 ml-1">4.9/5 rating</span>
+                    </div>
                   </motion.div>
                 </motion.div>
 
+                {/* Right Animation */}
                 <motion.div
-                  initial={{ opacity: 0, scale: 0.8 }}
-                  animate={{ opacity: 1, scale: 1 }}
-                  transition={{ duration: 0.8, delay: 0.2 }}
+                  initial={{ opacity: 0, scale: 0.8, rotateY: -15 }}
+                  animate={{ opacity: 1, scale: 1, rotateY: 0 }}
+                  transition={{ duration: 1, delay: 0.3, type: "spring" }}
                   className="relative"
                 >
-                  <div className="relative w-full h-96 bg-gradient-to-br from-green-100 to-emerald-100 rounded-3xl overflow-hidden shadow-2xl">
+                  <div className="relative w-full h-[500px] rounded-3xl overflow-hidden">
+                    {/* Glass morphism container */}
+                    <div className="absolute inset-0 bg-gradient-to-br from-white/20 to-white/5 backdrop-blur-sm rounded-3xl border border-white/30 shadow-2xl" />
+                    
+                    {/* Animation container */}
                     <div className="absolute inset-0 flex items-center justify-center">
-                      <CarbonAnimation />
+                      <HeroAnimation />
                     </div>
 
-                    {/* Floating elements */}
-                    <motion.div
-                      animate={{ y: [0, -20, 0] }}
-                      transition={{ duration: 3, repeat: Infinity, delay: 0 }}
-                      className="absolute top-8 left-8 bg-white rounded-xl p-4 shadow-lg"
-                    >
-                      <TrendingUp className="h-6 w-6 text-green-600" />
-                    </motion.div>
-
-                    <motion.div
-                      animate={{ y: [0, -15, 0] }}
-                      transition={{ duration: 3, repeat: Infinity, delay: 1 }}
-                      className="absolute top-16 right-8 bg-white rounded-xl p-4 shadow-lg"
-                    >
-                      <Leaf className="h-6 w-6 text-emerald-600" />
-                    </motion.div>
-
-                    <motion.div
-                      animate={{ y: [0, -10, 0] }}
-                      transition={{ duration: 3, repeat: Infinity, delay: 2 }}
-                      className="absolute bottom-8 left-16 bg-white rounded-xl p-4 shadow-lg"
-                    >
-                      <Database className="h-6 w-6 text-green-600" />
-                    </motion.div>
+                    {/* Decorative corner elements */}
+                    <div className="absolute top-0 left-0 w-20 h-20 border-t-4 border-l-4 border-green-400/50 rounded-tl-3xl" />
+                    <div className="absolute bottom-0 right-0 w-20 h-20 border-b-4 border-r-4 border-emerald-400/50 rounded-br-3xl" />
                   </div>
+
+                  {/* Floating badge - bottom */}
+                  <motion.div
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: 1.2, duration: 0.5 }}
+                    className="absolute -bottom-4 left-1/2 -translate-x-1/2 bg-white rounded-full px-6 py-3 shadow-lg border border-gray-100"
+                  >
+                    <div className="flex items-center gap-3">
+                      <div className="w-3 h-3 rounded-full bg-green-500 animate-pulse" />
+                      <span className="text-sm font-medium text-gray-700">Real-time carbon tracking</span>
+                    </div>
+                  </motion.div>
                 </motion.div>
               </div>
             </div>
+
+            {/* Scroll indicator */}
+            <motion.div
+              className="absolute bottom-8 left-1/2 -translate-x-1/2"
+              animate={{ y: [0, 10, 0] }}
+              transition={{ duration: 2, repeat: Infinity }}
+            >
+              <div className="w-6 h-10 rounded-full border-2 border-gray-300 flex items-start justify-center p-1">
+                <motion.div
+                  className="w-1.5 h-3 bg-gray-400 rounded-full"
+                  animate={{ y: [0, 12, 0] }}
+                  transition={{ duration: 2, repeat: Infinity }}
+                />
+              </div>
+            </motion.div>
           </section>
 
           {/* Features Section */}
