@@ -634,11 +634,8 @@ export default function ManageFactorsPage() {
                 <Table>
                   <TableHeader>
                     <TableRow className="bg-gray-50 hover:bg-gray-50">
-                      <TableHead className="font-semibold text-gray-700">ID</TableHead>
                       <TableHead className="font-semibold text-gray-700">Name</TableHead>
-                      <TableHead className="font-semibold text-gray-700">Description</TableHead>
-                      <TableHead className="font-semibold text-gray-700">Activities</TableHead>
-                      <TableHead className="font-semibold text-gray-700 text-center">Actions</TableHead>
+                      <TableHead className="font-semibold text-gray-700 text-right">Actions</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -648,37 +645,21 @@ export default function ManageFactorsPage() {
                         initial={{ opacity: 0, y: 10 }}
                         animate={{ opacity: 1, y: 0 }}
                         transition={{ duration: 0.2, delay: index * 0.03 }}
-                        className="border-b border-gray-100 hover:bg-green-50/50 transition-colors"
+                        onClick={() => openViewActivitiesDialog(group)}
+                        className="border-b border-gray-100 hover:bg-green-50/50 transition-colors cursor-pointer"
                       >
-                        <TableCell className="font-medium text-gray-900">
-                          #{group.id}
-                        </TableCell>
-                        <TableCell className="text-gray-900 font-medium">
+                        <TableCell className="text-gray-900 font-medium py-4">
                           {group.name}
                         </TableCell>
-                        <TableCell className="text-gray-600">
-                          {group.description || "-"}
-                        </TableCell>
-                        <TableCell>
-                          <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-700">
-                            {group.activities?.length || 0} activities
-                          </span>
-                        </TableCell>
-                        <TableCell>
-                          <div className="flex items-center justify-center gap-1">
+                        <TableCell className="text-right">
+                          <div className="flex items-center justify-end gap-1">
                             <Button
                               variant="ghost"
                               size="sm"
-                              onClick={() => openViewActivitiesDialog(group)}
-                              className="text-gray-500 hover:text-blue-600 hover:bg-blue-50"
-                              title="View Activities"
-                            >
-                              <Visibility className="h-4 w-4" />
-                            </Button>
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => openEditDialog(group)}
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                openEditDialog(group);
+                              }}
                               className="text-gray-500 hover:text-amber-600 hover:bg-amber-50"
                               title="Edit Group"
                             >
@@ -687,7 +668,8 @@ export default function ManageFactorsPage() {
                             <Button
                               variant="ghost"
                               size="sm"
-                              onClick={() => {
+                              onClick={(e) => {
+                                e.stopPropagation();
                                 setGroupToDelete(group);
                                 setDeleteConfirmOpen(true);
                               }}
@@ -848,9 +830,8 @@ export default function ManageFactorsPage() {
               <Table>
                 <TableHeader>
                   <TableRow className="bg-gray-50">
-                    <TableHead className="font-semibold text-gray-700">ID</TableHead>
                     <TableHead className="font-semibold text-gray-700">Activity Name</TableHead>
-                    <TableHead className="font-semibold text-gray-700 text-center">Actions</TableHead>
+                    <TableHead className="font-semibold text-gray-700 text-right">Actions</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -860,33 +841,25 @@ export default function ManageFactorsPage() {
                       initial={{ opacity: 0, y: 5 }}
                       animate={{ opacity: 1, y: 0 }}
                       transition={{ duration: 0.2, delay: index * 0.02 }}
+                      onClick={() => openViewFactorsDialog(activity)}
                       className="border-b border-gray-100 hover:bg-green-50/50 cursor-pointer"
                     >
-                      <TableCell className="font-medium text-gray-900">
-                        #{activity.id}
-                      </TableCell>
-                      <TableCell className="text-gray-700">
+                      <TableCell className="text-gray-700 font-medium py-4">
                         {activity.name}
                       </TableCell>
-                      <TableCell>
-                        <div className="flex items-center justify-center gap-2">
+                      <TableCell className="text-right">
+                        <div className="flex items-center justify-end gap-2">
                           <Button
                             variant="ghost"
                             size="sm"
-                            onClick={() => openEditActivityDialog(activity)}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              openEditActivityDialog(activity);
+                            }}
                             className="text-gray-500 hover:text-amber-600 hover:bg-amber-50"
                             title="Edit Activity"
                           >
                             <Edit className="h-4 w-4" />
-                          </Button>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => openViewFactorsDialog(activity)}
-                            className="text-gray-500 hover:text-green-600 hover:bg-green-50"
-                            title="View Factors"
-                          >
-                            <Visibility className="h-4 w-4" />
                           </Button>
                         </div>
                       </TableCell>
