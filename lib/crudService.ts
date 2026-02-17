@@ -1,6 +1,16 @@
 import { CrudRequest } from "@/types/database";
 import { environment } from "./environment";
 
+// Custom event for authentication errors
+export const AUTH_EVENT_NAME = "auth:unauthorized";
+
+export function dispatchAuthError() {
+  if (typeof window !== "undefined") {
+    console.log("🚨 Dispatching auth:unauthorized event - token expired or invalid");
+    window.dispatchEvent(new CustomEvent(AUTH_EVENT_NAME));
+  }
+}
+
 class CrudService {
   private baseUrl: string;
   private crudEndpoint = "/advice/dev/crud/crud";
@@ -171,9 +181,10 @@ class CrudService {
       };
       console.log("CORS headers in response:", corsHeaders);
 
-      // Handle 401 unauthorized - throw error without redirecting
+      // Handle 401 unauthorized - dispatch event and throw error
       if (response.status === 401) {
         console.error("Unauthorized - authentication required");
+        dispatchAuthError();
         throw new Error("Authentication required. Please login again.");
       }
 
@@ -304,9 +315,10 @@ class CrudService {
         body: JSON.stringify(crud),
       });
 
-      // HANDLE 401 UNAUTHORISED - TOKEN EXPIRED OR INVALID - THROW ERROR
+      // HANDLE 401 UNAUTHORISED - TOKEN EXPIRED OR INVALID - DISPATCH EVENT AND THROW ERROR
       if (response.status === 401) {
         console.error("Unauthorized - authentication required");
+        dispatchAuthError();
         throw new Error("Authentication required. Please login again.");
       }
 
@@ -460,9 +472,10 @@ class CrudService {
         body: JSON.stringify(request),
       });
 
-      // HANDLE 401 UNAUTHORISED - THROW ERROR
+      // HANDLE 401 UNAUTHORISED - DISPATCH EVENT AND THROW ERROR
       if (response.status === 401) {
         console.error("Unauthorized - authentication required");
+        dispatchAuthError();
         throw new Error("Authentication required. Please login again.");
       }
 

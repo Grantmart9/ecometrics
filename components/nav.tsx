@@ -22,6 +22,7 @@ const carboncalcNavItems = [{ href: "/input", label: "Upload Data" }];
 
 const ecometricsNavItems = [
   { href: "/dashboard", label: "Dashboard" },
+  { href: "/manage-factors", label: "Manage Factors" },
   { href: "/real-time-carbon-tracking", label: "Carbon Emissions Tracking" },
   { href: "/automated-reports", label: "Automated Reports" },
   { href: "/emission-source-breakdown", label: "Emission Breakdown" },
@@ -47,8 +48,11 @@ export function Nav() {
   const pathname = usePathname();
   const router = useRouter();
   const { isAuthenticated, user, logout, session, loading } = useAuth();
-  const { selectedEntityRelationship, selectedEntityId, setSelectedEntityRelationship } =
-    useEntityRelationship();
+  const {
+    selectedEntityRelationship,
+    selectedEntityId,
+    setSelectedEntityRelationship,
+  } = useEntityRelationship();
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const [companies, setCompanies] = useState<
     { id: string; name: string; entityId: string }[]
@@ -92,7 +96,11 @@ export function Nav() {
         hasToken: !!session?.access_token,
       });
       if (!session?.access_token || !isAuthenticated || loading) {
-        console.log("⏭️ Skipping fetch - conditions not met", { loading, isAuthenticated, hasToken: !!session?.access_token });
+        console.log("⏭️ Skipping fetch - conditions not met", {
+          loading,
+          isAuthenticated,
+          hasToken: !!session?.access_token,
+        });
         return;
       }
 
@@ -251,9 +259,7 @@ export function Nav() {
                   onMouseEnter={() => setIsDropdownOpen(true)}
                   onMouseLeave={() => setIsDropdownOpen(false)}
                 >
-                  <button
-                    className="flex items-center px-3 py-2 rounded-md text-sm font-medium text-gray-700 hover:text-green-700 hover:bg-green-50 transition-colors"
-                  >
+                  <button className="flex items-center px-3 py-2 rounded-md text-sm font-medium text-gray-700 hover:text-green-700 hover:bg-green-50 transition-colors">
                     Calculate
                     <motion.div
                       animate={{ rotate: isDropdownOpen ? 180 : 0 }}

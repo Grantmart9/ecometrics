@@ -5,9 +5,10 @@ import React, {
   useContext,
   useState,
   useEffect,
+  useCallback,
   ReactNode,
 } from "react";
-import { crudService } from "./crudService";
+import { crudService, AUTH_EVENT_NAME } from "./crudService";
 import { environment } from "./environment";
 import type { User, Session } from "@/types/database";
 
@@ -80,6 +81,37 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     checkAuthStatus();
   }, [crudService]);
+
+  // Listen for authentication errors (401) from CRUD service
+  // Only redirect to login if user was previously authenticated (token expired)
+  useEffect(() => {
+    const handleAuthError = async () => {
+      // Only process auth error if user was logged in (token expired scenario)
+      // If user is not authenticated, they're just browsing public pages
+      if (!isAuthenticated) {
+        console.log("🚨 Auth error event received but user not authenticated - ignoring (public page access)");
+        return;
+      }
+      
+      console.log("🚨 Auth error event received - token expired, logging out and redirecting to login");
+      
+      // Clear local state
+      setUser(null);
+      setIsAuthenticated(false);
+      setSession(null);
+      
+      // Redirect to login page
+      if (typeof window !== "undefined") {
+        window.location.href = "/login";
+      }
+    };
+
+    window.addEventListener(AUTH_EVENT_NAME, handleAuthError);
+    
+    return () => {
+      window.removeEventListener(AUTH_EVENT_NAME, handleAuthError);
+    };
+  }, [isAuthenticated]);
 
   const login = async (identifier: string, password: string) => {
     try {

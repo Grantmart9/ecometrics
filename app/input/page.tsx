@@ -111,8 +111,8 @@ export default function Input() {
   // Sorting state for Input History
   const [sortConfig, setSortConfig] = useState<{
     key: string;
-    direction: 'asc' | 'desc';
-  }>({ key: 'editDate', direction: 'desc' });
+    direction: "asc" | "desc";
+  }>({ key: "editDate", direction: "desc" });
 
   // New state for attachment and notes modals in Enter Data tab
   const [attachmentModalOpen, setAttachmentModalOpen] = useState(false);
@@ -139,12 +139,15 @@ export default function Input() {
   const [detailLoading, setDetailLoading] = useState(false);
 
   // Attachment dialog state for Input History
-  const [historyAttachmentDialogOpen, setHistoryAttachmentDialogOpen] = useState(false);
-  const [selectedHistoryAttachmentItem, setSelectedHistoryAttachmentItem] = useState<any>(null);
+  const [historyAttachmentDialogOpen, setHistoryAttachmentDialogOpen] =
+    useState(false);
+  const [selectedHistoryAttachmentItem, setSelectedHistoryAttachmentItem] =
+    useState<any>(null);
 
   // Notes dialog state for Input History
   const [historyNotesDialogOpen, setHistoryNotesDialogOpen] = useState(false);
-  const [selectedHistoryNotesItem, setSelectedHistoryNotesItem] = useState<any>(null);
+  const [selectedHistoryNotesItem, setSelectedHistoryNotesItem] =
+    useState<any>(null);
   const [historyEntryNotes, setHistoryEntryNotes] = useState<string[]>([]);
 
   // Handle opening attachments dialog
@@ -180,21 +183,28 @@ export default function Input() {
           TableName: "diarydetail",
           Action: "readExact",
           Fields: {
-            diary: diaryId.toString()
-          }
+            diary: diaryId.toString(),
+          },
         }),
         PageNo: "1",
         NoOfLines: "300",
-        CrudMessage: "@CrudMessage"
+        CrudMessage: "@CrudMessage",
       };
 
-      const response = await crudService.create("/crud/diarydetail", requestBody) as any;
+      const response = (await crudService.create(
+        "/crud/diarydetail",
+        requestBody,
+      )) as any;
 
       if (response && response.Data && response.Data.length > 0) {
         const jsonData = response.Data[0].JsonData;
         const parsedData = JSON.parse(jsonData);
-        
-        if (parsedData.TS && parsedData.TS.TableData && parsedData.TS.TableData.length > 0) {
+
+        if (
+          parsedData.TS &&
+          parsedData.TS.TableData &&
+          parsedData.TS.TableData.length > 0
+        ) {
           const detailData = parsedData.TS.TableData[0];
           setSelectedDetailItem({
             ...item,
@@ -225,20 +235,31 @@ export default function Input() {
 
   // Activity group state
   const [activityGroups, setActivityGroups] = useState<
-    { id: number; name: string; attachmentId?: number; image?: string; activities: { id: number; name: string }[] }[]
+    {
+      id: number;
+      name: string;
+      attachmentId?: number;
+      image?: string;
+      activities: { id: number; name: string }[];
+    }[]
   >([]);
   const [selectedActivityGroup, setSelectedActivityGroup] =
     useState<string>("");
-  const [selectedAttachmentId, setSelectedAttachmentId] = useState<number | undefined>(undefined);
+  const [selectedAttachmentId, setSelectedAttachmentId] = useState<
+    number | undefined
+  >(undefined);
   const [isLoadingActivityGroups, setIsLoadingActivityGroups] = useState(false);
-  
+
   // Consumption types (activities) state
   const [consumptionTypes, setConsumptionTypes] = useState<
     { id: number; name: string; tableid?: string }[]
   >([]);
-  const [selectedConsumptionType, setSelectedConsumptionType] = useState<string>("");
-  const [selectedConsumptionTypeTableId, setSelectedConsumptionTypeTableId] = useState<string>("");
-  const [isLoadingConsumptionTypes, setIsLoadingConsumptionTypes] = useState(false);
+  const [selectedConsumptionType, setSelectedConsumptionType] =
+    useState<string>("");
+  const [selectedConsumptionTypeTableId, setSelectedConsumptionTypeTableId] =
+    useState<string>("");
+  const [isLoadingConsumptionTypes, setIsLoadingConsumptionTypes] =
+    useState(false);
 
   // Cost centres state
   const [costCentres, setCostCentres] = useState<
@@ -249,26 +270,28 @@ export default function Input() {
 
   // Bulk entry dialog state
   const [bulkEntryDialogOpen, setBulkEntryDialogOpen] = useState(false);
-  const [bulkEntryActivityGroup, setBulkEntryActivityGroup] = useState<string>("");
+  const [bulkEntryActivityGroup, setBulkEntryActivityGroup] =
+    useState<string>("");
   const [bulkEntryActivity, setBulkEntryActivity] = useState<string>("");
 
   // Unit of measurement state
   const [unitOfMeasurement, setUnitOfMeasurement] = useState<string>("");
   const [isLoadingUnit, setIsLoadingUnit] = useState(false);
-  
+
   // Additional info results (suffixes for input fields)
-  const [additionalInfoResults, setAdditionalInfoResults] = useState<{
-    result: string;
-    process: string;
-    value?: string;
-  }[]>([]);
+  const [additionalInfoResults, setAdditionalInfoResults] = useState<
+    {
+      result: string;
+      process: string;
+      value?: string;
+    }[]
+  >([]);
   const [validation, setValidation] = useState({
     costCentre: { isValid: false, message: "" },
     startDate: { isValid: false, message: "" },
     endDate: { isValid: false, message: "" },
     consumptionType: { isValid: false, message: "" },
   });
-
 
   // Cookie-based authentication - no token setting needed
   // Cookies are automatically sent with requests
@@ -332,9 +355,16 @@ export default function Input() {
           // Only include items that have both activityGroupId and activityGroupName
           const groups = tableData
             .filter((item: any) => {
-              const hasValidId = item.activityGroupId !== undefined && item.activityGroupId !== null;
-              const hasValidName = item.activityGroupName && typeof item.activityGroupName === "string" && item.activityGroupName.trim() !== "";
-              console.log(`📊 Filtering activity group - ID: ${item.activityGroupId}, Name: ${item.activityGroupName}, Valid: ${hasValidId && hasValidName}`);
+              const hasValidId =
+                item.activityGroupId !== undefined &&
+                item.activityGroupId !== null;
+              const hasValidName =
+                item.activityGroupName &&
+                typeof item.activityGroupName === "string" &&
+                item.activityGroupName.trim() !== "";
+              console.log(
+                `📊 Filtering activity group - ID: ${item.activityGroupId}, Name: ${item.activityGroupName}, Valid: ${hasValidId && hasValidName}`,
+              );
               return hasValidId && hasValidName;
             })
             .map((item: any, index: number) => {
@@ -343,7 +373,12 @@ export default function Input() {
               const activities: { id: number; name: string }[] = [];
               if (item.activity && Array.isArray(item.activity)) {
                 item.activity.forEach((activity: any) => {
-                  if (activity.Id !== undefined && activity.Name && typeof activity.Name === "string" && activity.Name.trim() !== "") {
+                  if (
+                    activity.Id !== undefined &&
+                    activity.Name &&
+                    typeof activity.Name === "string" &&
+                    activity.Name.trim() !== ""
+                  ) {
                     activities.push({
                       id: activity.Id,
                       name: activity.Name,
@@ -364,8 +399,13 @@ export default function Input() {
 
           // Fetch all activity group images in one call using all activity group IDs
           if (groups.length > 0) {
-            const activityGroupIds = groups.map((g: { id: number }) => g.id).join(',');
-            console.log("📡 Fetching images for activity groups:", activityGroupIds);
+            const activityGroupIds = groups
+              .map((g: { id: number }) => g.id)
+              .join(",");
+            console.log(
+              "📡 Fetching images for activity groups:",
+              activityGroupIds,
+            );
 
             try {
               const imageResponse = await crudService.callCrud({
@@ -384,16 +424,27 @@ export default function Input() {
                 CrudMessage: "@CrudMessage",
               });
 
-              console.log("📥 Activity images response:", JSON.stringify(imageResponse, null, 2));
+              console.log(
+                "📥 Activity images response:",
+                JSON.stringify(imageResponse, null, 2),
+              );
 
               if (imageResponse?.Data && imageResponse.Data[0]?.JsonData) {
-                const imageJsonData = JSON.parse(imageResponse.Data[0].JsonData);
-                const imageTableData = imageJsonData.ActivityImg?.TableData || [];
+                const imageJsonData = JSON.parse(
+                  imageResponse.Data[0].JsonData,
+                );
+                const imageTableData =
+                  imageJsonData.ActivityImg?.TableData || [];
 
-                console.log("📊 Activity images table data:", JSON.stringify(imageTableData, null, 2));
+                console.log(
+                  "📊 Activity images table data:",
+                  JSON.stringify(imageTableData, null, 2),
+                );
 
                 // Create a map of attachmentRelativeID -> image content
-                const imageMap: { [key: number]: { attachmentId: number; image: string } } = {};
+                const imageMap: {
+                  [key: number]: { attachmentId: number; image: string };
+                } = {};
                 imageTableData.forEach((item: any) => {
                   const relativeId = item.attachmentRelativeID;
                   if (relativeId && item.attachmentcontent) {
@@ -401,7 +452,9 @@ export default function Input() {
                       attachmentId: item.attachmentId,
                       image: item.attachmentcontent,
                     };
-                    console.log(`📊 Mapped image for activity group ${relativeId}: attachmentId=${item.attachmentId}`);
+                    console.log(
+                      `📊 Mapped image for activity group ${relativeId}: attachmentId=${item.attachmentId}`,
+                    );
                   }
                 });
 
@@ -410,12 +463,17 @@ export default function Input() {
                   if (imageMap[group.id]) {
                     group.attachmentId = imageMap[group.id].attachmentId;
                     group.image = imageMap[group.id].image;
-                    console.log(`📊 Aligned image with activity group ${group.name}: attachmentId=${group.attachmentId}`);
+                    console.log(
+                      `📊 Aligned image with activity group ${group.name}: attachmentId=${group.attachmentId}`,
+                    );
                   }
                 });
               }
             } catch (imageError) {
-              console.error("❌ Error fetching activity group images:", imageError);
+              console.error(
+                "❌ Error fetching activity group images:",
+                imageError,
+              );
             }
           }
 
@@ -423,11 +481,20 @@ export default function Input() {
 
           // Extract consumption types (activities) from the response
           // Activities are nested in the activity array within each activity group
-          const allActivities: { id: number; name: string; tableid?: string }[] = [];
+          const allActivities: {
+            id: number;
+            name: string;
+            tableid?: string;
+          }[] = [];
           tableData.forEach((item: any) => {
             if (item.activity && Array.isArray(item.activity)) {
               item.activity.forEach((activity: any) => {
-                if (activity.Id !== undefined && activity.Name && typeof activity.Name === "string" && activity.Name.trim() !== "") {
+                if (
+                  activity.Id !== undefined &&
+                  activity.Name &&
+                  typeof activity.Name === "string" &&
+                  activity.Name.trim() !== ""
+                ) {
                   allActivities.push({
                     id: activity.Id,
                     name: activity.Name,
@@ -438,7 +505,10 @@ export default function Input() {
             }
           });
 
-          console.log("✅ Setting consumption types (activities):", allActivities);
+          console.log(
+            "✅ Setting consumption types (activities):",
+            allActivities,
+          );
           setConsumptionTypes(allActivities);
         } else {
           console.warn("⚠️ No activity groups data found in response");
@@ -493,9 +563,16 @@ export default function Input() {
           // Extract cost centres from the response using entityrelationshipEntityBName
           const centres = tableData
             .filter((item: any) => {
-              const hasValidId = item.entityrelationshipId !== undefined && item.entityrelationshipId !== null;
-              const hasValidName = item.entityrelationshipEntityBName && typeof item.entityrelationshipEntityBName === "string" && item.entityrelationshipEntityBName.trim() !== "";
-              console.log(`📊 Filtering cost centre - ID: ${item.entityrelationshipId}, Name: ${item.entityrelationshipEntityBName}, Valid: ${hasValidId && hasValidName}`);
+              const hasValidId =
+                item.entityrelationshipId !== undefined &&
+                item.entityrelationshipId !== null;
+              const hasValidName =
+                item.entityrelationshipEntityBName &&
+                typeof item.entityrelationshipEntityBName === "string" &&
+                item.entityrelationshipEntityBName.trim() !== "";
+              console.log(
+                `📊 Filtering cost centre - ID: ${item.entityrelationshipId}, Name: ${item.entityrelationshipEntityBName}, Valid: ${hasValidId && hasValidName}`,
+              );
               return hasValidId && hasValidName;
             })
             .map((item: any, index: number) => {
@@ -535,14 +612,14 @@ export default function Input() {
       try {
         // Use the tableid from the selected consumption type
         const tableid = selectedConsumptionTypeTableId || "140634262";
-        
+
         console.log(
           "📡 Fetching unit of measurement for consumption type:",
           selectedConsumptionType,
           "with tableid:",
-          tableid
+          tableid,
         );
-        
+
         const response = await crudService.callCrud({
           data: JSON.stringify([
             {
@@ -564,7 +641,7 @@ export default function Input() {
         if (response?.Data && response.Data[0]?.JsonData) {
           const jsonData = JSON.parse(response.Data[0].JsonData);
           console.log("📊 Parsed JSON data:", jsonData);
-          
+
           const tableData = jsonData.Unit?.TableData || [];
           console.log("📊 Unit table data:", tableData);
           console.log("📊 Table data length:", tableData.length);
@@ -593,22 +670,33 @@ export default function Input() {
               process: item.additionalinfoProcess,
               value: item.additionalinforuleactionvalue || undefined,
             }));
-          
+
           console.log("📊 All additional info results:", allResults);
           setAdditionalInfoResults(allResults);
 
           if (unitItem) {
-            console.log("✅ Setting unit of measurement:", unitItem.additionalinfoResult);
+            console.log(
+              "✅ Setting unit of measurement:",
+              unitItem.additionalinfoResult,
+            );
             setUnitOfMeasurement(unitItem.additionalinfoResult);
           } else {
             console.warn("⚠️ No unit found in response - checking all items:");
             tableData.forEach((item: any, index: number) => {
-              console.log(`  Item ${index}:`, item.additionalinfoProcess, "->", item.additionalinfoResult);
+              console.log(
+                `  Item ${index}:`,
+                item.additionalinfoProcess,
+                "->",
+                item.additionalinfoResult,
+              );
             });
             setUnitOfMeasurement("");
           }
         } else {
-          console.warn("⚠️ No unit data found in response - response structure:", response);
+          console.warn(
+            "⚠️ No unit data found in response - response structure:",
+            response,
+          );
           setUnitOfMeasurement("");
           setAdditionalInfoResults([]);
         }
@@ -622,7 +710,13 @@ export default function Input() {
     };
 
     fetchUnitOfMeasurement();
-  }, [session?.access_token, selectedConsumptionType, selectedEntityId, consumptionTypes, selectedConsumptionTypeTableId]);
+  }, [
+    session?.access_token,
+    selectedConsumptionType,
+    selectedEntityId,
+    consumptionTypes,
+    selectedConsumptionTypeTableId,
+  ]);
 
   // Load input data when component mounts or tab changes
   useEffect(() => {
@@ -636,7 +730,11 @@ export default function Input() {
   // Reload input data when entity/company changes while on history tab
   useEffect(() => {
     if (selectedTab === "input-history" && selectedEntityId) {
-      console.log("Entity changed to:", selectedEntityId, "- refreshing history data");
+      console.log(
+        "Entity changed to:",
+        selectedEntityId,
+        "- refreshing history data",
+      );
       fetchInputData();
     }
   }, [selectedEntityId, selectedEntityRelationship]);
@@ -760,14 +858,14 @@ export default function Input() {
       // Sort by selected column
       const aValue = a[sortConfig.key as keyof typeof a];
       const bValue = b[sortConfig.key as keyof typeof b];
-      
+
       if (aValue === undefined || aValue === null) return 1;
       if (bValue === undefined || bValue === null) return -1;
-      
+
       const aStr = String(aValue).toLowerCase();
       const bStr = String(bValue).toLowerCase();
-      
-      if (sortConfig.direction === 'asc') {
+
+      if (sortConfig.direction === "asc") {
         return aStr.localeCompare(bStr);
       } else {
         return bStr.localeCompare(aStr);
@@ -778,7 +876,7 @@ export default function Input() {
   const handleSort = (key: string) => {
     setSortConfig((prev) => ({
       key,
-      direction: prev.key === key && prev.direction === 'asc' ? 'desc' : 'asc',
+      direction: prev.key === key && prev.direction === "asc" ? "desc" : "asc",
     }));
   };
 
@@ -912,7 +1010,10 @@ export default function Input() {
       };
 
       // Get current timestamp for capturedate
-      const capturedate = new Date().toISOString().replace("T", " ").substring(0, 23);
+      const capturedate = new Date()
+        .toISOString()
+        .replace("T", " ")
+        .substring(0, 23);
 
       // Find the consumption type ID (type: 59279 for Consumption)
       const consumptionTypeId = "59279";
@@ -983,7 +1084,8 @@ export default function Input() {
         };
 
         console.log("DEBUG: Creating DiaryDetail entry", diaryDetailRequest);
-        const diaryDetailResponse = await crudService.callCrud(diaryDetailRequest);
+        const diaryDetailResponse =
+          await crudService.callCrud(diaryDetailRequest);
         console.log("DEBUG: DiaryDetail created", diaryDetailResponse);
       }
 
@@ -994,7 +1096,8 @@ export default function Input() {
         NoOfLines: "300",
         CrudMessage: "@CrudMessage",
       };
-      const consumptionResponse = await crudService.callCrud(consumptionRequest);
+      const consumptionResponse =
+        await crudService.callCrud(consumptionRequest);
       console.log("DEBUG: Consumption data fetched", consumptionResponse);
 
       // Payload 4: Fetch IH (Intensity Hours) data
@@ -1168,7 +1271,9 @@ export default function Input() {
     setSelectedActivityGroup(item.activityGroupName || "");
     setSelectedConsumptionType(item.diarytypeName || "");
     // Set tableid if available in consumption types
-    const selectedType1 = consumptionTypes.find(t => t.name === item.diarytypeName);
+    const selectedType1 = consumptionTypes.find(
+      (t) => t.name === item.diarytypeName,
+    );
     if (selectedType1?.tableid) {
       setSelectedConsumptionTypeTableId(selectedType1.tableid);
     }
@@ -1190,7 +1295,9 @@ export default function Input() {
     setSelectedActivityGroup((item as any).activityGroup || "");
     setSelectedConsumptionType(item.consumptionType || "");
     // Set tableid if available in consumption types
-    const selectedType2 = consumptionTypes.find(t => t.name === item.consumptionType);
+    const selectedType2 = consumptionTypes.find(
+      (t) => t.name === item.consumptionType,
+    );
     if (selectedType2?.tableid) {
       setSelectedConsumptionTypeTableId(selectedType2.tableid);
     }
@@ -1278,9 +1385,11 @@ export default function Input() {
     setUploadFiles((prev) => [...prev, ...validFiles]);
 
     // Set Excel file for preview
-    const excelFile = validFiles.find(f => 
-      f.type === "application/vnd.ms-excel" || 
-      f.type === "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+    const excelFile = validFiles.find(
+      (f) =>
+        f.type === "application/vnd.ms-excel" ||
+        f.type ===
+          "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
     );
     if (excelFile) {
       setExcelPreviewFile(excelFile);
@@ -1307,9 +1416,11 @@ export default function Input() {
     setUploadFiles((prev) => [...prev, ...validFiles]);
 
     // Set Excel file for preview
-    const excelFile = validFiles.find(f => 
-      f.type === "application/vnd.ms-excel" || 
-      f.type === "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+    const excelFile = validFiles.find(
+      (f) =>
+        f.type === "application/vnd.ms-excel" ||
+        f.type ===
+          "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
     );
     if (excelFile) {
       setExcelPreviewFile(excelFile);
@@ -1342,7 +1453,11 @@ export default function Input() {
     const uploadedFiles: string[] = [];
 
     try {
-      console.log("DEBUG: Starting upload loop for", uploadFiles.length, "files");
+      console.log(
+        "DEBUG: Starting upload loop for",
+        uploadFiles.length,
+        "files",
+      );
       for (const file of uploadFiles) {
         console.log("DEBUG: Processing file:", file.name);
         try {
@@ -1432,7 +1547,10 @@ export default function Input() {
       }
 
       if (uploadedFiles.length > 0) {
-        console.log("DEBUG: Upload successful, showing alert for:", uploadedFiles);
+        console.log(
+          "DEBUG: Upload successful, showing alert for:",
+          uploadedFiles,
+        );
         showAlert(`Upload successful:\n${uploadedFiles.join("\n")}`, "success");
         // Reset form
         setUploadFiles([]);
@@ -1465,7 +1583,9 @@ export default function Input() {
 
     try {
       // Get the selected rows data
-      const selectedRowsData = data.selectedRows.map((rowIndex) => data.rows[rowIndex]);
+      const selectedRowsData = data.selectedRows.map(
+        (rowIndex) => data.rows[rowIndex],
+      );
 
       console.log("DEBUG: Selected rows data:", selectedRowsData);
 
@@ -1488,7 +1608,10 @@ export default function Input() {
       });
 
       console.log("DEBUG: Upload procedure result:", result);
-      showAlert(`Successfully submitted ${data.selectedRows} row(s)`, "success");
+      showAlert(
+        `Successfully submitted ${data.selectedRows} row(s)`,
+        "success",
+      );
 
       // Reset form
       setUploadFiles([]);
@@ -1553,28 +1676,36 @@ export default function Input() {
                   value="enter-data"
                   className="flex flex-row items-center gap-2 px-4 data-[state=active]:bg-white/30 data-[state=active]:text-emerald-700"
                 >
-                  <span className="flex items-center justify-center w-6 h-6 rounded-full bg-emerald-600 text-white text-xs font-bold">1</span>
+                  <span className="flex items-center justify-center w-6 h-6 rounded-full bg-emerald-600 text-white text-xs font-bold">
+                    1
+                  </span>
                   Capture Activity
                 </TabsTrigger>
                 <TabsTrigger
                   value="capture-bulk"
                   className="flex flex-row items-center gap-2 px-4 data-[state=active]:bg-white/30 data-[state=active]:text-blue-700"
                 >
-                  <span className="flex items-center justify-center w-6 h-6 rounded-full bg-blue-600 text-white text-xs font-bold">2</span>
+                  <span className="flex items-center justify-center w-6 h-6 rounded-full bg-blue-600 text-white text-xs font-bold">
+                    2
+                  </span>
                   Capture Bulk
                 </TabsTrigger>
                 <TabsTrigger
                   value="capture-file"
                   className="flex flex-row items-center gap-2 px-4 data-[state=active]:bg-white/30 data-[state=active]:text-purple-700"
                 >
-                  <span className="flex items-center justify-center w-6 h-6 rounded-full bg-purple-600 text-white text-xs font-bold">3</span>
+                  <span className="flex items-center justify-center w-6 h-6 rounded-full bg-purple-600 text-white text-xs font-bold">
+                    3
+                  </span>
                   Capture File
                 </TabsTrigger>
                 <TabsTrigger
                   value="input-history"
                   className="flex flex-row items-center gap-2 px-4 data-[state=active]:bg-white/30 data-[state=active]:text-amber-700"
                 >
-                  <span className="flex items-center justify-center w-6 h-6 rounded-full bg-amber-600 text-white text-xs font-bold">4</span>
+                  <span className="flex items-center justify-center w-6 h-6 rounded-full bg-amber-600 text-white text-xs font-bold">
+                    4
+                  </span>
                   Input History
                 </TabsTrigger>
               </TabsList>
@@ -1630,45 +1761,57 @@ export default function Input() {
                         </CardDescription>
                       </CardHeader>
                       <CardContent className="backdrop-blur-sm">
-                        <form
-                          onSubmit={handleFormSubmit}
-                          className="space-y-6"
-                        >
-                          {/* Step 1: Select Activity Group */}
+                        <form onSubmit={handleFormSubmit} className="space-y-6">
+                          {/* Step 1: Select Activity */}
                           <div className="space-y-4">
                             <div className="flex items-center gap-3">
                               <div className="w-8 h-8 rounded-full bg-gradient-to-br from-emerald-500 to-emerald-600 flex items-center justify-center text-white font-bold text-sm shadow-lg">
                                 1
                               </div>
                               <div>
-                                <h3 className="font-semibold text-gray-800">Select Activity Group</h3>
-                                <p className="text-xs text-gray-500">Choose the category for your data entry</p>
+                                <h3 className="font-semibold text-gray-800">
+                                  Select Activity
+                                </h3>
+                                <p className="text-xs text-gray-500">
+                                  Choose the category for your data entry
+                                </p>
                               </div>
                             </div>
-                            
+
                             {isLoadingActivityGroups ? (
                               <div className="flex justify-center items-center py-8">
                                 <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-emerald-600" />
-                                <span className="ml-3 text-gray-600">Loading activity groups...</span>
+                                <span className="ml-3 text-gray-600">
+                                  Loading activity groups...
+                                </span>
                               </div>
                             ) : activityGroups.length === 0 ? (
                               <div className="text-center py-8 bg-gray-50 rounded-xl">
                                 <Description className="h-10 w-10 text-gray-300 mx-auto mb-2" />
-                                <p className="text-sm text-gray-500">No activity groups found</p>
+                                <p className="text-sm text-gray-500">
+                                  No activity groups found
+                                </p>
                               </div>
                             ) : (
                               <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
                                 {activityGroups.map((group, index) => {
-                                  const isSelected = selectedActivityGroup === group.name;
+                                  const isSelected =
+                                    selectedActivityGroup === group.name;
                                   return (
                                     <motion.div
                                       key={group.id}
                                       initial={{ opacity: 0, y: 10 }}
                                       animate={{ opacity: 1, y: 0 }}
-                                      transition={{ duration: 0.2, delay: index * 0.03 }}
+                                      transition={{
+                                        duration: 0.2,
+                                        delay: index * 0.03,
+                                      }}
                                       onClick={() => {
                                         setSelectedActivityGroup(group.name);
-                                        handleInputChange("activityGroup", group.name);
+                                        handleInputChange(
+                                          "activityGroup",
+                                          group.name,
+                                        );
                                         // Clear consumption type when activity group changes
                                         setSelectedConsumptionType("");
                                         setSelectedConsumptionTypeTableId("");
@@ -1676,9 +1819,10 @@ export default function Input() {
                                       className={`
                                         group relative flex flex-col items-center p-4 rounded-xl cursor-pointer
                                         transition-all duration-300 border-2 overflow-hidden
-                                        ${isSelected
-                                          ? "border-emerald-500 bg-gradient-to-br from-emerald-50 to-emerald-100 shadow-lg shadow-emerald-200/50"
-                                          : "border-gray-200 bg-white hover:border-emerald-300 hover:shadow-md hover:bg-gray-50"
+                                        ${
+                                          isSelected
+                                            ? "border-emerald-500 bg-gradient-to-br from-emerald-50 to-emerald-100 shadow-lg shadow-emerald-200/50"
+                                            : "border-gray-200 bg-white hover:border-emerald-300 hover:shadow-md hover:bg-gray-50"
                                         }
                                       `}
                                     >
@@ -1686,21 +1830,34 @@ export default function Input() {
                                       {isSelected && (
                                         <div className="absolute top-2 right-2">
                                           <div className="w-5 h-5 rounded-full bg-emerald-500 flex items-center justify-center">
-                                            <svg className="w-3 h-3 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
+                                            <svg
+                                              className="w-3 h-3 text-white"
+                                              fill="none"
+                                              viewBox="0 0 24 24"
+                                              stroke="currentColor"
+                                            >
+                                              <path
+                                                strokeLinecap="round"
+                                                strokeLinejoin="round"
+                                                strokeWidth={3}
+                                                d="M5 13l4 4L19 7"
+                                              />
                                             </svg>
                                           </div>
                                         </div>
                                       )}
-                                      
+
                                       {/* Image container */}
-                                      <div className={`
+                                      <div
+                                        className={`
                                         w-16 h-16 rounded-xl flex items-center justify-center mb-3 transition-colors
-                                        ${isSelected 
-                                          ? "bg-gradient-to-br from-emerald-100 to-emerald-200" 
-                                          : "bg-gradient-to-br from-gray-100 to-gray-50 group-hover:from-emerald-50 group-hover:to-emerald-100"
+                                        ${
+                                          isSelected
+                                            ? "bg-gradient-to-br from-emerald-100 to-emerald-200"
+                                            : "bg-gradient-to-br from-gray-100 to-gray-50 group-hover:from-emerald-50 group-hover:to-emerald-100"
                                         }
-                                      `}>
+                                      `}
+                                      >
                                         {group.image ? (
                                           <img
                                             src={`data:image/png;base64,${group.image}`}
@@ -1708,12 +1865,16 @@ export default function Input() {
                                             className="w-full h-full object-contain p-1"
                                           />
                                         ) : (
-                                          <Description className={`h-8 w-8 ${isSelected ? "text-emerald-500" : "text-gray-400 group-hover:text-emerald-400"}`} />
+                                          <Description
+                                            className={`h-8 w-8 ${isSelected ? "text-emerald-500" : "text-gray-400 group-hover:text-emerald-400"}`}
+                                          />
                                         )}
                                       </div>
-                                      
+
                                       {/* Activity group name */}
-                                      <span className={`text-xs font-medium text-center line-clamp-2 leading-tight ${isSelected ? "text-emerald-700" : "text-gray-700"}`}>
+                                      <span
+                                        className={`text-xs font-medium text-center line-clamp-2 leading-tight ${isSelected ? "text-emerald-700" : "text-gray-700"}`}
+                                      >
                                         {group.name}
                                       </span>
                                     </motion.div>
@@ -1736,8 +1897,15 @@ export default function Input() {
                                   2
                                 </div>
                                 <div>
-                                  <h3 className="font-semibold text-gray-800">Enter Details</h3>
-                                  <p className="text-xs text-gray-500">Fill in the information for <span className="font-medium text-emerald-600">{selectedActivityGroup}</span></p>
+                                  <h3 className="font-semibold text-gray-800">
+                                    Enter Details
+                                  </h3>
+                                  <p className="text-xs text-gray-500">
+                                    Fill in the information for{" "}
+                                    <span className="font-medium text-emerald-600">
+                                      {selectedActivityGroup}
+                                    </span>
+                                  </p>
                                 </div>
                               </div>
 
@@ -1745,32 +1913,48 @@ export default function Input() {
                                 {/* Date Range - Side by Side */}
                                 <div className="grid grid-cols-2 gap-4">
                                   <div className="space-y-2">
-                                    <Label htmlFor="start-date" className="text-sm font-medium text-gray-700 flex items-center gap-2">
+                                    <Label
+                                      htmlFor="start-date"
+                                      className="text-sm font-medium text-gray-700 flex items-center gap-2"
+                                    >
                                       <CalendarMonth className="w-4 h-4 text-gray-400" />
                                       Start Date
                                     </Label>
-                                    <LocalizationProvider dateAdapter={AdapterDayjs}>
+                                    <LocalizationProvider
+                                      dateAdapter={AdapterDayjs}
+                                    >
                                       <DatePicker
-                                        value={formData.startDate ? dayjs(formData.startDate) : null}
+                                        value={
+                                          formData.startDate
+                                            ? dayjs(formData.startDate)
+                                            : null
+                                        }
                                         onChange={(newValue) => {
-                                          const formattedDate = newValue ? newValue.format('YYYY-MM-DD') : '';
-                                          handleInputChange("startDate", formattedDate);
+                                          const formattedDate = newValue
+                                            ? newValue.format("YYYY-MM-DD")
+                                            : "";
+                                          handleInputChange(
+                                            "startDate",
+                                            formattedDate,
+                                          );
                                         }}
                                         slotProps={{
                                           textField: {
                                             size: "small",
                                             fullWidth: true,
-                                            error: !!validation.startDate.message,
-                                            helperText: validation.startDate.message,
+                                            error:
+                                              !!validation.startDate.message,
+                                            helperText:
+                                              validation.startDate.message,
                                             sx: {
-                                              '& .MuiOutlinedInput-root': {
-                                                backgroundColor: 'white',
-                                                borderRadius: '0.5rem',
-                                                '&:hover fieldset': {
-                                                  borderColor: '#10b981',
+                                              "& .MuiOutlinedInput-root": {
+                                                backgroundColor: "white",
+                                                borderRadius: "0.5rem",
+                                                "&:hover fieldset": {
+                                                  borderColor: "#10b981",
                                                 },
-                                                '&.Mui-focused fieldset': {
-                                                  borderColor: '#10b981',
+                                                "&.Mui-focused fieldset": {
+                                                  borderColor: "#10b981",
                                                 },
                                               },
                                             },
@@ -1779,35 +1963,54 @@ export default function Input() {
                                       />
                                     </LocalizationProvider>
                                   </div>
-                                  
+
                                   <div className="space-y-2">
-                                    <Label htmlFor="end-date" className="text-sm font-medium text-gray-700 flex items-center gap-2">
+                                    <Label
+                                      htmlFor="end-date"
+                                      className="text-sm font-medium text-gray-700 flex items-center gap-2"
+                                    >
                                       <CalendarMonth className="w-4 h-4 text-gray-400" />
                                       End Date
                                     </Label>
-                                    <LocalizationProvider dateAdapter={AdapterDayjs}>
+                                    <LocalizationProvider
+                                      dateAdapter={AdapterDayjs}
+                                    >
                                       <DatePicker
-                                        value={formData.endDate ? dayjs(formData.endDate) : null}
+                                        value={
+                                          formData.endDate
+                                            ? dayjs(formData.endDate)
+                                            : null
+                                        }
                                         onChange={(newValue) => {
-                                          const formattedDate = newValue ? newValue.format('YYYY-MM-DD') : '';
-                                          handleInputChange("endDate", formattedDate);
+                                          const formattedDate = newValue
+                                            ? newValue.format("YYYY-MM-DD")
+                                            : "";
+                                          handleInputChange(
+                                            "endDate",
+                                            formattedDate,
+                                          );
                                         }}
-                                        minDate={formData.startDate ? dayjs(formData.startDate) : undefined}
+                                        minDate={
+                                          formData.startDate
+                                            ? dayjs(formData.startDate)
+                                            : undefined
+                                        }
                                         slotProps={{
                                           textField: {
                                             size: "small",
                                             fullWidth: true,
                                             error: !!validation.endDate.message,
-                                            helperText: validation.endDate.message,
+                                            helperText:
+                                              validation.endDate.message,
                                             sx: {
-                                              '& .MuiOutlinedInput-root': {
-                                                backgroundColor: 'white',
-                                                borderRadius: '0.5rem',
-                                                '&:hover fieldset': {
-                                                  borderColor: '#10b981',
+                                              "& .MuiOutlinedInput-root": {
+                                                backgroundColor: "white",
+                                                borderRadius: "0.5rem",
+                                                "&:hover fieldset": {
+                                                  borderColor: "#10b981",
                                                 },
-                                                '&.Mui-focused fieldset': {
-                                                  borderColor: '#10b981',
+                                                "&.Mui-focused fieldset": {
+                                                  borderColor: "#10b981",
                                                 },
                                               },
                                             },
@@ -1820,9 +2023,22 @@ export default function Input() {
 
                                 {/* Cost Centre */}
                                 <div className="space-y-2">
-                                  <Label htmlFor="cost-centre" className="text-sm font-medium text-gray-700 flex items-center gap-2">
-                                    <svg className="w-4 h-4 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+                                  <Label
+                                    htmlFor="cost-centre"
+                                    className="text-sm font-medium text-gray-700 flex items-center gap-2"
+                                  >
+                                    <svg
+                                      className="w-4 h-4 text-gray-400"
+                                      fill="none"
+                                      viewBox="0 0 24 24"
+                                      stroke="currentColor"
+                                    >
+                                      <path
+                                        strokeLinecap="round"
+                                        strokeLinejoin="round"
+                                        strokeWidth={2}
+                                        d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"
+                                      />
                                     </svg>
                                     Cost Centre
                                   </Label>
@@ -1833,17 +2049,26 @@ export default function Input() {
                                       handleInputChange("costCentre", value);
                                     }}
                                   >
-                                    <SelectTrigger className={`bg-white ${validation.costCentre.message ? "border-red-500" : ""}`}>
+                                    <SelectTrigger
+                                      className={`bg-white ${validation.costCentre.message ? "border-red-500" : ""}`}
+                                    >
                                       <SelectValue placeholder="Select cost centre" />
                                     </SelectTrigger>
                                     <SelectContent>
                                       {isLoadingCostCentres ? (
-                                        <SelectItem value="loading" disabled>Loading...</SelectItem>
+                                        <SelectItem value="loading" disabled>
+                                          Loading...
+                                        </SelectItem>
                                       ) : costCentres.length === 0 ? (
-                                        <SelectItem value="no-data" disabled>No data found</SelectItem>
+                                        <SelectItem value="no-data" disabled>
+                                          No data found
+                                        </SelectItem>
                                       ) : (
                                         costCentres.map((centre) => (
-                                          <SelectItem key={centre.id} value={centre.name}>
+                                          <SelectItem
+                                            key={centre.id}
+                                            value={centre.name}
+                                          >
                                             {centre.name}
                                           </SelectItem>
                                         ))
@@ -1851,15 +2076,30 @@ export default function Input() {
                                     </SelectContent>
                                   </Select>
                                   {validation.costCentre.message && (
-                                    <p className="text-red-500 text-xs">{validation.costCentre.message}</p>
+                                    <p className="text-red-500 text-xs">
+                                      {validation.costCentre.message}
+                                    </p>
                                   )}
                                 </div>
 
                                 {/* Consumption Type */}
                                 <div className="space-y-2">
-                                  <Label htmlFor="consumption-type" className="text-sm font-medium text-gray-700 flex items-center gap-2">
-                                    <svg className="w-4 h-4 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 7v10c0 2.21 3.582 4 8 4s8-1.79 8-4V7M4 7c0 2.21 3.582 4 8 4s8-1.79 8-4M4 7c0-2.21 3.582-4 8-4s8 1.79 8 4" />
+                                  <Label
+                                    htmlFor="consumption-type"
+                                    className="text-sm font-medium text-gray-700 flex items-center gap-2"
+                                  >
+                                    <svg
+                                      className="w-4 h-4 text-gray-400"
+                                      fill="none"
+                                      viewBox="0 0 24 24"
+                                      stroke="currentColor"
+                                    >
+                                      <path
+                                        strokeLinecap="round"
+                                        strokeLinejoin="round"
+                                        strokeWidth={2}
+                                        d="M4 7v10c0 2.21 3.582 4 8 4s8-1.79 8-4V7M4 7c0 2.21 3.582 4 8 4s8-1.79 8-4M4 7c0-2.21 3.582-4 8-4s8 1.79 8 4"
+                                      />
                                     </svg>
                                     Consumption Type
                                   </Label>
@@ -1869,45 +2109,89 @@ export default function Input() {
                                       setSelectedConsumptionType(value);
                                       setSelectedConsumptionTypeTableId("");
                                       // Find the activity from the selected activity group
-                                      const selectedGroup = activityGroups.find(g => g.name === selectedActivityGroup);
-                                      const selectedActivity = selectedGroup?.activities.find(a => a.name === value);
+                                      const selectedGroup = activityGroups.find(
+                                        (g) => g.name === selectedActivityGroup,
+                                      );
+                                      const selectedActivity =
+                                        selectedGroup?.activities.find(
+                                          (a) => a.name === value,
+                                        );
                                       if (selectedActivity?.id) {
-                                        setSelectedConsumptionTypeTableId(String(selectedActivity.id));
+                                        setSelectedConsumptionTypeTableId(
+                                          String(selectedActivity.id),
+                                        );
                                       }
-                                      handleInputChange("consumptionType", value);
+                                      handleInputChange(
+                                        "consumptionType",
+                                        value,
+                                      );
                                     }}
                                   >
-                                    <SelectTrigger className={`bg-white ${validation.consumptionType.message ? "border-red-500" : ""}`}>
+                                    <SelectTrigger
+                                      className={`bg-white ${validation.consumptionType.message ? "border-red-500" : ""}`}
+                                    >
                                       <SelectValue placeholder="Select consumption type" />
                                     </SelectTrigger>
                                     <SelectContent>
                                       {(() => {
                                         // Filter activities based on selected activity group
-                                        const selectedGroup = activityGroups.find(g => g.name === selectedActivityGroup);
-                                        const filteredActivities = selectedGroup?.activities || [];
-                                        
+                                        const selectedGroup =
+                                          activityGroups.find(
+                                            (g) =>
+                                              g.name === selectedActivityGroup,
+                                          );
+                                        const filteredActivities =
+                                          selectedGroup?.activities || [];
+
                                         if (filteredActivities.length === 0) {
-                                          return <SelectItem value="no-data" disabled>No activities available</SelectItem>;
+                                          return (
+                                            <SelectItem
+                                              value="no-data"
+                                              disabled
+                                            >
+                                              No activities available
+                                            </SelectItem>
+                                          );
                                         }
-                                        
-                                        return filteredActivities.map((activity) => (
-                                          <SelectItem key={activity.id} value={activity.name}>
-                                            {activity.name}
-                                          </SelectItem>
-                                        ));
+
+                                        return filteredActivities.map(
+                                          (activity) => (
+                                            <SelectItem
+                                              key={activity.id}
+                                              value={activity.name}
+                                            >
+                                              {activity.name}
+                                            </SelectItem>
+                                          ),
+                                        );
                                       })()}
                                     </SelectContent>
                                   </Select>
                                   {validation.consumptionType.message && (
-                                    <p className="text-red-500 text-xs">{validation.consumptionType.message}</p>
+                                    <p className="text-red-500 text-xs">
+                                      {validation.consumptionType.message}
+                                    </p>
                                   )}
                                 </div>
 
                                 {/* Value */}
                                 <div className="space-y-2">
-                                  <Label htmlFor="monetary-value" className="text-sm font-medium text-gray-700 flex items-center gap-2">
-                                    <svg className="w-4 h-4 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z" />
+                                  <Label
+                                    htmlFor="monetary-value"
+                                    className="text-sm font-medium text-gray-700 flex items-center gap-2"
+                                  >
+                                    <svg
+                                      className="w-4 h-4 text-gray-400"
+                                      fill="none"
+                                      viewBox="0 0 24 24"
+                                      stroke="currentColor"
+                                    >
+                                      <path
+                                        strokeLinecap="round"
+                                        strokeLinejoin="round"
+                                        strokeWidth={2}
+                                        d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z"
+                                      />
                                     </svg>
                                     Value
                                   </Label>
@@ -1918,7 +2202,12 @@ export default function Input() {
                                       className="flex h-10 w-full rounded-md border border-input bg-white px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 pr-20"
                                       placeholder="Enter value"
                                       value={formData.monetaryValue}
-                                      onChange={(e) => handleInputChange("monetaryValue", e.target.value)}
+                                      onChange={(e) =>
+                                        handleInputChange(
+                                          "monetaryValue",
+                                          e.target.value,
+                                        )
+                                      }
                                       step="1"
                                     />
                                     {unitOfMeasurement && (
@@ -1931,28 +2220,57 @@ export default function Input() {
 
                                 {/* Status */}
                                 <div className="space-y-2">
-                                  <Label htmlFor="status" className="text-sm font-medium text-gray-700 flex items-center gap-2">
-                                    <svg className="w-4 h-4 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                  <Label
+                                    htmlFor="status"
+                                    className="text-sm font-medium text-gray-700 flex items-center gap-2"
+                                  >
+                                    <svg
+                                      className="w-4 h-4 text-gray-400"
+                                      fill="none"
+                                      viewBox="0 0 24 24"
+                                      stroke="currentColor"
+                                    >
+                                      <path
+                                        strokeLinecap="round"
+                                        strokeLinejoin="round"
+                                        strokeWidth={2}
+                                        d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
+                                      />
                                     </svg>
                                     Status
                                   </Label>
                                   <Select
                                     value={formData.status}
-                                    onValueChange={(value) => handleInputChange("status", value)}
+                                    onValueChange={(value) =>
+                                      handleInputChange("status", value)
+                                    }
                                   >
                                     <SelectTrigger className="bg-white">
                                       <SelectValue placeholder="Select status" />
                                     </SelectTrigger>
                                     <SelectContent>
-                                      <SelectItem value="Not-started">Not Started</SelectItem>
-                                      <SelectItem value="In-Progress">In Progress</SelectItem>
-                                      <SelectItem value="Completed">Completed</SelectItem>
+                                      <SelectItem value="Not-started">
+                                        Not Started
+                                      </SelectItem>
+                                      <SelectItem value="In-Progress">
+                                        In Progress
+                                      </SelectItem>
+                                      <SelectItem value="Completed">
+                                        Completed
+                                      </SelectItem>
                                       <SelectItem value="open">Open</SelectItem>
-                                      <SelectItem value="closed">Closed</SelectItem>
-                                      <SelectItem value="submit">Submit</SelectItem>
-                                      <SelectItem value="approved">Approved</SelectItem>
-                                      <SelectItem value="rejected">Rejected</SelectItem>
+                                      <SelectItem value="closed">
+                                        Closed
+                                      </SelectItem>
+                                      <SelectItem value="submit">
+                                        Submit
+                                      </SelectItem>
+                                      <SelectItem value="approved">
+                                        Approved
+                                      </SelectItem>
+                                      <SelectItem value="rejected">
+                                        Rejected
+                                      </SelectItem>
                                     </SelectContent>
                                   </Select>
                                 </div>
@@ -1961,7 +2279,9 @@ export default function Input() {
                               {/* Step 3: Additional Options & Submit */}
                               <div className="flex flex-col sm:flex-row items-center justify-between gap-4 pt-4 border-t border-gray-200">
                                 <div className="flex items-center gap-2">
-                                  <span className="text-sm text-gray-500">Add:</span>
+                                  <span className="text-sm text-gray-500">
+                                    Add:
+                                  </span>
                                   <Button
                                     type="button"
                                     variant="outline"
@@ -1993,7 +2313,7 @@ export default function Input() {
                                     )}
                                   </Button>
                                 </div>
-                                
+
                                 <div className="flex items-center gap-3">
                                   {editingId && (
                                     <Button
@@ -2039,12 +2359,27 @@ export default function Input() {
                               className="text-center py-8 bg-gradient-to-br from-gray-50 to-gray-100 rounded-xl border-2 border-dashed border-gray-200"
                             >
                               <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-gray-100 flex items-center justify-center">
-                                <svg className="w-8 h-8 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M15 15l-2 5L9 9l11 4-5 2zm0 0l5 5M7.188 2.239l.777 2.897M5.136 7.965l-2.898-.777M13.95 4.05l-2.122 2.122m-5.657 5.656l-2.12 2.122" />
+                                <svg
+                                  className="w-8 h-8 text-gray-400"
+                                  fill="none"
+                                  viewBox="0 0 24 24"
+                                  stroke="currentColor"
+                                >
+                                  <path
+                                    strokeLinecap="round"
+                                    strokeLinejoin="round"
+                                    strokeWidth={1.5}
+                                    d="M15 15l-2 5L9 9l11 4-5 2zm0 0l5 5M7.188 2.239l.777 2.897M5.136 7.965l-2.898-.777M13.95 4.05l-2.122 2.122m-5.657 5.656l-2.12 2.122"
+                                  />
                                 </svg>
                               </div>
-                              <p className="text-gray-600 font-medium">Select an activity group to continue</p>
-                              <p className="text-gray-400 text-sm mt-1">The form will appear once you make a selection above</p>
+                              <p className="text-gray-600 font-medium">
+                                Select an activity group to continue
+                              </p>
+                              <p className="text-gray-400 text-sm mt-1">
+                                The form will appear once you make a selection
+                                above
+                              </p>
                             </motion.div>
                           )}
                         </form>
@@ -2073,7 +2408,9 @@ export default function Input() {
                         {isLoadingActivityGroups ? (
                           <div className="flex justify-center items-center py-12">
                             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600" />
-                            <span className="ml-3 text-gray-600">Loading activity groups...</span>
+                            <span className="ml-3 text-gray-600">
+                              Loading activity groups...
+                            </span>
                           </div>
                         ) : activityGroups.length === 0 ? (
                           <div className="text-center py-12 text-gray-500">
@@ -2082,7 +2419,7 @@ export default function Input() {
                         ) : (
                           <div className="space-y-4">
                             {activityGroups.map((group, groupIndex) => (
-                              <details 
+                              <details
                                 key={group.id}
                                 className="group/accordion rounded-xl overflow-hidden shadow-lg bg-gradient-to-r from-white/80 to-white/60 backdrop-blur-sm border border-white/50"
                               >
@@ -2101,12 +2438,15 @@ export default function Input() {
                                         )}
                                       </div>
                                       <div className="absolute -bottom-1 -right-1 w-5 h-5 bg-gradient-to-br from-blue-500 to-emerald-500 rounded-full flex items-center justify-center">
-                                        <span className="text-white text-xs font-bold">{group.activities?.length || 0}</span>
+                                        <span className="text-white text-xs font-bold">
+                                          {group.activities?.length || 0}
+                                        </span>
                                       </div>
                                     </div>
                                     <div>
-                                      <h3 className="font-semibold text-gray-800 text-lg">{group.name}</h3>
-                                      <p className="text-sm text-gray-500">{group.activities?.length || 0} activities available</p>
+                                      <h3 className="font-semibold text-gray-800 text-lg">
+                                        {group.name}
+                                      </h3>
                                     </div>
                                   </div>
                                   <div className="flex items-center gap-2">
@@ -2126,53 +2466,66 @@ export default function Input() {
                                         Select an activity to begin bulk entry
                                       </p>
                                     </div>
-                                    {group.activities && group.activities.length > 0 ? (
+                                    {group.activities &&
+                                    group.activities.length > 0 ? (
                                       <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                                        {group.activities.map((activity, activityIndex) => (
-                                          <motion.div
-                                            key={activity.id}
-                                            initial={{ opacity: 0, y: 10 }}
-                                            animate={{ opacity: 1, y: 0 }}
-                                            transition={{ duration: 0.2, delay: activityIndex * 0.05 }}
-                                            onClick={() => {
-                                              setBulkEntryActivityGroup(group.name);
-                                              setBulkEntryActivity(activity.name);
-                                              setBulkEntryDialogOpen(true);
-                                            }}
-                                            className="group/card relative flex items-center justify-between p-4 bg-white rounded-xl cursor-pointer hover:shadow-md transition-all duration-300 border border-gray-100 hover:border-blue-200 hover:bg-gradient-to-r hover:from-blue-50/30 hover:to-emerald-50/30"
-                                          >
-                                            <div className="flex items-center gap-3">
-                                              <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-blue-50 to-emerald-50 flex items-center justify-center group-hover/card:from-blue-100 group-hover/card:to-emerald-100 transition-colors">
-                                                <AddCircle className="h-5 w-5 text-blue-500 group-hover/card:text-blue-600 transition-colors" />
+                                        {group.activities.map(
+                                          (activity, activityIndex) => (
+                                            <motion.div
+                                              key={activity.id}
+                                              initial={{ opacity: 0, y: 10 }}
+                                              animate={{ opacity: 1, y: 0 }}
+                                              transition={{
+                                                duration: 0.2,
+                                                delay: activityIndex * 0.05,
+                                              }}
+                                              onClick={() => {
+                                                setBulkEntryActivityGroup(
+                                                  group.name,
+                                                );
+                                                setBulkEntryActivity(
+                                                  activity.name,
+                                                );
+                                                setBulkEntryDialogOpen(true);
+                                              }}
+                                              className="group/card relative flex items-center justify-between p-4 bg-white rounded-xl cursor-pointer hover:shadow-md transition-all duration-300 border border-gray-100 hover:border-blue-200 hover:bg-gradient-to-r hover:from-blue-50/30 hover:to-emerald-50/30"
+                                            >
+                                              <div className="flex items-center gap-3">
+                                                <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-blue-50 to-emerald-50 flex items-center justify-center group-hover/card:from-blue-100 group-hover/card:to-emerald-100 transition-colors">
+                                                  <AddCircle className="h-5 w-5 text-blue-500 group-hover/card:text-blue-600 transition-colors" />
+                                                </div>
+                                                <span className="text-sm font-medium text-gray-700 group-hover/card:text-gray-900 transition-colors">
+                                                  {activity.name}
+                                                </span>
                                               </div>
-                                              <span className="text-sm font-medium text-gray-700 group-hover/card:text-gray-900 transition-colors">
-                                                {activity.name}
-                                              </span>
-                                            </div>
-                                            <div className="flex items-center gap-2">
-                                              <span className="text-xs font-medium text-blue-600 opacity-0 group-hover/card:opacity-100 transition-opacity">
-                                                Start Entry
-                                              </span>
-                                              <div className="w-6 h-6 rounded-full bg-gray-50 flex items-center justify-center group-hover/card:bg-blue-500 transition-colors">
-                                                <svg 
-                                                  className="w-3 h-3 text-gray-400 group-hover/card:text-white transition-colors" 
-                                                  fill="none" 
-                                                  viewBox="0 0 24 24" 
-                                                  stroke="currentColor"
-                                                >
-                                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                                                </svg>
+                                              <div className="flex items-center gap-2">
+                                                <span className="text-xs font-medium text-blue-600 opacity-0 group-hover/card:opacity-100 transition-opacity">
+                                                  Start Entry
+                                                </span>
+                                                <div className="w-6 h-6 rounded-full bg-gray-50 flex items-center justify-center group-hover/card:bg-blue-500 transition-colors">
+                                                  <svg
+                                                    className="w-3 h-3 text-gray-400 group-hover/card:text-white transition-colors"
+                                                    fill="none"
+                                                    viewBox="0 0 24 24"
+                                                    stroke="currentColor"
+                                                  >
+                                                    <path
+                                                      strokeLinecap="round"
+                                                      strokeLinejoin="round"
+                                                      strokeWidth={2}
+                                                      d="M9 5l7 7-7 7"
+                                                    />
+                                                  </svg>
+                                                </div>
                                               </div>
-                                            </div>
-                                          </motion.div>
-                                        ))}
+                                            </motion.div>
+                                          ),
+                                        )}
                                       </div>
                                     ) : (
                                       <div className="text-center py-8 bg-gray-50 rounded-xl">
                                         <Description className="h-10 w-10 text-gray-300 mx-auto mb-2" />
-                                        <p className="text-sm text-gray-500">
-                                          No activities available for this group
-                                        </p>
+                                       
                                       </div>
                                     )}
                                   </div>
@@ -2202,7 +2555,10 @@ export default function Input() {
                         </CardDescription>
                       </CardHeader>
                       <CardContent className="backdrop-blur-sm">
-                        <form onSubmit={handleUploadSubmit} className="space-y-4">
+                        <form
+                          onSubmit={handleUploadSubmit}
+                          className="space-y-4"
+                        >
                           <div className="space-y-3">
                             <Label className="text-sm font-medium text-gray-700">
                               Excel Files
@@ -2271,9 +2627,13 @@ export default function Input() {
                                     >
                                       <div className="flex items-center gap-2">
                                         <UploadFile className="h-4 w-4 text-purple-600" />
-                                        <span className="text-sm text-gray-700">{file.name}</span>
+                                        <span className="text-sm text-gray-700">
+                                          {file.name}
+                                        </span>
                                         <span className="text-xs text-gray-500">
-                                          ({(file.size / 1024 / 1024).toFixed(2)} MB)
+                                          (
+                                          {(file.size / 1024 / 1024).toFixed(2)}{" "}
+                                          MB)
                                         </span>
                                       </div>
                                       <Button
@@ -2282,7 +2642,7 @@ export default function Input() {
                                         size="sm"
                                         onClick={() =>
                                           setUploadFiles((prev) =>
-                                            prev.filter((_, i) => i !== index)
+                                            prev.filter((_, i) => i !== index),
                                           )
                                         }
                                         className="text-red-600 hover:text-red-800"
@@ -2306,27 +2666,27 @@ export default function Input() {
                               </div>
                             )}
                           </div>
-                             {/* Action Buttons - hide when Excel preview is shown */}
-                             {!excelPreviewFile && (
-                               <div className="flex justify-end gap-2">
-                                 <Button
-                                   type="button"
-                                   variant="outline"
-                                   onClick={() => setUploadFiles([])}
-                                   disabled={uploadFiles.length === 0}
-                                 >
-                                   Clear All
-                                 </Button>
-                                 <Button
-                                   type="submit"
-                                   disabled={uploadFiles.length === 0 || loading}
-                                   className="bg-purple-600 hover:bg-purple-700"
-                                 >
-                                   {loading ? "Uploading..." : "Upload Files"}
-                                 </Button>
-                               </div>
-                             )}
-                         </form>
+                          {/* Action Buttons - hide when Excel preview is shown */}
+                          {!excelPreviewFile && (
+                            <div className="flex justify-end gap-2">
+                              <Button
+                                type="button"
+                                variant="outline"
+                                onClick={() => setUploadFiles([])}
+                                disabled={uploadFiles.length === 0}
+                              >
+                                Clear All
+                              </Button>
+                              <Button
+                                type="submit"
+                                disabled={uploadFiles.length === 0 || loading}
+                                className="bg-purple-600 hover:bg-purple-700"
+                              >
+                                {loading ? "Uploading..." : "Upload Files"}
+                              </Button>
+                            </div>
+                          )}
+                        </form>
                       </CardContent>
                     </Card>
                   </motion.div>
@@ -2416,7 +2776,10 @@ export default function Input() {
                 </Dialog>
 
                 {/* Attachment Modal for Enter Data tab */}
-                <Dialog open={attachmentModalOpen} onOpenChange={setAttachmentModalOpen}>
+                <Dialog
+                  open={attachmentModalOpen}
+                  onOpenChange={setAttachmentModalOpen}
+                >
                   <DialogContent className="sm:max-w-md">
                     <DialogHeader>
                       <DialogTitle className="flex items-center gap-2">
@@ -2487,7 +2850,9 @@ export default function Input() {
                               >
                                 <div className="flex items-center gap-2">
                                   <AttachFile className="h-4 w-4 text-purple-600" />
-                                  <span className="text-sm text-gray-700">{file.name}</span>
+                                  <span className="text-sm text-gray-700">
+                                    {file.name}
+                                  </span>
                                   <span className="text-xs text-gray-500">
                                     ({(file.size / 1024 / 1024).toFixed(2)} MB)
                                   </span>
@@ -2498,7 +2863,7 @@ export default function Input() {
                                   size="sm"
                                   onClick={() =>
                                     setAttachmentFiles((prev) =>
-                                      prev.filter((_, i) => i !== index)
+                                      prev.filter((_, i) => i !== index),
                                     )
                                   }
                                   className="text-red-600 hover:text-red-800"
@@ -2530,7 +2895,10 @@ export default function Input() {
                 </Dialog>
 
                 {/* Detail Dialog for Input History */}
-                <Dialog open={detailDialogOpen} onOpenChange={setDetailDialogOpen}>
+                <Dialog
+                  open={detailDialogOpen}
+                  onOpenChange={setDetailDialogOpen}
+                >
                   <DialogContent className="sm:max-w-4xl max-h-[80vh] overflow-y-auto">
                     <DialogHeader>
                       <DialogTitle>Entry Details</DialogTitle>
@@ -2557,66 +2925,123 @@ export default function Input() {
                             </TableHeader>
                             <TableBody>
                               <TableRow>
-                                <TableCell className="font-medium">Activity Group</TableCell>
-                                <TableCell>{selectedDetailItem.diarydetailname || selectedDetailItem.diaryname || "N/A"}</TableCell>
+                                <TableCell className="font-medium">
+                                  Activity Group
+                                </TableCell>
+                                <TableCell>
+                                  {selectedDetailItem.diarydetailname ||
+                                    selectedDetailItem.diaryname ||
+                                    "N/A"}
+                                </TableCell>
                               </TableRow>
                               <TableRow>
-                                <TableCell className="font-medium">Activity Type</TableCell>
-                                <TableCell>{selectedDetailItem.diarydetailtypeName || "N/A"}</TableCell>
+                                <TableCell className="font-medium">
+                                  Activity Type
+                                </TableCell>
+                                <TableCell>
+                                  {selectedDetailItem.diarydetailtypeName ||
+                                    "N/A"}
+                                </TableCell>
                               </TableRow>
                               <TableRow>
-                                <TableCell className="font-medium">Date Captured</TableCell>
-                                <TableCell>{selectedDetailItem.editDate || "N/A"}</TableCell>
+                                <TableCell className="font-medium">
+                                  Date Captured
+                                </TableCell>
+                                <TableCell>
+                                  {selectedDetailItem.editDate || "N/A"}
+                                </TableCell>
                               </TableRow>
                               <TableRow>
-                                <TableCell className="font-medium">Capturer Name</TableCell>
-                                <TableCell>{selectedDetailItem.diaryentityownerName || "N/A"}</TableCell>
+                                <TableCell className="font-medium">
+                                  Capturer Name
+                                </TableCell>
+                                <TableCell>
+                                  {selectedDetailItem.diaryentityownerName ||
+                                    "N/A"}
+                                </TableCell>
                               </TableRow>
                               <TableRow>
-                                <TableCell className="font-medium">Status</TableCell>
+                                <TableCell className="font-medium">
+                                  Status
+                                </TableCell>
                                 <TableCell>
                                   <span
                                     className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                                      selectedDetailItem.diarystatusName === "Approved"
+                                      selectedDetailItem.diarystatusName ===
+                                      "Approved"
                                         ? "bg-green-100 text-green-800"
-                                        : selectedDetailItem.diarystatusName === "Rejected"
-                                        ? "bg-red-100 text-red-800"
-                                        : "bg-yellow-100 text-yellow-800"
+                                        : selectedDetailItem.diarystatusName ===
+                                            "Rejected"
+                                          ? "bg-red-100 text-red-800"
+                                          : "bg-yellow-100 text-yellow-800"
                                     }`}
                                   >
-                                    {selectedDetailItem.diarystatusName || "Pending"}
+                                    {selectedDetailItem.diarystatusName ||
+                                      "Pending"}
                                   </span>
                                 </TableCell>
                               </TableRow>
                               <TableRow>
-                                <TableCell className="font-medium">Quantity</TableCell>
-                                <TableCell>{selectedDetailItem.diarydetailquantity || selectedDetailItem.quantity || "N/A"}</TableCell>
+                                <TableCell className="font-medium">
+                                  Quantity
+                                </TableCell>
+                                <TableCell>
+                                  {selectedDetailItem.diarydetailquantity ||
+                                    selectedDetailItem.quantity ||
+                                    "N/A"}
+                                </TableCell>
                               </TableRow>
                               <TableRow>
-                                <TableCell className="font-medium">Amount</TableCell>
-                                <TableCell>{selectedDetailItem.diarydetailamount || selectedDetailItem.amount || "N/A"}</TableCell>
+                                <TableCell className="font-medium">
+                                  Amount
+                                </TableCell>
+                                <TableCell>
+                                  {selectedDetailItem.diarydetailamount ||
+                                    selectedDetailItem.amount ||
+                                    "N/A"}
+                                </TableCell>
                               </TableRow>
                               <TableRow>
-                                <TableCell className="font-medium">UOM</TableCell>
-                                <TableCell>{selectedDetailItem.diarydetailunitName || selectedDetailItem.uomname || "N/A"}</TableCell>
+                                <TableCell className="font-medium">
+                                  UOM
+                                </TableCell>
+                                <TableCell>
+                                  {selectedDetailItem.diarydetailunitName ||
+                                    selectedDetailItem.uomname ||
+                                    "N/A"}
+                                </TableCell>
                               </TableRow>
                               <TableRow>
-                                <TableCell className="font-medium">Cost Centre</TableCell>
-                                <TableCell>{selectedDetailItem.diarydetailentityName || selectedDetailItem.diaryentityName || "N/A"}</TableCell>
+                                <TableCell className="font-medium">
+                                  Cost Centre
+                                </TableCell>
+                                <TableCell>
+                                  {selectedDetailItem.diarydetailentityName ||
+                                    selectedDetailItem.diaryentityName ||
+                                    "N/A"}
+                                </TableCell>
                               </TableRow>
                               <TableRow>
-                                <TableCell className="font-medium">Start Date</TableCell>
+                                <TableCell className="font-medium">
+                                  Start Date
+                                </TableCell>
                                 <TableCell>
                                   {selectedDetailItem.diarydetailstartdate
-                                    ? new Date(selectedDetailItem.diarydetailstartdate).toLocaleDateString()
+                                    ? new Date(
+                                        selectedDetailItem.diarydetailstartdate,
+                                      ).toLocaleDateString()
                                     : "N/A"}
                                 </TableCell>
                               </TableRow>
                               <TableRow>
-                                <TableCell className="font-medium">End Date</TableCell>
+                                <TableCell className="font-medium">
+                                  End Date
+                                </TableCell>
                                 <TableCell>
                                   {selectedDetailItem.diarydetailenddate
-                                    ? new Date(selectedDetailItem.diarydetailenddate).toLocaleDateString()
+                                    ? new Date(
+                                        selectedDetailItem.diarydetailenddate,
+                                      ).toLocaleDateString()
                                     : "N/A"}
                                 </TableCell>
                               </TableRow>
@@ -2638,7 +3063,10 @@ export default function Input() {
                 </Dialog>
 
                 {/* Attachments Dialog for Input History */}
-                <Dialog open={historyAttachmentDialogOpen} onOpenChange={setHistoryAttachmentDialogOpen}>
+                <Dialog
+                  open={historyAttachmentDialogOpen}
+                  onOpenChange={setHistoryAttachmentDialogOpen}
+                >
                   <DialogContent className="sm:max-w-md">
                     <DialogHeader>
                       <DialogTitle className="flex items-center gap-2">
@@ -2674,7 +3102,10 @@ export default function Input() {
                 </Dialog>
 
                 {/* Notes Dialog for Input History */}
-                <Dialog open={historyNotesDialogOpen} onOpenChange={setHistoryNotesDialogOpen}>
+                <Dialog
+                  open={historyNotesDialogOpen}
+                  onOpenChange={setHistoryNotesDialogOpen}
+                >
                   <DialogContent className="sm:max-w-md">
                     <DialogHeader>
                       <DialogTitle className="flex items-center gap-2">
@@ -2689,10 +3120,7 @@ export default function Input() {
                       {historyEntryNotes.length > 0 ? (
                         <div className="space-y-2 max-h-60 overflow-y-auto">
                           {historyEntryNotes.map((note, index) => (
-                            <div
-                              key={index}
-                              className="p-3 bg-gray-50 rounded"
-                            >
+                            <div key={index} className="p-3 bg-gray-50 rounded">
                               <p className="text-sm text-gray-700">{note}</p>
                             </div>
                           ))}
@@ -2721,7 +3149,10 @@ export default function Input() {
                 </Dialog>
 
                 {/* Bulk Entry Dialog */}
-                <Dialog open={bulkEntryDialogOpen} onOpenChange={setBulkEntryDialogOpen}>
+                <Dialog
+                  open={bulkEntryDialogOpen}
+                  onOpenChange={setBulkEntryDialogOpen}
+                >
                   <DialogContent className="sm:max-w-lg max-h-[80vh] overflow-y-auto">
                     <DialogHeader>
                       <DialogTitle>Enter Data</DialogTitle>
@@ -2761,7 +3192,10 @@ export default function Input() {
                         </div>
                       </div>
                       <div className="w-full">
-                        <Label htmlFor="bulk-cost-centre" className="block text-sm font-medium text-gray-700 mb-1">
+                        <Label
+                          htmlFor="bulk-cost-centre"
+                          className="block text-sm font-medium text-gray-700 mb-1"
+                        >
                           Cost Centre
                         </Label>
                         <Select
@@ -2771,7 +3205,13 @@ export default function Input() {
                             handleInputChange("costCentre", value);
                           }}
                         >
-                          <SelectTrigger className={validation.costCentre.message ? "border-red-500" : ""}>
+                          <SelectTrigger
+                            className={
+                              validation.costCentre.message
+                                ? "border-red-500"
+                                : ""
+                            }
+                          >
                             <SelectValue placeholder="Select cost centre" />
                           </SelectTrigger>
                           <SelectContent>
@@ -2799,7 +3239,10 @@ export default function Input() {
                         )}
                       </div>
                       <div className="w-full">
-                        <Label htmlFor="bulk-consumption-type" className="block text-sm font-medium text-gray-700 mb-1">
+                        <Label
+                          htmlFor="bulk-consumption-type"
+                          className="block text-sm font-medium text-gray-700 mb-1"
+                        >
                           Consumption Type
                         </Label>
                         <Select
@@ -2809,29 +3252,52 @@ export default function Input() {
                             setSelectedConsumptionType(value);
                             setSelectedConsumptionTypeTableId("");
                             // Find the activity from the selected activity group
-                            const selectedGroup = activityGroups.find(g => g.name === bulkEntryActivityGroup);
-                            const selectedActivity = selectedGroup?.activities.find(a => a.name === value);
+                            const selectedGroup = activityGroups.find(
+                              (g) => g.name === bulkEntryActivityGroup,
+                            );
+                            const selectedActivity =
+                              selectedGroup?.activities.find(
+                                (a) => a.name === value,
+                              );
                             if (selectedActivity?.id) {
-                              setSelectedConsumptionTypeTableId(String(selectedActivity.id));
+                              setSelectedConsumptionTypeTableId(
+                                String(selectedActivity.id),
+                              );
                             }
                             handleInputChange("consumptionType", value);
                           }}
                         >
-                          <SelectTrigger className={validation.consumptionType.message ? "border-red-500" : ""}>
+                          <SelectTrigger
+                            className={
+                              validation.consumptionType.message
+                                ? "border-red-500"
+                                : ""
+                            }
+                          >
                             <SelectValue placeholder="Select consumption type" />
                           </SelectTrigger>
                           <SelectContent>
                             {(() => {
                               // Filter activities based on selected activity group in bulk entry
-                              const selectedGroup = activityGroups.find(g => g.name === bulkEntryActivityGroup);
-                              const filteredActivities = selectedGroup?.activities || [];
-                              
+                              const selectedGroup = activityGroups.find(
+                                (g) => g.name === bulkEntryActivityGroup,
+                              );
+                              const filteredActivities =
+                                selectedGroup?.activities || [];
+
                               if (filteredActivities.length === 0) {
-                                return <SelectItem value="no-data" disabled>No activities available</SelectItem>;
+                                return (
+                                  <SelectItem value="no-data" disabled>
+                                    
+                                  </SelectItem>
+                                );
                               }
-                              
+
                               return filteredActivities.map((activity) => (
-                                <SelectItem key={activity.id} value={activity.name}>
+                                <SelectItem
+                                  key={activity.id}
+                                  value={activity.name}
+                                >
                                   {activity.name}
                                 </SelectItem>
                               ));
@@ -2845,7 +3311,10 @@ export default function Input() {
                         )}
                       </div>
                       <div className="w-full">
-                        <label htmlFor="bulk-monetary-value" className="block text-sm font-medium text-gray-700 mb-1">
+                        <label
+                          htmlFor="bulk-monetary-value"
+                          className="block text-sm font-medium text-gray-700 mb-1"
+                        >
                           Value
                         </label>
                         <div className="relative">
@@ -2856,10 +3325,7 @@ export default function Input() {
                             placeholder="Enter value"
                             value={formData.monetaryValue}
                             onChange={(e) =>
-                              handleInputChange(
-                                "monetaryValue",
-                                e.target.value,
-                              )
+                              handleInputChange("monetaryValue", e.target.value)
                             }
                             step="0.01"
                           />
@@ -2871,19 +3337,28 @@ export default function Input() {
                         </div>
                       </div>
                       <div className="w-full">
-                        <Label htmlFor="bulk-status" className="block text-sm font-medium text-gray-700 mb-1">
+                        <Label
+                          htmlFor="bulk-status"
+                          className="block text-sm font-medium text-gray-700 mb-1"
+                        >
                           Status
                         </Label>
                         <Select
                           value={formData.status}
-                          onValueChange={(value) => handleInputChange("status", value)}
+                          onValueChange={(value) =>
+                            handleInputChange("status", value)
+                          }
                         >
                           <SelectTrigger>
                             <SelectValue placeholder="Select status" />
                           </SelectTrigger>
                           <SelectContent>
-                            <SelectItem value="Not-started">Not-started</SelectItem>
-                            <SelectItem value="In-Progress">In-Progress</SelectItem>
+                            <SelectItem value="Not-started">
+                              Not-started
+                            </SelectItem>
+                            <SelectItem value="In-Progress">
+                              In-Progress
+                            </SelectItem>
                             <SelectItem value="Completed">Completed</SelectItem>
                             <SelectItem value="open">Open</SelectItem>
                             <SelectItem value="closed">Closed</SelectItem>
@@ -2918,7 +3393,11 @@ export default function Input() {
                         >
                           Cancel
                         </Button>
-                        <Button type="submit" className="bg-blue-600 hover:bg-blue-700" disabled={loading}>
+                        <Button
+                          type="submit"
+                          className="bg-blue-600 hover:bg-blue-700"
+                          disabled={loading}
+                        >
                           {loading ? "Saving..." : "Save"}
                         </Button>
                       </DialogFooter>
@@ -2937,14 +3416,19 @@ export default function Input() {
                       <CardHeader className="bg-gradient-to-r from-amber-500/80 to-amber-600/80 text-white rounded-t-lg p-4 backdrop-blur-sm">
                         <div className="flex items-center justify-between">
                           <div>
-                            <CardTitle className="text-xl">Input History</CardTitle>
+                            <CardTitle className="text-xl">
+                              Input History
+                            </CardTitle>
                             <CardDescription className="text-amber-100 mt-1">
-                              View and manage your previously entered emissions data
+                              View and manage your previously entered emissions
+                              data
                             </CardDescription>
                           </div>
                           <div className="flex items-center gap-2 bg-white/20 rounded-lg px-3 py-1.5">
                             <History className="h-5 w-5 text-white" />
-                            <span className="text-white font-medium">{filteredData.length} Records</span>
+                            <span className="text-white font-medium">
+                              {filteredData.length} Records
+                            </span>
                           </div>
                         </div>
                       </CardHeader>
@@ -2954,41 +3438,67 @@ export default function Input() {
                           <div className="bg-gradient-to-r from-gray-50 to-white p-4 rounded-xl border border-gray-100">
                             <div className="flex flex-wrap gap-4 items-end">
                               <div className="flex-1 min-w-[200px]">
-                                <Label className="text-sm font-medium text-gray-700 mb-2 block">Search</Label>
+                                <Label className="text-sm font-medium text-gray-700 mb-2 block">
+                                  Search
+                                </Label>
                                 <div className="relative">
-                                  <svg className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                                  <svg
+                                    className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400"
+                                    fill="none"
+                                    viewBox="0 0 24 24"
+                                    stroke="currentColor"
+                                  >
+                                    <path
+                                      strokeLinecap="round"
+                                      strokeLinejoin="round"
+                                      strokeWidth={2}
+                                      d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
+                                    />
                                   </svg>
                                   <FormInput
                                     id="search"
                                     placeholder="Search by activity group, capturer..."
                                     value={searchTerm}
-                                    onChange={(e) => setSearchTerm(e.target.value)}
+                                    onChange={(e) =>
+                                      setSearchTerm(e.target.value)
+                                    }
                                     className="pl-10 bg-white border-gray-200 focus:border-amber-500 focus:ring-amber-500"
                                   />
                                 </div>
                               </div>
                               <div className="w-44">
-                                <Label className="text-sm font-medium text-gray-700 mb-2 block">Start Date</Label>
-                                <LocalizationProvider dateAdapter={AdapterDayjs}>
+                                <Label className="text-sm font-medium text-gray-700 mb-2 block">
+                                  Start Date
+                                </Label>
+                                <LocalizationProvider
+                                  dateAdapter={AdapterDayjs}
+                                >
                                   <DatePicker
-                                    value={startDateHistory ? dayjs(startDateHistory) : null}
+                                    value={
+                                      startDateHistory
+                                        ? dayjs(startDateHistory)
+                                        : null
+                                    }
                                     onChange={(newValue) => {
-                                      setStartDateHistory(newValue ? newValue.format('YYYY-MM-DD') : '');
+                                      setStartDateHistory(
+                                        newValue
+                                          ? newValue.format("YYYY-MM-DD")
+                                          : "",
+                                      );
                                     }}
                                     slotProps={{
                                       textField: {
                                         size: "small",
                                         fullWidth: true,
                                         sx: {
-                                          '& .MuiOutlinedInput-root': {
-                                            backgroundColor: 'white',
-                                            borderRadius: '0.5rem',
-                                            '&:hover fieldset': {
-                                              borderColor: '#f59e0b',
+                                          "& .MuiOutlinedInput-root": {
+                                            backgroundColor: "white",
+                                            borderRadius: "0.5rem",
+                                            "&:hover fieldset": {
+                                              borderColor: "#f59e0b",
                                             },
-                                            '&.Mui-focused fieldset': {
-                                              borderColor: '#f59e0b',
+                                            "&.Mui-focused fieldset": {
+                                              borderColor: "#f59e0b",
                                             },
                                           },
                                         },
@@ -2998,27 +3508,43 @@ export default function Input() {
                                 </LocalizationProvider>
                               </div>
                               <div className="w-44">
-                                <Label className="text-sm font-medium text-gray-700 mb-2 block">End Date</Label>
-                                <LocalizationProvider dateAdapter={AdapterDayjs}>
+                                <Label className="text-sm font-medium text-gray-700 mb-2 block">
+                                  End Date
+                                </Label>
+                                <LocalizationProvider
+                                  dateAdapter={AdapterDayjs}
+                                >
                                   <DatePicker
-                                    value={endDateHistory ? dayjs(endDateHistory) : null}
+                                    value={
+                                      endDateHistory
+                                        ? dayjs(endDateHistory)
+                                        : null
+                                    }
                                     onChange={(newValue) => {
-                                      setEndDateHistory(newValue ? newValue.format('YYYY-MM-DD') : '');
+                                      setEndDateHistory(
+                                        newValue
+                                          ? newValue.format("YYYY-MM-DD")
+                                          : "",
+                                      );
                                     }}
-                                    minDate={startDateHistory ? dayjs(startDateHistory) : undefined}
+                                    minDate={
+                                      startDateHistory
+                                        ? dayjs(startDateHistory)
+                                        : undefined
+                                    }
                                     slotProps={{
                                       textField: {
                                         size: "small",
                                         fullWidth: true,
                                         sx: {
-                                          '& .MuiOutlinedInput-root': {
-                                            backgroundColor: 'white',
-                                            borderRadius: '0.5rem',
-                                            '&:hover fieldset': {
-                                              borderColor: '#f59e0b',
+                                          "& .MuiOutlinedInput-root": {
+                                            backgroundColor: "white",
+                                            borderRadius: "0.5rem",
+                                            "&:hover fieldset": {
+                                              borderColor: "#f59e0b",
                                             },
-                                            '&.Mui-focused fieldset': {
-                                              borderColor: '#f59e0b',
+                                            "&.Mui-focused fieldset": {
+                                              borderColor: "#f59e0b",
                                             },
                                           },
                                         },
@@ -3031,8 +3557,18 @@ export default function Input() {
                                 onClick={handleFilterHistory}
                                 className="bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 text-white px-6"
                               >
-                                <svg className="w-4 h-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z" />
+                                <svg
+                                  className="w-4 h-4 mr-2"
+                                  fill="none"
+                                  viewBox="0 0 24 24"
+                                  stroke="currentColor"
+                                >
+                                  <path
+                                    strokeLinecap="round"
+                                    strokeLinejoin="round"
+                                    strokeWidth={2}
+                                    d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z"
+                                  />
                                 </svg>
                                 Apply Filter
                               </Button>
@@ -3041,8 +3577,18 @@ export default function Input() {
                                 variant="outline"
                                 className="border-gray-300 text-gray-600 hover:bg-gray-50 hover:text-gray-800 px-6"
                               >
-                                <svg className="w-4 h-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                                <svg
+                                  className="w-4 h-4 mr-2"
+                                  fill="none"
+                                  viewBox="0 0 24 24"
+                                  stroke="currentColor"
+                                >
+                                  <path
+                                    strokeLinecap="round"
+                                    strokeLinejoin="round"
+                                    strokeWidth={2}
+                                    d="M6 18L18 6M6 6l12 12"
+                                  />
                                 </svg>
                                 Clear
                               </Button>
@@ -3053,15 +3599,21 @@ export default function Input() {
                           {loading ? (
                             <div className="flex flex-col items-center justify-center py-16">
                               <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-amber-600 mb-4" />
-                              <span className="text-gray-600 font-medium">Loading history...</span>
+                              <span className="text-gray-600 font-medium">
+                                Loading history...
+                              </span>
                             </div>
                           ) : filteredData.length === 0 ? (
                             <div className="text-center py-16 bg-gradient-to-br from-gray-50 to-gray-100 rounded-xl border-2 border-dashed border-gray-200">
                               <div className="w-20 h-20 mx-auto mb-4 rounded-full bg-gray-100 flex items-center justify-center">
                                 <History className="h-10 w-10 text-gray-400" />
                               </div>
-                              <h3 className="text-lg font-semibold text-gray-700 mb-2">No Records Found</h3>
-                              <p className="text-gray-500">Try adjusting your search or filter criteria</p>
+                              <h3 className="text-lg font-semibold text-gray-700 mb-2">
+                                No Records Found
+                              </h3>
+                              <p className="text-gray-500">
+                                Try adjusting your search or filter criteria
+                              </p>
                             </div>
                           ) : (
                             <>
@@ -3070,86 +3622,97 @@ export default function Input() {
                                 <Table>
                                   <TableHeader>
                                     <TableRow className="bg-gray-50 hover:bg-gray-50">
-                                      <TableHead 
+                                      <TableHead
                                         className="cursor-pointer hover:bg-gray-100 transition-colors font-semibold text-gray-700"
-                                        onClick={() => handleSort('name')}
+                                        onClick={() => handleSort("name")}
                                       >
                                         <div className="flex items-center gap-1">
                                           Activity Group
-                                          {sortConfig.key === 'name' && (
-                                            sortConfig.direction === 'asc' 
-                                              ? <ArrowUpward className="h-4 w-4 text-amber-500" />
-                                              : <ArrowDownward className="h-4 w-4 text-amber-500" />
-                                          )}
+                                          {sortConfig.key === "name" &&
+                                            (sortConfig.direction === "asc" ? (
+                                              <ArrowUpward className="h-4 w-4 text-amber-500" />
+                                            ) : (
+                                              <ArrowDownward className="h-4 w-4 text-amber-500" />
+                                            ))}
                                         </div>
                                       </TableHead>
-                                      <TableHead 
+                                      <TableHead
                                         className="cursor-pointer hover:bg-gray-100 transition-colors font-semibold text-gray-700"
-                                        onClick={() => handleSort('activity')}
+                                        onClick={() => handleSort("activity")}
                                       >
                                         <div className="flex items-center gap-1">
                                           Activity
-                                          {sortConfig.key === 'activity' && (
-                                            sortConfig.direction === 'asc' 
-                                              ? <ArrowUpward className="h-4 w-4 text-amber-500" />
-                                              : <ArrowDownward className="h-4 w-4 text-amber-500" />
-                                          )}
+                                          {sortConfig.key === "activity" &&
+                                            (sortConfig.direction === "asc" ? (
+                                              <ArrowUpward className="h-4 w-4 text-amber-500" />
+                                            ) : (
+                                              <ArrowDownward className="h-4 w-4 text-amber-500" />
+                                            ))}
                                         </div>
                                       </TableHead>
-                                      <TableHead 
+                                      <TableHead
                                         className="cursor-pointer hover:bg-gray-100 transition-colors font-semibold text-gray-700"
-                                        onClick={() => handleSort('editDate')}
+                                        onClick={() => handleSort("editDate")}
                                       >
                                         <div className="flex items-center gap-1">
                                           Date
-                                          {sortConfig.key === 'editDate' && (
-                                            sortConfig.direction === 'asc' 
-                                              ? <ArrowUpward className="h-4 w-4 text-amber-500" />
-                                              : <ArrowDownward className="h-4 w-4 text-amber-500" />
-                                          )}
+                                          {sortConfig.key === "editDate" &&
+                                            (sortConfig.direction === "asc" ? (
+                                              <ArrowUpward className="h-4 w-4 text-amber-500" />
+                                            ) : (
+                                              <ArrowDownward className="h-4 w-4 text-amber-500" />
+                                            ))}
                                         </div>
                                       </TableHead>
-                                      <TableHead 
+                                      <TableHead
                                         className="cursor-pointer hover:bg-gray-100 transition-colors font-semibold text-gray-700"
-                                        onClick={() => handleSort('userName')}
+                                        onClick={() => handleSort("userName")}
                                       >
                                         <div className="flex items-center gap-1">
                                           Capturer
-                                          {sortConfig.key === 'userName' && (
-                                            sortConfig.direction === 'asc' 
-                                              ? <ArrowUpward className="h-4 w-4 text-amber-500" />
-                                              : <ArrowDownward className="h-4 w-4 text-amber-500" />
-                                          )}
+                                          {sortConfig.key === "userName" &&
+                                            (sortConfig.direction === "asc" ? (
+                                              <ArrowUpward className="h-4 w-4 text-amber-500" />
+                                            ) : (
+                                              <ArrowDownward className="h-4 w-4 text-amber-500" />
+                                            ))}
                                         </div>
                                       </TableHead>
-                                      <TableHead 
+                                      <TableHead
                                         className="cursor-pointer hover:bg-gray-100 transition-colors font-semibold text-gray-700"
-                                        onClick={() => handleSort('status')}
+                                        onClick={() => handleSort("status")}
                                       >
                                         <div className="flex items-center gap-1">
                                           Status
-                                          {sortConfig.key === 'status' && (
-                                            sortConfig.direction === 'asc' 
-                                              ? <ArrowUpward className="h-4 w-4 text-amber-500" />
-                                              : <ArrowDownward className="h-4 w-4 text-amber-500" />
-                                          )}
+                                          {sortConfig.key === "status" &&
+                                            (sortConfig.direction === "asc" ? (
+                                              <ArrowUpward className="h-4 w-4 text-amber-500" />
+                                            ) : (
+                                              <ArrowDownward className="h-4 w-4 text-amber-500" />
+                                            ))}
                                         </div>
                                       </TableHead>
-                                      <TableHead className="font-semibold text-gray-700 text-center">Actions</TableHead>
+                                      <TableHead className="font-semibold text-gray-700 text-center">
+                                        Actions
+                                      </TableHead>
                                     </TableRow>
                                   </TableHeader>
                                   <TableBody>
                                     {filteredData
                                       .slice(
-                                        (currentPageHistory - 1) * ITEMS_PER_PAGE,
-                                        currentPageHistory * ITEMS_PER_PAGE
+                                        (currentPageHistory - 1) *
+                                          ITEMS_PER_PAGE,
+                                        currentPageHistory * ITEMS_PER_PAGE,
                                       )
                                       .map((item: any, index: number) => (
                                         <motion.tr
                                           key={index}
                                           initial={{ opacity: 0, y: 10 }}
                                           animate={{ opacity: 1, y: 0 }}
-                                          transition={{ duration: 0.2, delay: index * 0.02 }}
+                                          transition={{
+                                            duration: 0.2,
+                                            delay: index * 0.02,
+                                          }}
                                           onClick={() => handleViewDetail(item)}
                                           className="group cursor-pointer hover:bg-amber-50/50 border-b border-gray-100 transition-colors"
                                         >
@@ -3166,13 +3729,15 @@ export default function Input() {
                                             {item.userName || "Unknown"}
                                           </TableCell>
                                           <TableCell>
-                                            <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                                              item.status === "Approved"
-                                                ? "bg-green-100 text-green-700"
-                                                : item.status === "Rejected"
-                                                ? "bg-red-100 text-red-700"
-                                                : "bg-amber-100 text-amber-700"
-                                            }`}>
+                                            <span
+                                              className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                                                item.status === "Approved"
+                                                  ? "bg-green-100 text-green-700"
+                                                  : item.status === "Rejected"
+                                                    ? "bg-red-100 text-red-700"
+                                                    : "bg-amber-100 text-amber-700"
+                                              }`}
+                                            >
                                               {item.status || "Pending"}
                                             </span>
                                           </TableCell>
@@ -3183,7 +3748,9 @@ export default function Input() {
                                                 size="sm"
                                                 onClick={(e) => {
                                                   e.stopPropagation();
-                                                  handleViewHistoryAttachments(item);
+                                                  handleViewHistoryAttachments(
+                                                    item,
+                                                  );
                                                 }}
                                                 className="text-gray-400 hover:text-amber-600 hover:bg-amber-50 h-8 w-8 p-0"
                                                 title="View Attachments"
@@ -3215,59 +3782,125 @@ export default function Input() {
                                 <span className="text-sm text-gray-500">
                                   Showing{" "}
                                   <span className="font-medium text-gray-700">
-                                    {Math.min((currentPageHistory - 1) * ITEMS_PER_PAGE + 1, filteredData.length)}
-                                  </span>
-                                  {" "}to{" "}
+                                    {Math.min(
+                                      (currentPageHistory - 1) *
+                                        ITEMS_PER_PAGE +
+                                        1,
+                                      filteredData.length,
+                                    )}
+                                  </span>{" "}
+                                  to{" "}
                                   <span className="font-medium text-gray-700">
-                                    {Math.min(currentPageHistory * ITEMS_PER_PAGE, filteredData.length)}
-                                  </span>
-                                  {" "}of{" "}
-                                  <span className="font-medium text-gray-700">{filteredData.length}</span>
-                                  {" "}entries
+                                    {Math.min(
+                                      currentPageHistory * ITEMS_PER_PAGE,
+                                      filteredData.length,
+                                    )}
+                                  </span>{" "}
+                                  of{" "}
+                                  <span className="font-medium text-gray-700">
+                                    {filteredData.length}
+                                  </span>{" "}
+                                  entries
                                 </span>
                                 <div className="flex items-center gap-2">
                                   <Button
                                     variant="outline"
                                     size="sm"
-                                    onClick={() => setCurrentPageHistory((prev) => Math.max(prev - 1, 1))}
+                                    onClick={() =>
+                                      setCurrentPageHistory((prev) =>
+                                        Math.max(prev - 1, 1),
+                                      )
+                                    }
                                     disabled={currentPageHistory === 1}
                                     className="border-gray-200 hover:bg-amber-50 hover:border-amber-200 hover:text-amber-700 disabled:opacity-50"
                                   >
-                                    <svg className="w-4 h-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+                                    <svg
+                                      className="w-4 h-4 mr-1"
+                                      fill="none"
+                                      viewBox="0 0 24 24"
+                                      stroke="currentColor"
+                                    >
+                                      <path
+                                        strokeLinecap="round"
+                                        strokeLinejoin="round"
+                                        strokeWidth={2}
+                                        d="M15 19l-7-7 7-7"
+                                      />
                                     </svg>
                                     Previous
                                   </Button>
                                   <div className="flex items-center gap-1">
-                                    {Array.from({ length: Math.min(5, Math.ceil(filteredData.length / ITEMS_PER_PAGE)) }, (_, i) => {
-                                      const pageNum = i + 1;
-                                      return (
-                                        <Button
-                                          key={pageNum}
-                                          variant={currentPageHistory === pageNum ? "default" : "outline"}
-                                          size="sm"
-                                          onClick={() => setCurrentPageHistory(pageNum)}
-                                          className={`w-8 h-8 p-0 ${
-                                            currentPageHistory === pageNum
-                                              ? "bg-amber-500 hover:bg-amber-600 text-white"
-                                              : "border-gray-200 hover:bg-amber-50 hover:border-amber-200"
-                                          }`}
-                                        >
-                                          {pageNum}
-                                        </Button>
-                                      );
-                                    })}
+                                    {Array.from(
+                                      {
+                                        length: Math.min(
+                                          5,
+                                          Math.ceil(
+                                            filteredData.length /
+                                              ITEMS_PER_PAGE,
+                                          ),
+                                        ),
+                                      },
+                                      (_, i) => {
+                                        const pageNum = i + 1;
+                                        return (
+                                          <Button
+                                            key={pageNum}
+                                            variant={
+                                              currentPageHistory === pageNum
+                                                ? "default"
+                                                : "outline"
+                                            }
+                                            size="sm"
+                                            onClick={() =>
+                                              setCurrentPageHistory(pageNum)
+                                            }
+                                            className={`w-8 h-8 p-0 ${
+                                              currentPageHistory === pageNum
+                                                ? "bg-amber-500 hover:bg-amber-600 text-white"
+                                                : "border-gray-200 hover:bg-amber-50 hover:border-amber-200"
+                                            }`}
+                                          >
+                                            {pageNum}
+                                          </Button>
+                                        );
+                                      },
+                                    )}
                                   </div>
                                   <Button
                                     variant="outline"
                                     size="sm"
-                                    onClick={() => setCurrentPageHistory((prev) => Math.min(prev + 1, Math.ceil(filteredData.length / ITEMS_PER_PAGE)))}
-                                    disabled={currentPageHistory >= Math.ceil(filteredData.length / ITEMS_PER_PAGE)}
+                                    onClick={() =>
+                                      setCurrentPageHistory((prev) =>
+                                        Math.min(
+                                          prev + 1,
+                                          Math.ceil(
+                                            filteredData.length /
+                                              ITEMS_PER_PAGE,
+                                          ),
+                                        ),
+                                      )
+                                    }
+                                    disabled={
+                                      currentPageHistory >=
+                                      Math.ceil(
+                                        filteredData.length / ITEMS_PER_PAGE,
+                                      )
+                                    }
                                     className="border-gray-200 hover:bg-amber-50 hover:border-amber-200 hover:text-amber-700 disabled:opacity-50"
                                   >
                                     Next
-                                    <svg className="w-4 h-4 ml-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                                    <svg
+                                      className="w-4 h-4 ml-1"
+                                      fill="none"
+                                      viewBox="0 0 24 24"
+                                      stroke="currentColor"
+                                    >
+                                      <path
+                                        strokeLinecap="round"
+                                        strokeLinejoin="round"
+                                        strokeWidth={2}
+                                        d="M9 5l7 7-7 7"
+                                      />
                                     </svg>
                                   </Button>
                                 </div>
@@ -3279,8 +3912,6 @@ export default function Input() {
                     </Card>
                   </motion.div>
                 </TabsContent>
-
-
               </AnimatePresence>
             </Tabs>
           </motion.div>
