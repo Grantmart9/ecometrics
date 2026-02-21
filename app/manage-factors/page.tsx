@@ -85,20 +85,20 @@ interface Activity {
 // Helper function to extract scope from entity name
 const extractScope = (name: string): string => {
   if (!name) return "Other";
-  
+
   // Check for specific scope patterns
   const scope1Match = name.match(/\(Scope 1\)/i);
   const scope2Match = name.match(/\(Scope 2\)/i);
   const scope3Match = name.match(/\(Scope 3\)/i);
   const scope1And2Match = name.match(/\(Scope 1 & 2\)/i);
   const outsideScopesMatch = name.match(/Outside of Scopes/i);
-  
+
   if (scope1And2Match) return "Scope 1 & 2";
   if (scope1Match) return "Scope 1";
   if (scope2Match) return "Scope 2";
   if (scope3Match) return "Scope 3";
   if (outsideScopesMatch) return "Outside of Scopes";
-  
+
   return "Other";
 };
 
@@ -110,20 +110,46 @@ const getScopeOrder = (scope: string): number => {
     "Scope 3": 3,
     "Scope 1 & 2": 4,
     "Outside of Scopes": 5,
-    "Other": 6,
+    Other: 6,
   };
   return order[scope] || 99;
 };
 
 // Helper function to get scope color
-const getScopeColor = (scope: string): { bg: string; text: string; border: string } => {
+const getScopeColor = (
+  scope: string,
+): { bg: string; text: string; border: string } => {
   const colors: Record<string, { bg: string; text: string; border: string }> = {
-    "Scope 1": { bg: "bg-blue-50", text: "text-blue-700", border: "border-blue-200" },
-    "Scope 2": { bg: "bg-amber-50", text: "text-amber-700", border: "border-amber-200" },
-    "Scope 3": { bg: "bg-purple-50", text: "text-purple-700", border: "border-purple-200" },
-    "Scope 1 & 2": { bg: "bg-teal-50", text: "text-teal-700", border: "border-teal-200" },
-    "Outside of Scopes": { bg: "bg-gray-50", text: "text-gray-700", border: "border-gray-200" },
-    "Other": { bg: "bg-green-50", text: "text-green-700", border: "border-green-200" },
+    "Scope 1": {
+      bg: "bg-blue-50",
+      text: "text-blue-700",
+      border: "border-blue-200",
+    },
+    "Scope 2": {
+      bg: "bg-amber-50",
+      text: "text-amber-700",
+      border: "border-amber-200",
+    },
+    "Scope 3": {
+      bg: "bg-purple-50",
+      text: "text-purple-700",
+      border: "border-purple-200",
+    },
+    "Scope 1 & 2": {
+      bg: "bg-teal-50",
+      text: "text-teal-700",
+      border: "border-teal-200",
+    },
+    "Outside of Scopes": {
+      bg: "bg-gray-50",
+      text: "text-gray-700",
+      border: "border-gray-200",
+    },
+    Other: {
+      bg: "bg-green-50",
+      text: "text-green-700",
+      border: "border-green-200",
+    },
   };
   return colors[scope] || colors["Other"];
 };
@@ -135,19 +161,26 @@ export default function ManageFactorsPage() {
   // State for activity groups
   const [activityGroups, setActivityGroups] = useState<ActivityGroup[]>([]);
   const [loading, setLoading] = useState(false);
-  const [selectedGroup, setSelectedGroup] = useState<ActivityGroup | null>(null);
+  const [selectedGroup, setSelectedGroup] = useState<ActivityGroup | null>(
+    null,
+  );
   const [activities, setActivities] = useState<Activity[]>([]);
   const [loadingActivities, setLoadingActivities] = useState(false);
 
   // Dialog states
   const [addDialogOpen, setAddDialogOpen] = useState(false);
   const [editDialogOpen, setEditDialogOpen] = useState(false);
-  const [viewActivitiesDialogOpen, setViewActivitiesDialogOpen] = useState(false);
+  const [viewActivitiesDialogOpen, setViewActivitiesDialogOpen] =
+    useState(false);
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
-  const [groupToDelete, setGroupToDelete] = useState<ActivityGroup | null>(null);
+  const [groupToDelete, setGroupToDelete] = useState<ActivityGroup | null>(
+    null,
+  );
   const [addActivityDialogOpen, setAddActivityDialogOpen] = useState(false);
   const [editActivityDialogOpen, setEditActivityDialogOpen] = useState(false);
-  const [selectedActivity, setSelectedActivity] = useState<Activity | null>(null);
+  const [selectedActivity, setSelectedActivity] = useState<Activity | null>(
+    null,
+  );
   const [activityFormData, setActivityFormData] = useState({ name: "" });
   const [viewFactorsDialogOpen, setViewFactorsDialogOpen] = useState(false);
   const [factors, setFactors] = useState<any[]>([]);
@@ -265,7 +298,7 @@ export default function ManageFactorsPage() {
             name: item.entityrelationshipEntityName,
             activityGroupId: groupId,
             relationshipId: item.entityrelationshipId,
-          }))
+          })),
         );
       } else {
         setActivities([]);
@@ -494,7 +527,8 @@ export default function ManageFactorsPage() {
                 Action: "create",
                 Fields: {
                   entityrelationshipEntity: newActivityId,
-                  entityrelationshipEntityB: selectedGroup.entityId || selectedGroup.id,
+                  entityrelationshipEntityB:
+                    selectedGroup.entityId || selectedGroup.id,
                   entityrelationshipRelationship: 127,
                 },
               },
@@ -611,7 +645,7 @@ export default function ManageFactorsPage() {
       if (response?.Data && response.Data[0]?.JsonData) {
         const jsonData = JSON.parse(response.Data[0].JsonData);
         const tableData = jsonData.Diary?.TableData || [];
-        
+
         // Filter out "No Data found" message
         const validFactors = tableData.filter((item: any) => !item.Message);
         setFactors(validFactors);
@@ -637,7 +671,11 @@ export default function ManageFactorsPage() {
 
   // Handle add factor
   const handleAddFactor = async () => {
-    if (!factorFormData.period.trim() || !factorFormData.value.trim() || !selectedActivity) {
+    if (
+      !factorFormData.period.trim() ||
+      !factorFormData.value.trim() ||
+      !selectedActivity
+    ) {
       setSnackbar({
         open: true,
         message: "Please fill in all required fields",
@@ -692,7 +730,7 @@ export default function ManageFactorsPage() {
   return (
     <div className="min-h-screen">
       <ThreeBackground />
-      
+
       <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
@@ -702,7 +740,9 @@ export default function ManageFactorsPage() {
           {/* Header */}
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8">
             <div>
-              <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">Manage Factors</h1>
+              <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">
+                Manage Factors
+              </h1>
               <p className="text-gray-600 mt-1">
                 Manage activity groups and their associated activities
               </p>
@@ -721,25 +761,43 @@ export default function ManageFactorsPage() {
 
           {/* Activity Groups Accordion - Grouped by Scope */}
           <Card className="backdrop-blur-md bg-white/80 border border-white/30 shadow-xl">
-            <CardHeader className="bg-gradient-to-r from-green-600/80 to-emerald-600/80 text-white rounded-t-lg">
+            <CardHeader className="bg-gradient-to-r from-green-600/80 to-green-600/80 text-white rounded-t-lg py-4">
               <CardTitle>Activity Groups</CardTitle>
               <CardDescription className="text-green-100">
-                {activityGroups.length} groups found across {Object.keys(activityGroups.reduce((acc, g) => { acc[g.scope || 'Other'] = true; return acc; }, {} as Record<string, boolean>)).length} scopes
+                {activityGroups.length} groups found across{" "}
+                {
+                  Object.keys(
+                    activityGroups.reduce(
+                      (acc, g) => {
+                        acc[g.scope || "Other"] = true;
+                        return acc;
+                      },
+                      {} as Record<string, boolean>,
+                    ),
+                  ).length
+                }{" "}
+                scopes
               </CardDescription>
             </CardHeader>
             <CardContent className="p-4">
               {loading ? (
                 <div className="flex items-center justify-center py-16">
                   <CircularProgress className="text-green-600" />
-                  <span className="ml-3 text-gray-600">Loading activity groups...</span>
+                  <span className="ml-3 text-gray-600">
+                    Loading activity groups...
+                  </span>
                 </div>
               ) : activityGroups.length === 0 ? (
                 <div className="text-center py-16">
                   <div className="w-20 h-20 mx-auto mb-4 rounded-full bg-gray-100 flex items-center justify-center">
                     <AddCircle className="h-10 w-10 text-gray-400" />
                   </div>
-                  <h3 className="text-lg font-semibold text-gray-700 mb-2">No Activity Groups Found</h3>
-                  <p className="text-gray-500 mb-4">Get started by creating your first activity group</p>
+                  <h3 className="text-lg font-semibold text-gray-700 mb-2">
+                    No Activity Groups Found
+                  </h3>
+                  <p className="text-gray-500 mb-4">
+                    Get started by creating your first activity group
+                  </p>
                   <Button
                     onClick={() => setAddDialogOpen(true)}
                     className="bg-green-600 hover:bg-green-700 text-white"
@@ -748,30 +806,44 @@ export default function ManageFactorsPage() {
                   </Button>
                 </div>
               ) : (
-                <Accordion type="multiple" className="w-full" defaultValue={["Scope 1", "Scope 2", "Scope 3"]}>
+                <Accordion
+                  type="multiple"
+                  className="w-full"
+                  defaultValue={[]}
+                >
                   {/* Group activity groups by scope */}
                   {Object.entries(
-                    activityGroups.reduce((acc, group) => {
-                      const scope = group.scope || "Other";
-                      if (!acc[scope]) acc[scope] = [];
-                      acc[scope].push(group);
-                      return acc;
-                    }, {} as Record<string, ActivityGroup[]>)
+                    activityGroups.reduce(
+                      (acc, group) => {
+                        const scope = group.scope || "Other";
+                        if (!acc[scope]) acc[scope] = [];
+                        acc[scope].push(group);
+                        return acc;
+                      },
+                      {} as Record<string, ActivityGroup[]>,
+                    ),
                   )
                     .sort(([a], [b]) => getScopeOrder(a) - getScopeOrder(b))
                     .map(([scope, groups]) => {
                       const colors = getScopeColor(scope);
                       return (
-                        <AccordionItem 
-                          key={scope} 
+                        <AccordionItem
+                          key={scope}
                           value={scope}
                           className={`border ${colors.border} rounded-lg mb-2 overflow-hidden`}
                         >
-                          <AccordionTrigger className={`${colors.bg} px-4 hover:${colors.bg}`}>
+                          <AccordionTrigger
+                            className={`${colors.bg} px-4 hover:${colors.bg}`}
+                          >
                             <div className="flex items-center gap-2">
-                              <span className={`font-semibold ${colors.text}`}>{scope}</span>
-                              <span className={`text-sm ${colors.text} opacity-75`}>
-                                ({groups.length} {groups.length === 1 ? 'group' : 'groups'})
+                              <span className={`font-semibold ${colors.text}`}>
+                                {scope}
+                              </span>
+                              <span
+                                className={`text-sm ${colors.text} opacity-75`}
+                              >
+                                ({groups.length}{" "}
+                                {groups.length === 1 ? "group" : "groups"})
                               </span>
                             </div>
                           </AccordionTrigger>
@@ -783,8 +855,13 @@ export default function ManageFactorsPage() {
                                   key={group.id}
                                   initial={{ opacity: 0, y: 10 }}
                                   animate={{ opacity: 1, y: 0 }}
-                                  transition={{ duration: 0.2, delay: index * 0.03 }}
-                                  onClick={() => openViewActivitiesDialog(group)}
+                                  transition={{
+                                    duration: 0.2,
+                                    delay: index * 0.03,
+                                  }}
+                                  onClick={() =>
+                                    openViewActivitiesDialog(group)
+                                  }
                                   className="flex items-center justify-between px-3 sm:px-4 py-3 hover:bg-green-50/50 transition-colors cursor-pointer"
                                 >
                                   <span className="text-gray-900 font-medium text-sm sm:text-base truncate pr-2">
@@ -847,7 +924,9 @@ export default function ManageFactorsPage() {
                 id="name"
                 placeholder="Enter group name"
                 value={formData.name}
-                onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                onChange={(e) =>
+                  setFormData({ ...formData, name: e.target.value })
+                }
               />
             </div>
             <div className="space-y-2">
@@ -856,7 +935,9 @@ export default function ManageFactorsPage() {
                 id="description"
                 placeholder="Enter description (optional)"
                 value={formData.description}
-                onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                onChange={(e) =>
+                  setFormData({ ...formData, description: e.target.value })
+                }
               />
             </div>
           </div>
@@ -895,7 +976,9 @@ export default function ManageFactorsPage() {
                 id="edit-name"
                 placeholder="Enter group name"
                 value={formData.name}
-                onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                onChange={(e) =>
+                  setFormData({ ...formData, name: e.target.value })
+                }
               />
             </div>
             <div className="space-y-2">
@@ -904,7 +987,9 @@ export default function ManageFactorsPage() {
                 id="edit-description"
                 placeholder="Enter description (optional)"
                 value={formData.description}
-                onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                onChange={(e) =>
+                  setFormData({ ...formData, description: e.target.value })
+                }
               />
             </div>
           </div>
@@ -931,15 +1016,14 @@ export default function ManageFactorsPage() {
       </Dialog>
 
       {/* View Activities Dialog */}
-      <Dialog open={viewActivitiesDialogOpen} onOpenChange={setViewActivitiesDialogOpen}>
+      <Dialog
+        open={viewActivitiesDialogOpen}
+        onOpenChange={setViewActivitiesDialogOpen}
+      >
         <DialogContent className="sm:max-w-2xl max-h-[85vh] flex flex-col">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
-              {selectedGroup && (
-                <>
-                  Activities in "{selectedGroup.name}"
-                </>
-              )}
+              {selectedGroup && <>Activities in "{selectedGroup.name}"</>}
             </DialogTitle>
             <DialogDescription>
               All activities belonging to this activity group
@@ -961,19 +1045,27 @@ export default function ManageFactorsPage() {
             {loadingActivities ? (
               <div className="flex items-center justify-center py-8">
                 <CircularProgress className="text-green-600" />
-                <span className="ml-3 text-gray-600">Loading activities...</span>
+                <span className="ml-3 text-gray-600">
+                  Loading activities...
+                </span>
               </div>
             ) : activities.length === 0 ? (
               <div className="text-center py-8">
-                <p className="text-gray-500">No activities found in this group</p>
+                <p className="text-gray-500">
+                  No activities found in this group
+                </p>
               </div>
             ) : (
               <div className="flex-1 overflow-y-auto -mx-6 px-6">
                 <Table>
                   <TableHeader className="sticky top-0 bg-white z-10">
                     <TableRow className="bg-gray-50">
-                      <TableHead className="font-semibold text-gray-700">Activity Name</TableHead>
-                      <TableHead className="font-semibold text-gray-700 text-right">Actions</TableHead>
+                      <TableHead className="font-semibold text-gray-700">
+                        Activity Name
+                      </TableHead>
+                      <TableHead className="font-semibold text-gray-700 text-right">
+                        Actions
+                      </TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -1028,7 +1120,10 @@ export default function ManageFactorsPage() {
       </Dialog>
 
       {/* Add Activity Dialog */}
-      <Dialog open={addActivityDialogOpen} onOpenChange={setAddActivityDialogOpen}>
+      <Dialog
+        open={addActivityDialogOpen}
+        onOpenChange={setAddActivityDialogOpen}
+      >
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
             <DialogTitle>Add Activity</DialogTitle>
@@ -1043,7 +1138,12 @@ export default function ManageFactorsPage() {
                 id="activity-name"
                 placeholder="Enter activity name"
                 value={activityFormData.name}
-                onChange={(e) => setActivityFormData({ ...activityFormData, name: e.target.value })}
+                onChange={(e) =>
+                  setActivityFormData({
+                    ...activityFormData,
+                    name: e.target.value,
+                  })
+                }
               />
             </div>
           </div>
@@ -1067,13 +1167,14 @@ export default function ManageFactorsPage() {
       </Dialog>
 
       {/* Edit Activity Dialog */}
-      <Dialog open={editActivityDialogOpen} onOpenChange={setEditActivityDialogOpen}>
+      <Dialog
+        open={editActivityDialogOpen}
+        onOpenChange={setEditActivityDialogOpen}
+      >
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
             <DialogTitle>Edit Activity</DialogTitle>
-            <DialogDescription>
-              Update the activity name
-            </DialogDescription>
+            <DialogDescription>Update the activity name</DialogDescription>
           </DialogHeader>
           <div className="space-y-4 py-4">
             <div className="space-y-2">
@@ -1082,7 +1183,12 @@ export default function ManageFactorsPage() {
                 id="edit-activity-name"
                 placeholder="Enter activity name"
                 value={activityFormData.name}
-                onChange={(e) => setActivityFormData({ ...activityFormData, name: e.target.value })}
+                onChange={(e) =>
+                  setActivityFormData({
+                    ...activityFormData,
+                    name: e.target.value,
+                  })
+                }
               />
             </div>
           </div>
@@ -1109,15 +1215,14 @@ export default function ManageFactorsPage() {
       </Dialog>
 
       {/* View Factors Dialog */}
-      <Dialog open={viewFactorsDialogOpen} onOpenChange={setViewFactorsDialogOpen}>
+      <Dialog
+        open={viewFactorsDialogOpen}
+        onOpenChange={setViewFactorsDialogOpen}
+      >
         <DialogContent className="sm:max-w-3xl max-h-[85vh] flex flex-col">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
-              {selectedActivity && (
-                <>
-                  Factors for "{selectedActivity.name}"
-                </>
-              )}
+              {selectedActivity && <>Factors for "{selectedActivity.name}"</>}
             </DialogTitle>
             <DialogDescription>
               All emission factors for this activity from the diary table
@@ -1146,19 +1251,33 @@ export default function ManageFactorsPage() {
                 <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-gray-100 flex items-center justify-center">
                   <Visibility className="h-8 w-8 text-gray-400" />
                 </div>
-                <h3 className="text-lg font-semibold text-gray-700 mb-2">No Factors Found</h3>
-                <p className="text-gray-500">No emission factors have been added for this activity yet</p>
+                <h3 className="text-lg font-semibold text-gray-700 mb-2">
+                  No Factors Found
+                </h3>
+                <p className="text-gray-500">
+                  No emission factors have been added for this activity yet
+                </p>
               </div>
             ) : (
               <div className="flex-1 overflow-y-auto -mx-6 px-6">
                 <Table>
                   <TableHeader className="sticky top-0 bg-white z-10">
                     <TableRow className="bg-gray-50">
-                      <TableHead className="font-semibold text-gray-700">ID</TableHead>
-                      <TableHead className="font-semibold text-gray-700">Period</TableHead>
-                      <TableHead className="font-semibold text-gray-700">Type</TableHead>
-                      <TableHead className="font-semibold text-gray-700">Status</TableHead>
-                      <TableHead className="font-semibold text-gray-700">Value</TableHead>
+                      <TableHead className="font-semibold text-gray-700">
+                        ID
+                      </TableHead>
+                      <TableHead className="font-semibold text-gray-700">
+                        Period
+                      </TableHead>
+                      <TableHead className="font-semibold text-gray-700">
+                        Type
+                      </TableHead>
+                      <TableHead className="font-semibold text-gray-700">
+                        Status
+                      </TableHead>
+                      <TableHead className="font-semibold text-gray-700">
+                        Value
+                      </TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -1181,7 +1300,9 @@ export default function ManageFactorsPage() {
                         </TableCell>
                         <TableCell className="text-gray-700">
                           <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-700">
-                            {factor.diaryStatusName || factor.diarystatusname || "Active"}
+                            {factor.diaryStatusName ||
+                              factor.diarystatusname ||
+                              "Active"}
                           </span>
                         </TableCell>
                         <TableCell className="text-gray-700">
@@ -1235,14 +1356,21 @@ export default function ManageFactorsPage() {
                 id="factor-period"
                 placeholder="e.g., 2024, 2024-Q1, 2024-01"
                 value={factorFormData.period}
-                onChange={(e) => setFactorFormData({ ...factorFormData, period: e.target.value })}
+                onChange={(e) =>
+                  setFactorFormData({
+                    ...factorFormData,
+                    period: e.target.value,
+                  })
+                }
               />
             </div>
             <div className="space-y-2">
               <Label htmlFor="factor-type">Type</Label>
               <Select
                 value={factorFormData.type}
-                onValueChange={(value) => setFactorFormData({ ...factorFormData, type: value })}
+                onValueChange={(value) =>
+                  setFactorFormData({ ...factorFormData, type: value })
+                }
               >
                 <SelectTrigger>
                   <SelectValue placeholder="Select factor type" />
@@ -1259,7 +1387,12 @@ export default function ManageFactorsPage() {
                 id="factor-value"
                 placeholder="Enter factor value"
                 value={factorFormData.value}
-                onChange={(e) => setFactorFormData({ ...factorFormData, value: e.target.value })}
+                onChange={(e) =>
+                  setFactorFormData({
+                    ...factorFormData,
+                    value: e.target.value,
+                  })
+                }
               />
             </div>
           </div>
@@ -1288,7 +1421,8 @@ export default function ManageFactorsPage() {
           <DialogHeader>
             <DialogTitle>Delete Activity Group</DialogTitle>
             <DialogDescription>
-              Are you sure you want to delete "{groupToDelete?.name}"? This action cannot be undone.
+              Are you sure you want to delete "{groupToDelete?.name}"? This
+              action cannot be undone.
             </DialogDescription>
           </DialogHeader>
           <DialogFooter>
