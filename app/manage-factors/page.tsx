@@ -36,6 +36,12 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import {
+  Accordion,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
+} from "@/components/ui/accordion";
 import { crudService } from "@/lib/crudService";
 import { useAuth } from "@/lib/auth-context";
 import { useEntityRelationship } from "@/lib/entityRelationshipContext";
@@ -64,6 +70,7 @@ interface ActivityGroup {
   entityName?: string;
   description?: string;
   activities?: Activity[];
+  scope?: string;
 }
 
 interface Activity {
@@ -74,6 +81,52 @@ interface Activity {
   tableid?: string;
   relationshipId?: number;
 }
+
+// Helper function to extract scope from entity name
+const extractScope = (name: string): string => {
+  if (!name) return "Other";
+  
+  // Check for specific scope patterns
+  const scope1Match = name.match(/\(Scope 1\)/i);
+  const scope2Match = name.match(/\(Scope 2\)/i);
+  const scope3Match = name.match(/\(Scope 3\)/i);
+  const scope1And2Match = name.match(/\(Scope 1 & 2\)/i);
+  const outsideScopesMatch = name.match(/Outside of Scopes/i);
+  
+  if (scope1And2Match) return "Scope 1 & 2";
+  if (scope1Match) return "Scope 1";
+  if (scope2Match) return "Scope 2";
+  if (scope3Match) return "Scope 3";
+  if (outsideScopesMatch) return "Outside of Scopes";
+  
+  return "Other";
+};
+
+// Helper function to get scope order for sorting
+const getScopeOrder = (scope: string): number => {
+  const order: Record<string, number> = {
+    "Scope 1": 1,
+    "Scope 2": 2,
+    "Scope 3": 3,
+    "Scope 1 & 2": 4,
+    "Outside of Scopes": 5,
+    "Other": 6,
+  };
+  return order[scope] || 99;
+};
+
+// Helper function to get scope color
+const getScopeColor = (scope: string): { bg: string; text: string; border: string } => {
+  const colors: Record<string, { bg: string; text: string; border: string }> = {
+    "Scope 1": { bg: "bg-blue-50", text: "text-blue-700", border: "border-blue-200" },
+    "Scope 2": { bg: "bg-amber-50", text: "text-amber-700", border: "border-amber-200" },
+    "Scope 3": { bg: "bg-purple-50", text: "text-purple-700", border: "border-purple-200" },
+    "Scope 1 & 2": { bg: "bg-teal-50", text: "text-teal-700", border: "border-teal-200" },
+    "Outside of Scopes": { bg: "bg-gray-50", text: "text-gray-700", border: "border-gray-200" },
+    "Other": { bg: "bg-green-50", text: "text-green-700", border: "border-green-200" },
+  };
+  return colors[scope] || colors["Other"];
+};
 
 export default function ManageFactorsPage() {
   const { session } = useAuth();
@@ -99,6 +152,12 @@ export default function ManageFactorsPage() {
   const [viewFactorsDialogOpen, setViewFactorsDialogOpen] = useState(false);
   const [factors, setFactors] = useState<any[]>([]);
   const [loadingFactors, setLoadingFactors] = useState(false);
+  const [addFactorDialogOpen, setAddFactorDialogOpen] = useState(false);
+  const [factorFormData, setFactorFormData] = useState({
+    period: "",
+    type: "",
+    value: "",
+  });
 
   // Form state
   const [formData, setFormData] = useState({
@@ -145,17 +204,21 @@ export default function ManageFactorsPage() {
         const jsonData = JSON.parse(response.Data[0].JsonData);
         const tableData = jsonData.ActvityGroups?.TableData || [];
 
-        // Map activity groups from entity data
+        // Map activity groups from entity data and add scope
         const groups: ActivityGroup[] = tableData
           .filter((item: any) => item.entityName && item.entityName !== "NULL")
-          .map((item: any) => ({
-            id: item.entityId,
-            name: item.entityName,
-            entityId: item.entityId,
-            entityName: item.entityName,
-            description: item.entitySurname?.trim() || "",
-            activities: [],
-          }));
+          .map((item: any) => {
+            const scope = extractScope(item.entityName);
+            return {
+              id: item.entityId,
+              name: item.entityName,
+              entityId: item.entityId,
+              entityName: item.entityName,
+              description: item.entitySurname?.trim() || "",
+              activities: [],
+              scope,
+            };
+          });
 
         setActivityGroups(groups);
       }
@@ -572,6 +635,60 @@ export default function ManageFactorsPage() {
     fetchFactorsForActivity(activity.id);
   };
 
+  // Handle add factor
+  const handleAddFactor = async () => {
+    if (!factorFormData.period.trim() || !factorFormData.value.trim() || !selectedActivity) {
+      setSnackbar({
+        open: true,
+        message: "Please fill in all required fields",
+        severity: "error",
+      });
+      return;
+    }
+
+    setFormLoading(true);
+    try {
+      const response = await crudService.callCrud({
+        data: JSON.stringify([
+          {
+            RecordSet: "Diary",
+            TableName: "diary",
+            Action: "create",
+            Fields: {
+              diaryperiod: factorFormData.period,
+              diarytype: factorFormData.type || "59278", // Default to "C02 Factor" type
+              diaryvalue: factorFormData.value,
+              entity: selectedActivity.id,
+            },
+          },
+        ]),
+        PageNo: "1",
+        NoOfLines: "300",
+        CrudMessage: "@CrudMessage",
+      });
+
+      if (response?.Data) {
+        setSnackbar({
+          open: true,
+          message: "Factor added successfully",
+          severity: "success",
+        });
+        setAddFactorDialogOpen(false);
+        setFactorFormData({ period: "", type: "", value: "" });
+        fetchFactorsForActivity(selectedActivity.id);
+      }
+    } catch (error) {
+      console.error("Error adding factor:", error);
+      setSnackbar({
+        open: true,
+        message: "Failed to add factor",
+        severity: "error",
+      });
+    } finally {
+      setFormLoading(false);
+    }
+  };
+
   return (
     <div className="min-h-screen">
       <ThreeBackground />
@@ -583,9 +700,9 @@ export default function ManageFactorsPage() {
           transition={{ duration: 0.5 }}
         >
           {/* Header */}
-          <div className="flex items-center justify-between mb-8">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8">
             <div>
-              <h1 className="text-3xl font-bold text-gray-900">Manage Factors</h1>
+              <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">Manage Factors</h1>
               <p className="text-gray-600 mt-1">
                 Manage activity groups and their associated activities
               </p>
@@ -595,22 +712,22 @@ export default function ManageFactorsPage() {
                 setFormData({ name: "", description: "" });
                 setAddDialogOpen(true);
               }}
-              className="bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white"
+              className="bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white w-full sm:w-auto"
             >
               <AddCircle className="h-5 w-5 mr-2" />
               Add Activity Group
             </Button>
           </div>
 
-          {/* Activity Groups Table */}
+          {/* Activity Groups Accordion - Grouped by Scope */}
           <Card className="backdrop-blur-md bg-white/80 border border-white/30 shadow-xl">
             <CardHeader className="bg-gradient-to-r from-green-600/80 to-emerald-600/80 text-white rounded-t-lg">
               <CardTitle>Activity Groups</CardTitle>
               <CardDescription className="text-green-100">
-                {activityGroups.length} groups found
+                {activityGroups.length} groups found across {Object.keys(activityGroups.reduce((acc, g) => { acc[g.scope || 'Other'] = true; return acc; }, {} as Record<string, boolean>)).length} scopes
               </CardDescription>
             </CardHeader>
-            <CardContent className="p-0">
+            <CardContent className="p-4">
               {loading ? (
                 <div className="flex items-center justify-center py-16">
                   <CircularProgress className="text-green-600" />
@@ -631,59 +748,83 @@ export default function ManageFactorsPage() {
                   </Button>
                 </div>
               ) : (
-                <Table>
-                  <TableHeader>
-                    <TableRow className="bg-gray-50 hover:bg-gray-50">
-                      <TableHead className="font-semibold text-gray-700">Name</TableHead>
-                      <TableHead className="font-semibold text-gray-700 text-right">Actions</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {activityGroups.map((group, index) => (
-                      <motion.tr
-                        key={group.id}
-                        initial={{ opacity: 0, y: 10 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        transition={{ duration: 0.2, delay: index * 0.03 }}
-                        onClick={() => openViewActivitiesDialog(group)}
-                        className="border-b border-gray-100 hover:bg-green-50/50 transition-colors cursor-pointer"
-                      >
-                        <TableCell className="text-gray-900 font-medium py-4">
-                          {group.name}
-                        </TableCell>
-                        <TableCell className="text-right">
-                          <div className="flex items-center justify-end gap-1">
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                openEditDialog(group);
-                              }}
-                              className="text-gray-500 hover:text-amber-600 hover:bg-amber-50"
-                              title="Edit Group"
-                            >
-                              <Edit className="h-4 w-4" />
-                            </Button>
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                setGroupToDelete(group);
-                                setDeleteConfirmOpen(true);
-                              }}
-                              className="text-gray-500 hover:text-red-600 hover:bg-red-50"
-                              title="Delete Group"
-                            >
-                              <Delete className="h-4 w-4" />
-                            </Button>
-                          </div>
-                        </TableCell>
-                      </motion.tr>
-                    ))}
-                  </TableBody>
-                </Table>
+                <Accordion type="multiple" className="w-full" defaultValue={["Scope 1", "Scope 2", "Scope 3"]}>
+                  {/* Group activity groups by scope */}
+                  {Object.entries(
+                    activityGroups.reduce((acc, group) => {
+                      const scope = group.scope || "Other";
+                      if (!acc[scope]) acc[scope] = [];
+                      acc[scope].push(group);
+                      return acc;
+                    }, {} as Record<string, ActivityGroup[]>)
+                  )
+                    .sort(([a], [b]) => getScopeOrder(a) - getScopeOrder(b))
+                    .map(([scope, groups]) => {
+                      const colors = getScopeColor(scope);
+                      return (
+                        <AccordionItem 
+                          key={scope} 
+                          value={scope}
+                          className={`border ${colors.border} rounded-lg mb-2 overflow-hidden`}
+                        >
+                          <AccordionTrigger className={`${colors.bg} px-4 hover:${colors.bg}`}>
+                            <div className="flex items-center gap-2">
+                              <span className={`font-semibold ${colors.text}`}>{scope}</span>
+                              <span className={`text-sm ${colors.text} opacity-75`}>
+                                ({groups.length} {groups.length === 1 ? 'group' : 'groups'})
+                              </span>
+                            </div>
+                          </AccordionTrigger>
+                          <AccordionContent className="p-0">
+                            {/* Groups List for this Scope */}
+                            <div className="divide-y divide-gray-100 max-h-80 overflow-y-auto">
+                              {groups.map((group, index) => (
+                                <motion.div
+                                  key={group.id}
+                                  initial={{ opacity: 0, y: 10 }}
+                                  animate={{ opacity: 1, y: 0 }}
+                                  transition={{ duration: 0.2, delay: index * 0.03 }}
+                                  onClick={() => openViewActivitiesDialog(group)}
+                                  className="flex items-center justify-between px-3 sm:px-4 py-3 hover:bg-green-50/50 transition-colors cursor-pointer"
+                                >
+                                  <span className="text-gray-900 font-medium text-sm sm:text-base truncate pr-2">
+                                    {group.name}
+                                  </span>
+                                  <div className="flex items-center gap-1 flex-shrink-0">
+                                    <Button
+                                      variant="ghost"
+                                      size="sm"
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        openEditDialog(group);
+                                      }}
+                                      className="text-gray-500 hover:text-amber-600 hover:bg-amber-50 h-8 w-8 p-0"
+                                      title="Edit Group"
+                                    >
+                                      <Edit className="h-4 w-4" />
+                                    </Button>
+                                    <Button
+                                      variant="ghost"
+                                      size="sm"
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        setGroupToDelete(group);
+                                        setDeleteConfirmOpen(true);
+                                      }}
+                                      className="text-gray-500 hover:text-red-600 hover:bg-red-50 h-8 w-8 p-0"
+                                      title="Delete Group"
+                                    >
+                                      <Delete className="h-4 w-4" />
+                                    </Button>
+                                  </div>
+                                </motion.div>
+                              ))}
+                            </div>
+                          </AccordionContent>
+                        </AccordionItem>
+                      );
+                    })}
+                </Accordion>
               )}
             </CardContent>
           </Card>
@@ -791,7 +932,7 @@ export default function ManageFactorsPage() {
 
       {/* View Activities Dialog */}
       <Dialog open={viewActivitiesDialogOpen} onOpenChange={setViewActivitiesDialogOpen}>
-        <DialogContent className="sm:max-w-2xl">
+        <DialogContent className="sm:max-w-2xl max-h-[85vh] flex flex-col">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               {selectedGroup && (
@@ -804,8 +945,8 @@ export default function ManageFactorsPage() {
               All activities belonging to this activity group
             </DialogDescription>
           </DialogHeader>
-          <div className="py-4">
-            <div className="flex justify-end mb-4">
+          <div className="py-4 flex-1 overflow-hidden flex flex-col min-h-0">
+            <div className="flex justify-end mb-4 flex-shrink-0">
               <Button
                 onClick={() => {
                   setActivityFormData({ name: "" });
@@ -827,49 +968,51 @@ export default function ManageFactorsPage() {
                 <p className="text-gray-500">No activities found in this group</p>
               </div>
             ) : (
-              <Table>
-                <TableHeader>
-                  <TableRow className="bg-gray-50">
-                    <TableHead className="font-semibold text-gray-700">Activity Name</TableHead>
-                    <TableHead className="font-semibold text-gray-700 text-right">Actions</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {activities.map((activity, index) => (
-                    <motion.tr
-                      key={activity.id}
-                      initial={{ opacity: 0, y: 5 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      transition={{ duration: 0.2, delay: index * 0.02 }}
-                      onClick={() => openViewFactorsDialog(activity)}
-                      className="border-b border-gray-100 hover:bg-green-50/50 cursor-pointer"
-                    >
-                      <TableCell className="text-gray-700 font-medium py-4">
-                        {activity.name}
-                      </TableCell>
-                      <TableCell className="text-right">
-                        <div className="flex items-center justify-end gap-2">
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              openEditActivityDialog(activity);
-                            }}
-                            className="text-gray-500 hover:text-amber-600 hover:bg-amber-50"
-                            title="Edit Activity"
-                          >
-                            <Edit className="h-4 w-4" />
-                          </Button>
-                        </div>
-                      </TableCell>
-                    </motion.tr>
-                  ))}
-                </TableBody>
-              </Table>
+              <div className="flex-1 overflow-y-auto -mx-6 px-6">
+                <Table>
+                  <TableHeader className="sticky top-0 bg-white z-10">
+                    <TableRow className="bg-gray-50">
+                      <TableHead className="font-semibold text-gray-700">Activity Name</TableHead>
+                      <TableHead className="font-semibold text-gray-700 text-right">Actions</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {activities.map((activity, index) => (
+                      <motion.tr
+                        key={activity.id}
+                        initial={{ opacity: 0, y: 5 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ duration: 0.2, delay: index * 0.02 }}
+                        onClick={() => openViewFactorsDialog(activity)}
+                        className="border-b border-gray-100 hover:bg-green-50/50 cursor-pointer"
+                      >
+                        <TableCell className="text-gray-700 font-medium py-4">
+                          {activity.name}
+                        </TableCell>
+                        <TableCell className="text-right">
+                          <div className="flex items-center justify-end gap-2">
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                openEditActivityDialog(activity);
+                              }}
+                              className="text-gray-500 hover:text-amber-600 hover:bg-amber-50"
+                              title="Edit Activity"
+                            >
+                              <Edit className="h-4 w-4" />
+                            </Button>
+                          </div>
+                        </TableCell>
+                      </motion.tr>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
             )}
           </div>
-          <DialogFooter>
+          <DialogFooter className="flex-shrink-0">
             <Button
               variant="outline"
               onClick={() => {
@@ -967,7 +1110,7 @@ export default function ManageFactorsPage() {
 
       {/* View Factors Dialog */}
       <Dialog open={viewFactorsDialogOpen} onOpenChange={setViewFactorsDialogOpen}>
-        <DialogContent className="sm:max-w-3xl">
+        <DialogContent className="sm:max-w-3xl max-h-[85vh] flex flex-col">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               {selectedActivity && (
@@ -980,7 +1123,19 @@ export default function ManageFactorsPage() {
               All emission factors for this activity from the diary table
             </DialogDescription>
           </DialogHeader>
-          <div className="py-4">
+          <div className="py-4 flex-1 overflow-hidden flex flex-col min-h-0">
+            <div className="flex justify-end mb-4 flex-shrink-0">
+              <Button
+                onClick={() => {
+                  setFactorFormData({ period: "", type: "", value: "" });
+                  setAddFactorDialogOpen(true);
+                }}
+                className="bg-green-600 hover:bg-green-700 text-white"
+              >
+                <AddCircle className="h-4 w-4 mr-2" />
+                Add Factor
+              </Button>
+            </div>
             {loadingFactors ? (
               <div className="flex items-center justify-center py-8">
                 <CircularProgress className="text-green-600" />
@@ -995,49 +1150,51 @@ export default function ManageFactorsPage() {
                 <p className="text-gray-500">No emission factors have been added for this activity yet</p>
               </div>
             ) : (
-              <Table>
-                <TableHeader>
-                  <TableRow className="bg-gray-50">
-                    <TableHead className="font-semibold text-gray-700">ID</TableHead>
-                    <TableHead className="font-semibold text-gray-700">Period</TableHead>
-                    <TableHead className="font-semibold text-gray-700">Type</TableHead>
-                    <TableHead className="font-semibold text-gray-700">Status</TableHead>
-                    <TableHead className="font-semibold text-gray-700">Value</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {factors.map((factor, index) => (
-                    <motion.tr
-                      key={factor.diaryId || index}
-                      initial={{ opacity: 0, y: 5 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      transition={{ duration: 0.2, delay: index * 0.02 }}
-                      className="border-b border-gray-100 hover:bg-green-50/50"
-                    >
-                      <TableCell className="font-medium text-gray-900">
-                        #{factor.diaryId}
-                      </TableCell>
-                      <TableCell className="text-gray-700">
-                        {factor.diaryPeriod || factor.diaryperiod || "-"}
-                      </TableCell>
-                      <TableCell className="text-gray-700">
-                        {factor.diaryTypeName || factor.diarytypename || "-"}
-                      </TableCell>
-                      <TableCell className="text-gray-700">
-                        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-700">
-                          {factor.diaryStatusName || factor.diarystatusname || "Active"}
-                        </span>
-                      </TableCell>
-                      <TableCell className="text-gray-700">
-                        {factor.diaryValue || factor.diaryvalue || "-"}
-                      </TableCell>
-                    </motion.tr>
-                  ))}
-                </TableBody>
-              </Table>
+              <div className="flex-1 overflow-y-auto -mx-6 px-6">
+                <Table>
+                  <TableHeader className="sticky top-0 bg-white z-10">
+                    <TableRow className="bg-gray-50">
+                      <TableHead className="font-semibold text-gray-700">ID</TableHead>
+                      <TableHead className="font-semibold text-gray-700">Period</TableHead>
+                      <TableHead className="font-semibold text-gray-700">Type</TableHead>
+                      <TableHead className="font-semibold text-gray-700">Status</TableHead>
+                      <TableHead className="font-semibold text-gray-700">Value</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {factors.map((factor, index) => (
+                      <motion.tr
+                        key={factor.diaryId || index}
+                        initial={{ opacity: 0, y: 5 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ duration: 0.2, delay: index * 0.02 }}
+                        className="border-b border-gray-100 hover:bg-green-50/50"
+                      >
+                        <TableCell className="font-medium text-gray-900">
+                          #{factor.diaryId}
+                        </TableCell>
+                        <TableCell className="text-gray-700">
+                          {factor.diaryPeriod || factor.diaryperiod || "-"}
+                        </TableCell>
+                        <TableCell className="text-gray-700">
+                          {factor.diaryTypeName || factor.diarytypename || "-"}
+                        </TableCell>
+                        <TableCell className="text-gray-700">
+                          <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-700">
+                            {factor.diaryStatusName || factor.diarystatusname || "Active"}
+                          </span>
+                        </TableCell>
+                        <TableCell className="text-gray-700">
+                          {factor.diaryValue || factor.diaryvalue || "-"}
+                        </TableCell>
+                      </motion.tr>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
             )}
           </div>
-          <DialogFooter className="flex justify-between">
+          <DialogFooter className="flex justify-between flex-shrink-0">
             <Button
               variant="outline"
               onClick={() => {
@@ -1057,6 +1214,69 @@ export default function ManageFactorsPage() {
             >
               <ArrowBack className="h-4 w-4 mr-2" />
               Back to Activities
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Add Factor Dialog */}
+      <Dialog open={addFactorDialogOpen} onOpenChange={setAddFactorDialogOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Add Factor</DialogTitle>
+            <DialogDescription>
+              Add a new emission factor for "{selectedActivity?.name}"
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label htmlFor="factor-period">Period *</Label>
+              <Input
+                id="factor-period"
+                placeholder="e.g., 2024, 2024-Q1, 2024-01"
+                value={factorFormData.period}
+                onChange={(e) => setFactorFormData({ ...factorFormData, period: e.target.value })}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="factor-type">Type</Label>
+              <Select
+                value={factorFormData.type}
+                onValueChange={(value) => setFactorFormData({ ...factorFormData, type: value })}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Select factor type" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="59278">CO2 Factor</SelectItem>
+                  <SelectItem value="59279">Consumption</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="factor-value">Value *</Label>
+              <Input
+                id="factor-value"
+                placeholder="Enter factor value"
+                value={factorFormData.value}
+                onChange={(e) => setFactorFormData({ ...factorFormData, value: e.target.value })}
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => setAddFactorDialogOpen(false)}
+              disabled={formLoading}
+            >
+              Cancel
+            </Button>
+            <Button
+              onClick={handleAddFactor}
+              disabled={formLoading}
+              className="bg-green-600 hover:bg-green-700 text-white"
+            >
+              {formLoading ? "Adding..." : "Add Factor"}
             </Button>
           </DialogFooter>
         </DialogContent>

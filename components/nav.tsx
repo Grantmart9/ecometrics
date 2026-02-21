@@ -18,16 +18,17 @@ import {
 } from "@/components/ui/select";
 import { crudService } from "@/lib/crudService";
 
-const carboncalcNavItems = [{ href: "/input", label: "Upload Data" }];
+const carboncalcNavItems = [{ href: "/input", label: "Upload Data", highlighted: true }];
 
 const ecometricsNavItems = [
-  { href: "/dashboard", label: "Dashboard" },
-  { href: "/manage-factors", label: "Manage Factors" },
-  { href: "/real-time-carbon-tracking", label: "Carbon Emissions Tracking" },
-  { href: "/automated-reports", label: "Automated Reports" },
-  { href: "/emission-source-breakdown", label: "Emission Breakdown" },
-  { href: "/cloud-integration", label: "Cloud Integration" },
-  { href: "/team-collaboration", label: "Team Collaboration" },
+  { href: "/dashboard", label: "Dashboard", highlighted: true },
+  { href: "/manage-factors", label: "Manage Factors", highlighted: true },
+  { href: "/company", label: "Company", highlighted: true },
+  { href: "/real-time-carbon-tracking", label: "Carbon Emissions Tracking", highlighted: false },
+  { href: "/automated-reports", label: "Automated Reports", highlighted: false },
+  { href: "/emission-source-breakdown", label: "Emission Breakdown", highlighted: false },
+  { href: "/cloud-integration", label: "Cloud Integration", highlighted: false },
+  { href: "/team-collaboration", label: "Team Collaboration", highlighted: false },
 ];
 
 const accountNavItems = [
@@ -290,7 +291,9 @@ export function Nav() {
                                 "flex items-center px-3 py-2 text-sm transition-colors rounded-md",
                                 pathname === item.href
                                   ? "bg-green-100 text-green-700 font-medium"
-                                  : "text-gray-700 hover:bg-green-50 hover:text-green-700",
+                                  : item.highlighted
+                                    ? "text-green-600 font-medium hover:bg-green-50 hover:text-green-700"
+                                    : "text-gray-700 hover:bg-green-50 hover:text-green-700",
                               )}
                             >
                               {item.label}
@@ -309,7 +312,9 @@ export function Nav() {
                                 "flex items-center px-3 py-2 text-sm transition-colors rounded-md",
                                 pathname === item.href
                                   ? "bg-green-100 text-green-700 font-medium"
-                                  : "text-gray-700 hover:bg-green-50 hover:text-green-700",
+                                  : item.highlighted
+                                    ? "text-green-600 font-medium hover:bg-green-50 hover:text-green-700"
+                                    : "text-gray-700 hover:bg-green-50 hover:text-green-700",
                               )}
                             >
                               {item.label}

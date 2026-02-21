@@ -1508,7 +1508,7 @@ export default function Input() {
           // Call the upload procedure
           const result = await crudService.callProcedure("sp_loadcarbon", {
             InData: inDataString,
-            InEntity: "140634500", // This should probably be dynamic based on user/company
+            InEntity: selectedEntityId || "", // Dynamic based on selected company from context
           });
 
           console.log("Upload procedure result:", result);
@@ -1671,42 +1671,46 @@ export default function Input() {
               onValueChange={setSelectedTab}
               className="w-full"
             >
-              <TabsList className="grid w-full grid-cols-4 mb-6 justify-center backdrop-blur-md bg-white/20 border border-white/30">
+              <TabsList className="flex w-full overflow-x-auto scrollbar-hide mb-6 justify-start sm:justify-center backdrop-blur-md bg-white/20 border border-white/30 rounded-lg p-1 gap-1">
                 <TabsTrigger
                   value="enter-data"
-                  className="flex flex-row items-center gap-2 px-4 data-[state=active]:bg-white/30 data-[state=active]:text-emerald-700"
+                  className="flex flex-row items-center gap-2 px-3 sm:px-4 whitespace-nowrap data-[state=active]:bg-white/30 data-[state=active]:text-emerald-700"
                 >
                   <span className="flex items-center justify-center w-6 h-6 rounded-full bg-emerald-600 text-white text-xs font-bold">
                     1
                   </span>
-                  Capture Activity
+                  <span className="hidden sm:inline">Capture Activity</span>
+                  <span className="sm:hidden">Capture</span>
                 </TabsTrigger>
                 <TabsTrigger
                   value="capture-bulk"
-                  className="flex flex-row items-center gap-2 px-4 data-[state=active]:bg-white/30 data-[state=active]:text-blue-700"
+                  className="flex flex-row items-center gap-2 px-3 sm:px-4 whitespace-nowrap data-[state=active]:bg-white/30 data-[state=active]:text-blue-700"
                 >
                   <span className="flex items-center justify-center w-6 h-6 rounded-full bg-blue-600 text-white text-xs font-bold">
                     2
                   </span>
-                  Capture Bulk
+                  <span className="hidden sm:inline">Capture Bulk</span>
+                  <span className="sm:hidden">Bulk</span>
                 </TabsTrigger>
                 <TabsTrigger
                   value="capture-file"
-                  className="flex flex-row items-center gap-2 px-4 data-[state=active]:bg-white/30 data-[state=active]:text-purple-700"
+                  className="flex flex-row items-center gap-2 px-3 sm:px-4 whitespace-nowrap data-[state=active]:bg-white/30 data-[state=active]:text-purple-700"
                 >
                   <span className="flex items-center justify-center w-6 h-6 rounded-full bg-purple-600 text-white text-xs font-bold">
                     3
                   </span>
-                  Capture File
+                  <span className="hidden sm:inline">Capture File</span>
+                  <span className="sm:hidden">File</span>
                 </TabsTrigger>
                 <TabsTrigger
                   value="input-history"
-                  className="flex flex-row items-center gap-2 px-4 data-[state=active]:bg-white/30 data-[state=active]:text-amber-700"
+                  className="flex flex-row items-center gap-2 px-3 sm:px-4 whitespace-nowrap data-[state=active]:bg-white/30 data-[state=active]:text-amber-700"
                 >
                   <span className="flex items-center justify-center w-6 h-6 rounded-full bg-amber-600 text-white text-xs font-bold">
                     4
                   </span>
-                  Input History
+                  <span className="hidden sm:inline">Input History</span>
+                  <span className="sm:hidden">History</span>
                 </TabsTrigger>
               </TabsList>
 
@@ -1793,10 +1797,11 @@ export default function Input() {
                                 </p>
                               </div>
                             ) : (
-                              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
-                                {activityGroups.map((group, index) => {
-                                  const isSelected =
-                                    selectedActivityGroup === group.name;
+                              <div className="overflow-x-auto scrollbar-hide -mx-4 px-4">
+                                <div className="flex gap-3 pb-2" style={{ minWidth: 'min-content' }}>
+                                  {activityGroups.map((group, index) => {
+                                    const isSelected =
+                                      selectedActivityGroup === group.name;
                                   return (
                                     <motion.div
                                       key={group.id}
@@ -1817,8 +1822,9 @@ export default function Input() {
                                         setSelectedConsumptionTypeTableId("");
                                       }}
                                       className={`
-                                        group relative flex flex-col items-center p-4 rounded-xl cursor-pointer
+                                        group relative flex flex-col items-center p-3 sm:p-4 rounded-xl cursor-pointer
                                         transition-all duration-300 border-2 overflow-hidden
+                                        flex-shrink-0 w-28 sm:w-32
                                         ${
                                           isSelected
                                             ? "border-emerald-500 bg-gradient-to-br from-emerald-50 to-emerald-100 shadow-lg shadow-emerald-200/50"
@@ -1880,6 +1886,7 @@ export default function Input() {
                                     </motion.div>
                                   );
                                 })}
+                                </div>
                               </div>
                             )}
                           </div>
@@ -2486,6 +2493,13 @@ export default function Input() {
                                                 setBulkEntryActivity(
                                                   activity.name,
                                                 );
+                                                // Update formData and validation for consumptionType
+                                                handleInputChange("consumptionType", activity.name);
+                                                // Set selectedConsumptionType and tableid for unit of measurement
+                                                setSelectedConsumptionType(activity.name);
+                                                if (activity.id) {
+                                                  setSelectedConsumptionTypeTableId(String(activity.id));
+                                                }
                                                 setBulkEntryDialogOpen(true);
                                               }}
                                               className="group/card relative flex items-center justify-between p-4 bg-white rounded-xl cursor-pointer hover:shadow-md transition-all duration-300 border border-gray-100 hover:border-blue-200 hover:bg-gradient-to-r hover:from-blue-50/30 hover:to-emerald-50/30"
