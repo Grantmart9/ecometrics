@@ -7,7 +7,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { useState, useEffect } from "react";
 import { useAuth } from "@/lib/auth-context";
 import { useEntityRelationship } from "@/lib/entityRelationshipContext";
-import { Leaf, ChevronDown, LogOut, User } from "lucide-react";
+import { Leaf, ChevronDown, LogOut, User, Menu, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   Select,
@@ -55,6 +55,7 @@ export function Nav() {
     setSelectedEntityRelationship,
   } = useEntityRelationship();
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [companies, setCompanies] = useState<
     { id: string; name: string; entityId: string }[]
   >([]);
@@ -236,7 +237,20 @@ export function Nav() {
             <span className="text-2xl font-bold text-gray-900">EcoMetrics</span>
           </Link>
 
-          {/* Navigation Items */}
+          {/* Mobile Burger Button */}
+          <button
+            className="md:hidden p-2 rounded-md text-gray-700 hover:bg-green-50 hover:text-green-600 transition-colors"
+            onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+            aria-label="Toggle menu"
+          >
+            {isMobileMenuOpen ? (
+              <X className="h-6 w-6" />
+            ) : (
+              <Menu className="h-6 w-6" />
+            )}
+          </button>
+
+          {/* Navigation Items - Desktop */}
           <div className="hidden md:flex items-center space-x-6">
             {/* Authenticated user navigation */}
             {isAuthenticated ? (
@@ -371,9 +385,9 @@ export function Nav() {
             )}
           </div>
 
-          {/* Auth Section */}
+          {/* Auth Section - Desktop */}
           {isAuthenticated && user ? (
-            <div className="flex items-center space-x-4">
+            <div className="hidden md:flex items-center space-x-4">
               {/* Company Dropdown - Only show after visiting Input Data page */}
               {isAuthenticated && (
                 <>
@@ -420,7 +434,7 @@ export function Nav() {
               </Button>
             </div>
           ) : (
-            <div className="flex items-center space-x-4">
+            <div className="hidden md:flex items-center space-x-4">
               <Link
                 href="/login"
                 className="text-gray-700 hover:text-green-600 transition-colors"
@@ -439,6 +453,200 @@ export function Nav() {
           )}
         </div>
       </div>
+
+      {/* Mobile Slide-Down Menu */}
+      <AnimatePresence>
+        {isMobileMenuOpen && (
+          <motion.div
+            initial={{ height: 0, opacity: 0 }}
+            animate={{ height: "auto", opacity: 1 }}
+            exit={{ height: 0, opacity: 0 }}
+            transition={{ duration: 0.3, ease: "easeInOut" }}
+            className="md:hidden overflow-hidden bg-white/95 backdrop-blur-md border-b border-green-100"
+          >
+            <div className="px-4 py-4 space-y-4">
+              {/* User Info Section */}
+              {isAuthenticated && user && (
+                <div className="pb-4 border-b border-green-100 space-y-3">
+                  {/* User Name */}
+                  <div className="flex items-center space-x-2">
+                    <User className="h-5 w-5 text-green-600" />
+                    <span className="text-sm font-medium text-gray-700">
+                      {user?.username || user?.name}
+                    </span>
+                  </div>
+
+                  {/* Company Dropdown */}
+                  {isAuthenticated && (
+                    <Select
+                      value={selectedCompanyId}
+                      onValueChange={handleCompanyChange}
+                      disabled={isLoadingCompanies || companies.length === 0}
+                    >
+                      <SelectTrigger className="w-full h-9 text-sm border-green-200 focus:ring-green-500">
+                        <SelectValue
+                          placeholder={
+                            isLoadingCompanies
+                              ? "Loading..."
+                              : "Select entity relationship"
+                          }
+                        />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {companies.map((company) => (
+                          <SelectItem key={company.id} value={company.id}>
+                            {company.name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  )}
+                </div>
+              )}
+
+              {/* Navigation Links */}
+              {isAuthenticated ? (
+                <div className="space-y-1">
+                  {/* Home link */}
+                  <Link
+                    href="/"
+                    onClick={() => setIsMobileMenuOpen(false)}
+                    className={cn(
+                      "block px-3 py-2 text-sm font-medium rounded-md transition-colors",
+                      pathname === "/"
+                        ? "bg-green-100 text-green-700"
+                        : "text-gray-700 hover:bg-green-50 hover:text-green-700",
+                    )}
+                  >
+                    Home
+                  </Link>
+
+                  {/* Data Section */}
+                  <div className="px-3 py-2 text-xs font-semibold text-gray-500 uppercase tracking-wider">
+                    Data
+                  </div>
+                  {carboncalcNavItems.map((item) => (
+                    <Link
+                      key={item.href}
+                      href={item.href}
+                      onClick={() => setIsMobileMenuOpen(false)}
+                      className={cn(
+                        "block px-3 py-2 text-sm rounded-md transition-colors",
+                        pathname === item.href
+                          ? "bg-green-100 text-green-700 font-medium"
+                          : item.highlighted
+                            ? "text-green-600 font-medium hover:bg-green-50 hover:text-green-700"
+                            : "text-gray-700 hover:bg-green-50 hover:text-green-700",
+                      )}
+                    >
+                      {item.label}
+                    </Link>
+                  ))}
+
+                  {/* Reporting & Analytics Section */}
+                  <div className="px-3 py-2 text-xs font-semibold text-gray-500 uppercase tracking-wider mt-2 border-t border-green-100 pt-3">
+                    Reporting & Analytics
+                  </div>
+                  {ecometricsNavItems.map((item) => (
+                    <Link
+                      key={item.href}
+                      href={item.href}
+                      onClick={() => setIsMobileMenuOpen(false)}
+                      className={cn(
+                        "block px-3 py-2 text-sm rounded-md transition-colors",
+                        pathname === item.href
+                          ? "bg-green-100 text-green-700 font-medium"
+                          : item.highlighted
+                            ? "text-green-600 font-medium hover:bg-green-50 hover:text-green-700"
+                            : "text-gray-700 hover:bg-green-50 hover:text-green-700",
+                      )}
+                    >
+                      {item.label}
+                    </Link>
+                  ))}
+
+                  {/* Account Section */}
+                  <div className="px-3 py-2 text-xs font-semibold text-gray-500 uppercase tracking-wider mt-2 border-t border-green-100 pt-3">
+                    Account
+                  </div>
+                  {accountNavItems.map((item) => (
+                    <Link
+                      key={item.href}
+                      href={item.href}
+                      onClick={() => setIsMobileMenuOpen(false)}
+                      className={cn(
+                        "block px-3 py-2 text-sm rounded-md transition-colors",
+                        pathname === item.href
+                          ? "bg-green-100 text-green-700 font-medium"
+                          : "text-gray-700 hover:bg-green-50 hover:text-green-700",
+                      )}
+                    >
+                      {item.label}
+                    </Link>
+                  ))}
+
+                  {/* Logout Button */}
+                  <div className="pt-4 border-t border-green-100 mt-4">
+                    <Button
+                      onClick={() => {
+                        setIsMobileMenuOpen(false);
+                        handleLogout();
+                      }}
+                      variant="outline"
+                      className="w-full text-gray-700 border-green-200 hover:bg-green-50"
+                    >
+                      <LogOut className="h-4 w-4 mr-2" />
+                      Logout
+                    </Button>
+                  </div>
+                </div>
+              ) : (
+                <div className="space-y-2">
+                  {/* Non-authenticated user navigation */}
+                  {mainNavItems.map((item) => (
+                    <button
+                      key={item.href}
+                      onClick={() => {
+                        setIsMobileMenuOpen(false);
+                        const targetId = item.href.replace("#", "");
+                        const targetElement = document.getElementById(targetId);
+                        if (targetElement) {
+                          targetElement.scrollIntoView({ behavior: "smooth" });
+                        }
+                      }}
+                      className="block w-full text-left px-3 py-2 text-sm text-gray-700 hover:bg-green-50 hover:text-green-700 rounded-md transition-colors"
+                    >
+                      {item.label}
+                    </button>
+                  ))}
+
+                  {/* Auth Buttons */}
+                  <div className="pt-4 border-t border-green-100 space-y-2">
+                    <Link
+                      href="/login"
+                      onClick={() => setIsMobileMenuOpen(false)}
+                      className="block px-3 py-2 text-sm text-gray-700 hover:bg-green-50 hover:text-green-700 rounded-md transition-colors"
+                    >
+                      Login
+                    </Link>
+                    <Link
+                      href="/login"
+                      onClick={() => setIsMobileMenuOpen(false)}
+                      className="block"
+                    >
+                      <Button
+                        className="w-full bg-green-600 hover:bg-green-700 text-white"
+                      >
+                        Sign Up
+                      </Button>
+                    </Link>
+                  </div>
+                </div>
+              )}
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </nav>
   );
 }
